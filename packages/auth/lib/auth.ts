@@ -1,8 +1,16 @@
-import NextAuth from 'next-auth'
+import NextAuth, { NextAuthConfig, NextAuthResult } from 'next-auth'
 import Resend from 'next-auth/providers/resend'
 import db from '@play-money/database'
 import { updateUserById } from '@play-money/users/lib/updateUserById'
 import { PrismaAdapter } from './auth-prisma-adapter'
+
+// Re-declare the internal type that NextAuth uses but doesn't export,
+// so TypeScript can name the inferred type of `auth`.
+declare module 'next-auth' {
+  interface AppRouteHandlerFn {
+    (req: Request, ctx: { params: Record<string, string> }): Promise<Response>
+  }
+}
 
 if (!process.env.NEXTAUTH_URL) {
   throw new Error('NEXTAUTH_URL is not set')
@@ -16,7 +24,8 @@ const useSecureCookies = process.env.NEXTAUTH_URL.startsWith('https://')
 const cookiePrefix = useSecureCookies ? '__Secure-' : ''
 const hostName = new URL(process.env.NEXTAUTH_URL).hostname
 
-export const { handlers, signIn, signOut, auth } = NextAuth({
+const nextAuthConfig: NextAuthConfig = {
+  trustHost: true,
   adapter: PrismaAdapter(db),
   pages: {
     signIn: '/login',
@@ -62,4 +71,10 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
       return true
     },
   },
-})
+}
+
+const nextAuth = NextAuth(nextAuthConfig)
+export const signIn: NextAuthResult['signIn'] = nextAuth.signIn
+export const auth: NextAuthResult['auth'] = nextAuth.auth
+export const handlers: NextAuthResult['handlers'] = nextAuth.handlers
+export const signOut: NextAuthResult['signOut'] = nextAuth.signOut

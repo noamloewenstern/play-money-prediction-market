@@ -36,6 +36,10 @@
     "test:watch": {
       "cache": false
     },
-    "build:storybook": {}
+    "build:storybook": {},
+    "start": {
+      "cache": true,
+      "persistent": true
+    }
   }
 }

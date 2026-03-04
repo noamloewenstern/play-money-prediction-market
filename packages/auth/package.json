@@ -11,7 +11,7 @@
     "@auth/prisma-adapter": "^2.0.0",
     "@play-money/database": "*",
     "lucide-react": "^0.378.0",
-    "next-auth": "^5.0.0-beta.17",
+    "next-auth": "^5.0.0-beta.30",
     "zod": "^3.23.5"
   }
 }
