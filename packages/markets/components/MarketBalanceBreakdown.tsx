@@ -23,7 +23,7 @@ const transactionLabels: Record<string, string> = {
 
 const sumTransactionSubtotals = (
   balance: { subtotals: Record<string, number> } | undefined,
-  transactionTypes: string[]
+  transactionTypes: Array<string>
 ): number => {
   if (!balance || !balance.subtotals) return 0
   return transactionTypes.reduce((sum, type) => sum + (balance.subtotals[type] || 0), 0)

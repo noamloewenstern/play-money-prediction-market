@@ -48,7 +48,7 @@ type Action =
       toastId?: ToasterToast['id']
     }
 
-interface ToastState {
+type ToastState = {
   toasts: Array<ToasterToast>
 }
 

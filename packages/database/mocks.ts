@@ -21,7 +21,7 @@ import {
 declare namespace Intl {
   type Key = 'calendar' | 'collation' | 'currency' | 'numberingSystem' | 'timeZone' | 'unit'
 
-  function supportedValuesOf(input: Key): string[]
+  function supportedValuesOf(input: Key): Array<string>
 
   type DateTimeFormatOptions = {
     timeZone: string
@@ -51,6 +51,7 @@ export function mockUser(overrides?: Partial<User>): User {
     referralCode: faker.string.uuid(),
     referredBy: null,
     role: 'USER',
+    suspendedAt: null,
     timezone: faker.helpers.arrayElement(Intl.supportedValuesOf('timeZone')),
     ...overrides,
   }

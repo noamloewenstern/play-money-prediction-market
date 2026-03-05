@@ -1,7 +1,7 @@
 import React, { createContext, useState, useContext, ReactNode } from 'react'
 
 // Define the context type
-interface SidebarContextType {
+type SidebarContextType = {
   effect: boolean
   triggerEffect: () => void
   resetEffect: () => void
@@ -11,7 +11,7 @@ interface SidebarContextType {
 const SidebarContext = createContext<SidebarContextType | undefined>(undefined)
 
 // Provider component
-interface SidebarProviderProps {
+type SidebarProviderProps = {
   children: ReactNode
 }
 

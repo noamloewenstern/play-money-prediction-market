@@ -6,7 +6,7 @@ import { User } from '@play-money/database'
 import { useUser } from '@play-money/users/context/UserContext'
 import { useSearchParam } from '../../ui/src/hooks/useSearchParam'
 
-interface ReferralContextType {
+type ReferralContextType = {
   referringUser: User | null
   isLoading: boolean
   clear: () => void

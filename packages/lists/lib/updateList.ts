@@ -11,8 +11,8 @@ export async function updateList({
   id: string
   title?: string
   description?: string
-  marketIds?: string[]
-  tags?: string[]
+  marketIds?: Array<string>
+  tags?: Array<string>
   ownerId?: string
 }) {
   const updatedData: Partial<List> = {}

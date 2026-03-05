@@ -7,6 +7,8 @@ import { createUser } from '@play-money/users/lib/createUser'
 export function PrismaAdapter(
   prisma: PrismaClient<typeof clientOptions> | ReturnType<PrismaClient['$extends']>
 ): Adapter {
+  // PrismaClient.$extends() returns a different type than PrismaClient, but the adapter
+  // only uses standard model methods. Cast is required for NextAuth adapter compatibility.
   const p = prisma as unknown as PrismaClient
   return {
     // We need to let Prisma generate the ID because our default UUID is incompatible with MongoDB
@@ -25,6 +27,8 @@ export function PrismaAdapter(
     },
     updateUser: ({ id, ...data }) => p.user.update({ where: { id }, data }) as Promise<AdapterUser>,
     deleteUser: (id) => p.user.delete({ where: { id } }) as Promise<AdapterUser>,
+    // Prisma AuthAccount model differs from NextAuth's AdapterAccount type (extra fields, different nullability).
+    // These casts are required for NextAuth adapter compatibility.
     linkAccount: (data) => p.authAccount.create({ data }) as unknown as AdapterAccount,
     unlinkAccount: (provider_providerAccountId) =>
       p.authAccount.delete({
@@ -44,7 +48,7 @@ export function PrismaAdapter(
     deleteSession: (sessionToken) => p.session.delete({ where: { sessionToken } }),
     async createVerificationToken(data) {
       const verificationToken = await p.verificationToken.create({ data })
-      // @ts-expect-errors // MongoDB needs an ID, but we don't
+      // @ts-expect-error -- MongoDB needs an ID, but we don't
       if (verificationToken.id) delete verificationToken.id
       return verificationToken
     },
@@ -53,7 +57,7 @@ export function PrismaAdapter(
         const verificationToken = await p.verificationToken.delete({
           where: { identifier_token },
         })
-        // @ts-expect-errors // MongoDB needs an ID, but we don't
+        // @ts-expect-error -- MongoDB needs an ID, but we don't
         if (verificationToken.id) delete verificationToken.id
         return verificationToken
       } catch (error) {

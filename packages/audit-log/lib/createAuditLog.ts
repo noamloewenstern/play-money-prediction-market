@@ -1,5 +1,5 @@
+import { AuditLogAction, Prisma } from '@prisma/client'
 import db from '@play-money/database'
-import { AuditLogAction } from '@play-money/database'
 
 export async function createAuditLog({
   action,
@@ -14,9 +14,9 @@ export async function createAuditLog({
   actorId: string
   targetType: string
   targetId: string
-  before?: Record<string, unknown>
-  after?: Record<string, unknown>
-  metadata?: Record<string, unknown>
+  before?: Prisma.InputJsonValue | null
+  after?: Prisma.InputJsonValue | null
+  metadata?: Prisma.InputJsonValue | null
 }) {
   return db.auditLog.create({
     data: {
@@ -24,9 +24,9 @@ export async function createAuditLog({
       actorId,
       targetType,
       targetId,
-      before: before ?? undefined,
-      after: after ?? undefined,
-      metadata: metadata ?? undefined,
+      before: before ?? Prisma.JsonNull,
+      after: after ?? Prisma.JsonNull,
+      metadata: metadata ?? Prisma.JsonNull,
     },
   })
 }

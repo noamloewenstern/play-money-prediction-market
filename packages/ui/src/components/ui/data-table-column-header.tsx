@@ -4,7 +4,7 @@ import React from 'react'
 import { cn } from '../../lib/utils'
 import { Button } from './button'
 
-interface DataTableColumnHeaderProps<TData, TValue> extends React.HTMLAttributes<HTMLDivElement> {
+type DataTableColumnHeaderProps<TData, TValue> = React.HTMLAttributes<HTMLDivElement> & {
   column: Column<TData, TValue>
   title: string
 }

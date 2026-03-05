@@ -1,6 +1,6 @@
 import db from '@play-money/database'
 
-export async function getUniqueTraderIds(marketId: string, ignoreIds: string[] = []): Promise<string[]> {
+export async function getUniqueTraderIds(marketId: string, ignoreIds: Array<string> = []): Promise<Array<string>> {
   const result = await db.transaction.findMany({
     where: {
       type: {

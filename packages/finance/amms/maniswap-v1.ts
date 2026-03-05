@@ -15,8 +15,8 @@ export async function getAccountBalance({
   accountId: string
   currencyCode: CurrencyCodeType
   marketId?: string
-  excludeTransactionTypes?: string[]
-  includeTransactionTypes?: string[]
+  excludeTransactionTypes?: Array<string>
+  includeTransactionTypes?: Array<string>
 }): Promise<Decimal> {
   const transactionItems = await db.transactionItem.findMany({
     where: {

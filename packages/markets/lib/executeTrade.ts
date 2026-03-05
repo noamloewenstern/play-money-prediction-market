@@ -72,13 +72,13 @@ export async function executeTrade({
   let receivedShares = new Decimal(0)
   let maximumSaneLoops = 100
   while (outstandingShares.toDecimalPlaces(4).greaterThan(0) && maximumSaneLoops > 0) {
-    let closestLimitOrder = {} as any // TODO: Implement limit order matching
+    const closestLimitOrder = null as { probability?: Decimal } | null // TODO: Implement limit order matching
 
     const amountToTrade = closestLimitOrder?.probability
       ? (
           await quote({
             amount: outstandingShares,
-            probability: closestLimitOrder?.probability ?? (isBuy ? 0.99 : 0.01),
+            probability: closestLimitOrder.probability ?? new Decimal(isBuy ? 0.99 : 0.01),
             targetShare: marketOptionBalance.total,
             shares: ammAssetBalances.map((balance) => balance.total),
           })

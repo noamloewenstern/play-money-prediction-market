@@ -41,7 +41,7 @@ export function MarketSellForm({
   const form = useForm<FormData>({
     resolver: zodResolver(FormSchema),
     defaultValues: {
-      amount: '' as unknown as number, // Fix uncontrolled component error
+      amount: undefined as unknown as number,
       optionId: options[0].id,
     },
   })

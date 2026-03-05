@@ -6,7 +6,7 @@ import { User } from '@play-money/database'
 
 const PRISMA_DEFAULT_TIMEZONE = 'America/Los_Angeles'
 
-interface UserContextType {
+type UserContextType = {
   user: User | null
   setUser: (user: User | null) => void
 }

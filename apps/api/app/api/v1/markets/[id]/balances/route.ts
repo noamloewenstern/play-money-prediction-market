@@ -45,7 +45,7 @@ export async function GET(
           },
         },
         take: 5,
-      }) as unknown as Array<NetBalance>,
+      }) as unknown as Array<NetBalance>, // Prisma result includes `account` relation not in NetBalance type
       userAccount
         ? (db.balance.findFirst({
             where: {
@@ -61,7 +61,7 @@ export async function GET(
                 },
               },
             },
-          }) as unknown as NetBalance | undefined)
+          }) as unknown as NetBalance | undefined) // Prisma result includes `account` relation not in NetBalance type
         : undefined,
     ])
 

@@ -7,7 +7,7 @@ import { createDailyCommentBonusTransaction } from '@play-money/quests/lib/creat
 import { hasCommentedToday } from '@play-money/quests/lib/helpers'
 import { getUserPrimaryAccount } from '@play-money/users/lib/getUserPrimaryAccount'
 
-function extractUniqueMentionIds(htmlString: string): string[] {
+function extractUniqueMentionIds(htmlString: string): Array<string> {
   const mentionRegex = /<mention[^>]*data-id="([^"]*)"[^>]*>/g
   const uniqueIds = new Set<string>()
 

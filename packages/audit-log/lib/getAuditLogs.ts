@@ -1,5 +1,5 @@
+import { AuditLogAction } from '@prisma/client'
 import db from '@play-money/database'
-import { AuditLogAction } from '@play-money/database'
 
 export type AuditLogWithActor = Awaited<ReturnType<typeof getAuditLogs>>['auditLogs'][number]
 

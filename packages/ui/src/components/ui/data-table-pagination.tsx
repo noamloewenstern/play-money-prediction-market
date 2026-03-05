@@ -9,7 +9,7 @@ import { Button } from './button'
 import type { PageInfo } from './data-table'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from './select'
 
-interface DataTablePaginationProps<TData> {
+type DataTablePaginationProps<TData> = {
   table: Table<TData>
 }
 

@@ -28,7 +28,7 @@ export function slugifyTitle(title: string, maxLen = 50) {
   return slug
 }
 
-export interface Option {
+export type Option = {
   value: string
   label: string
   disable?: boolean
@@ -39,7 +39,7 @@ export interface Option {
 }
 type GroupOption = Record<string, Array<Option>>
 
-interface MultiSelectProps {
+type MultiSelectProps = {
   value?: Array<Option>
   defaultOptions?: Array<Option>
   /** manually controlled options */
@@ -93,7 +93,7 @@ interface MultiSelectProps {
   hideClearAllButton?: boolean
 }
 
-export interface MultiSelectRef {
+export type MultiSelectRef = {
   selectedValue: Array<Option>
   input: HTMLInputElement
 }

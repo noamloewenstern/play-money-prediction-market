@@ -32,7 +32,7 @@ export type PageInfo = {
   total: number
 }
 
-interface DataTableProps<TData, TValue> {
+type DataTableProps<TData, TValue> = {
   columns: Array<ColumnDef<TData, TValue>>
   data: Array<TData>
   pageInfo: PageInfo

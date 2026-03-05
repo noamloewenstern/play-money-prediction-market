@@ -188,7 +188,7 @@ function splitTransactionGroup(
   granularityDays: number
 ): Array<MarketActivity> {
   const result: Array<MarketActivity> = []
-  let currentTransactions: any[] = []
+  let currentTransactions: Array<any> = []
   let currentTimestamp = group.transactions![0].createdAt
 
   for (const transaction of group.transactions!) {

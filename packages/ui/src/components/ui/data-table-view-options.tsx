@@ -14,7 +14,7 @@ import {
   DropdownMenuTrigger,
 } from './dropdown-menu'
 
-interface DataTableViewOptionsProps<TData> {
+type DataTableViewOptionsProps<TData> = {
   table: Table<TData>
 }
 

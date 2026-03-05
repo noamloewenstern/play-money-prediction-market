@@ -12,7 +12,7 @@ export type Quest = {
   completed: boolean
 }
 
-export function QuestCard({ quests }: { quests: Quest[] }) {
+export function QuestCard({ quests }: { quests: Array<Quest> }) {
   const numComplete = quests.filter((quest) => quest.completed).length
   const allComplete = numComplete === quests.length
 

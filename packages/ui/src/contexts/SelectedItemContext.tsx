@@ -3,7 +3,7 @@
 import React, { createContext, useContext } from 'react'
 import { useSearchParam } from '../hooks/useSearchParam'
 
-interface SelectedItemsContextProps {
+type SelectedItemsContextProps = {
   selected: Array<string>
   setSelected: (value: Array<string>) => void
 }

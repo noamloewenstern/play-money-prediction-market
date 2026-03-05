@@ -44,7 +44,7 @@ export async function getUserTotalTimeSeries({
   const tickIntervalMs = tickInterval * 60 * 60 * 1000
   const numBuckets = Math.ceil((endAt.getTime() - startAt.getTime()) / tickIntervalMs)
 
-  const buckets: Bucket[] = Array.from({ length: numBuckets }, (_, i) => ({
+  const buckets: Array<Bucket> = Array.from({ length: numBuckets }, (_, i) => ({
     startAt: new Date(startAt.getTime() + i * tickIntervalMs),
     endAt: new Date(startAt.getTime() + (i + 1) * tickIntervalMs),
     transactionEntries: [],
