@@ -1,6 +1,13 @@
 'use client'
 
-import _ from 'lodash'
+import filter from 'lodash/filter'
+import flatMap from 'lodash/flatMap'
+import groupBy from 'lodash/groupBy'
+import map from 'lodash/map'
+import max from 'lodash/max'
+import sumBy from 'lodash/sumBy'
+import truncate from 'lodash/truncate'
+import uniqBy from 'lodash/uniqBy'
 import { DiamondPlusIcon, CoinsIcon } from 'lucide-react'
 import Link from 'next/link'
 import { useSiteActivity } from '@play-money/api-helpers/client/hooks'
@@ -16,13 +23,11 @@ function isNotNull<T>(value: T | null): value is T {
 }
 
 function summarizeTransactions(transactions: Array<TransactionWithEntries>) {
-  const highestTotal =
-    _(transactions)
-      .flatMap('entries')
-      .filter((entry) => entry.assetType === 'CURRENCY' && entry.assetId === 'PRIMARY')
-      .groupBy('toAccountId')
-      .map((entries) => _.sumBy(entries, (e) => Number(e.amount)))
-      .max() || 0
+  const allEntries = flatMap(transactions, 'entries')
+  const currencyEntries = filter(allEntries, (entry) => entry.assetType === 'CURRENCY' && entry.assetId === 'PRIMARY')
+  const grouped = groupBy(currencyEntries, 'toAccountId')
+  const totals = map(grouped, (entries) => sumBy(entries, (e) => Number(e.amount)))
+  const highestTotal = max(totals) || 0
   return highestTotal
 }
 
@@ -34,11 +39,13 @@ export function SiteActivity() {
     <div className="space-y-4">
       {activities.map((activity, i) => {
         if (activity.type === 'TRADE_TRANSACTION' && activity.transactions?.length && activity.option) {
-          const uniqueInitiators = _(activity.transactions)
-            .map((t) => t.initiator)
-            .uniqBy('id')
-            .filter(isNotNull)
-            .value()
+          const uniqueInitiators = filter(
+            uniqBy(
+              activity.transactions.map((t) => t.initiator),
+              'id'
+            ),
+            isNotNull
+          )
 
           const transactionDescriptor: Array<string> = []
           if (activity.transactions.some((transaction) => transaction.type === 'TRADE_BUY')) {
@@ -58,7 +65,7 @@ export function SiteActivity() {
               <UsersCondensedList users={uniqueInitiators} /> {transactionDescriptor.join(' & ')}{' '}
               <span className="font-medium text-foreground">
                 <CurrencyDisplay value={summarizeTransactions(activity.transactions)} />{' '}
-                {_.truncate(activity.option.name, { length: 40 })}
+                {truncate(activity.option.name, { length: 40 })}
               </span>{' '}
               {activity.transactions[0].market ? (
                 <>
@@ -69,7 +76,7 @@ export function SiteActivity() {
                       legacyBehavior
                       key={activity.transactions[0].id}
                     >
-                      {_.truncate(activity.transactions[0].market.question, { length: 50 })}
+                      {truncate(activity.transactions[0].market.question, { length: 50 })}
                     </Link>
                   </span>
                 </>
@@ -77,11 +84,13 @@ export function SiteActivity() {
             </SiteActivityItem>
           )
         } else if (activity.type === 'LIQUIDITY_TRANSACTION' && activity.transactions?.length) {
-          const uniqueInitiators = _(activity.transactions)
-            .map((t) => t.initiator)
-            .uniqBy('id')
-            .filter(isNotNull)
-            .value()
+          const uniqueInitiators = filter(
+            uniqBy(
+              activity.transactions.map((t) => t.initiator),
+              'id'
+            ),
+            isNotNull
+          )
 
           return (
             <SiteActivityItem
@@ -102,7 +111,7 @@ export function SiteActivity() {
                       legacyBehavior
                       key={activity.transactions[0].id}
                     >
-                      {_.truncate(activity.transactions[0].market.question, { length: 50 })}
+                      {truncate(activity.transactions[0].market.question, { length: 50 })}
                     </Link>
                   </span>
                 </>
@@ -127,7 +136,7 @@ export function SiteActivity() {
                       legacyBehavior
                       key={activity.market.id}
                     >
-                      {_.truncate(activity.market.question, { length: 50 })}
+                      {truncate(activity.market.question, { length: 50 })}
                     </Link>
                   </span>
                 </>
@@ -151,7 +160,7 @@ export function SiteActivity() {
                     legacyBehavior
                     key={activity.marketResolution.market.id}
                   >
-                    {_.truncate(activity.marketResolution.market.question, { length: 50 })}
+                    {truncate(activity.marketResolution.market.question, { length: 50 })}
                   </Link>
                 </span>
               ) : null}{' '}
@@ -170,7 +179,7 @@ export function SiteActivity() {
               <UserLink user={activity.list.owner} hideUsername className="text-foreground" /> created{' '}
               <span className="underline">
                 <Link href={`/lists/${activity.list.id}/${activity.list.slug}`} legacyBehavior key={activity.list.id}>
-                  {_.truncate(activity.list.title, { length: 50 })}
+                  {truncate(activity.list.title, { length: 50 })}
                 </Link>
               </span>
             </SiteActivityItem>

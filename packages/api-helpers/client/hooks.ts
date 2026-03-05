@@ -102,7 +102,7 @@ export const MY_NOTIFICATIONS_PATH = '/v1/users/me/notifications'
 export function useNotifications({ skip = false }: { skip?: boolean }) {
   return useSWR<{ data: { unreadCount: number; notifications: Array<NotificationGroupWithLastNotification> } }>(
     !skip ? MY_NOTIFICATIONS_PATH : null,
-    { refreshInterval: FIVE_MINUTES }
+    { refreshInterval: FIVE_MINUTES, refreshWhenHidden: false }
   )
 }
 
@@ -112,7 +112,9 @@ export function useUserStats({ userId, skip = false }: { userId: string; skip?: 
 
 export const MY_BALANCE_PATH = '/v1/users/me/balance'
 export function useMyBalance({ skip = false }: { skip?: boolean }) {
-  return useSWR<{ data: { balance: number } }>(!skip ? '/v1/users/me/balance' : null)
+  return useSWR<{ data: { balance: number } }>(!skip ? '/v1/users/me/balance' : null, {
+    refreshWhenHidden: false,
+  })
 }
 
 export function useUserGraph({ userId }: { userId: string }) {

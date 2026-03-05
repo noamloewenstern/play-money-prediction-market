@@ -1,9 +1,10 @@
-import _ from 'lodash'
+import groupBy from 'lodash/groupBy'
+import orderBy from 'lodash/orderBy'
 
 const ROOT_KEY = 'ROOT'
 
 export function flattenReplies<C extends { id: string; parentId?: string | null }>(comments: Array<C>) {
-  const grouped = _.groupBy(comments, ({ parentId }) => parentId || ROOT_KEY)
+  const grouped = groupBy(comments, ({ parentId }) => parentId || ROOT_KEY)
 
   const buildFlatReplies = (comment: C) => {
     let flatReplies: Array<C> = []
@@ -14,16 +15,17 @@ export function flattenReplies<C extends { id: string; parentId?: string | null 
       flatReplies = flatReplies.concat(buildFlatReplies(child))
     }
 
-    return _.orderBy(flatReplies, 'createdAt', 'asc')
+    return orderBy(flatReplies, 'createdAt', 'asc')
   }
 
   const topLevelComments = grouped[ROOT_KEY] || []
 
-  return _(topLevelComments)
-    .map((comment) => ({
+  return orderBy(
+    topLevelComments.map((comment) => ({
       ...comment,
       replies: buildFlatReplies(comment),
-    }))
-    .orderBy('createdAt', 'desc')
-    .value()
+    })),
+    'createdAt',
+    'desc'
+  )
 }

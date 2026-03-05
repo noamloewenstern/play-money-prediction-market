@@ -26,7 +26,7 @@ export async function getBalance({
   assetId: string
   marketId?: string
 }): Promise<NetBalance> {
-  const balance = db.balance.findFirst({
+  const balance = await db.balance.findFirst({
     where: {
       accountId,
       assetType,
@@ -82,18 +82,27 @@ export async function getListBalances({
     },
   })
 
-  const balances = await Promise.all(
-    (list?.markets ?? []).map((market) => {
-      return Promise.all([
-        getBalance({ accountId, assetType: 'CURRENCY', assetId: 'PRIMARY', marketId: market.market.id }),
-        ...market.market.options.map((option) => {
-          return getBalance({ accountId, assetType: 'MARKET_OPTION', assetId: option.id, marketId: market.market.id })
-        }),
-      ])
-    })
-  )
+  if (!list?.markets.length) {
+    return []
+  }
 
-  return balances.flat().filter((x) => x !== null)
+  const conditions = list.markets.flatMap((m) => [
+    { assetType: 'CURRENCY' as const, assetId: 'PRIMARY', marketId: m.market.id },
+    ...m.market.options.map((option) => ({
+      assetType: 'MARKET_OPTION' as const,
+      assetId: option.id,
+      marketId: m.market.id,
+    })),
+  ])
+
+  const balances = await db.balance.findMany({
+    where: {
+      accountId,
+      OR: conditions,
+    },
+  })
+
+  return balances as unknown as Array<NetBalance>
 }
 
 export function transformMarketBalancesToNumbers(balances: Array<NetBalance> = []): Array<NetBalanceAsNumbers> {

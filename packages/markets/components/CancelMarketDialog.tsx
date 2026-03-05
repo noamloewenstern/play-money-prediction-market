@@ -50,11 +50,11 @@ export const CancelMarketDialog = ({
       form.reset()
       onClose()
       onSuccess?.()
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Failed to resolve market:', error)
       toast({
         title: 'There was an issue canceling the market',
-        description: error.message || 'Please retry',
+        description: error instanceof Error ? error.message : 'Please try again later',
         variant: 'destructive',
       })
     }

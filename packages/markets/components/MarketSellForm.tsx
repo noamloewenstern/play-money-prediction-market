@@ -2,7 +2,8 @@
 
 import { zodResolver } from '@hookform/resolvers/zod'
 import Decimal from 'decimal.js'
-import _ from 'lodash'
+import orderBy from 'lodash/orderBy'
+import truncate from 'lodash/truncate'
 import React, { useState, useEffect } from 'react'
 import { useForm } from 'react-hook-form'
 import z from 'zod'
@@ -55,11 +56,11 @@ export function MarketSellForm({
       form.reset({ amount: 0 })
       setQuote(null)
       onComplete?.()
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Failed to place bet:', error)
       toast({
         title: 'There was an issue selling shares',
-        description: error.message || 'Please try again later',
+        description: error instanceof Error ? error.message : 'Please try again later',
         variant: 'destructive',
       })
     }
@@ -102,10 +103,11 @@ export function MarketSellForm({
     return () => subscription.unsubscribe()
   }, [form, options])
 
-  const proportionateCost =
-    (form.getValues('amount') * (selectedPosition?.cost || 0)) / (selectedPosition?.quantity || 0)
+  const proportionateCost = selectedPosition?.quantity
+    ? (form.getValues('amount') * (selectedPosition?.cost || 0)) / selectedPosition.quantity
+    : 0
   const disabled = !selectedPosition || new Decimal(selectedPosition.quantity).toDecimalPlaces(4).lte(0)
-  const orderedOptions = _.orderBy(options, 'createdAt')
+  const orderedOptions = orderBy(options, 'createdAt')
 
   return (
     <Form {...form}>
@@ -179,7 +181,7 @@ export function MarketSellForm({
         />
 
         <Button type="submit" className="w-full truncate" loading={form.formState.isSubmitting} disabled={disabled}>
-          Sell {_.truncate(selectedOption?.name, { length: 20 })}
+          Sell {truncate(selectedOption?.name, { length: 20 })}
         </Button>
 
         <ul className="grid gap-1 text-sm">

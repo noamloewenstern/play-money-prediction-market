@@ -1,5 +1,5 @@
 import Decimal from 'decimal.js'
-import _ from 'lodash'
+import shuffle from 'lodash/shuffle'
 import db, { Market } from '@play-money/database'
 import { QuestionContributionPolicyType } from '@play-money/database/zod/inputTypeSchemas/QuestionContributionPolicySchema'
 import { getBalance } from '@play-money/finance/lib/getBalances'
@@ -40,9 +40,12 @@ export async function createList({
   contributionPolicy: QuestionContributionPolicyType
 }) {
   const slug = slugifyTitle(title)
+  if (markets.length === 0) {
+    throw new Error('List must have at least one market')
+  }
   const totalCost = calculateTotalCost(markets.length)
   const costPerMarket = new Decimal(totalCost).div(markets.length)
-  const SHUFFLED_COLORS = _.shuffle(COLORS)
+  const SHUFFLED_COLORS = shuffle(COLORS)
 
   const userAccount = await getUserPrimaryAccount({ userId: ownerId })
   const userPrimaryBalance = await getBalance({

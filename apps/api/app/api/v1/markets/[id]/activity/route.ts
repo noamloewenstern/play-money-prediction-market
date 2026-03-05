@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server'
 import type { SchemaResponse } from '@play-money/api-helpers'
-import { CommentNotFoundError } from '@play-money/comments/lib/exceptions'
+import { MarketNotFoundError } from '@play-money/markets/lib/exceptions'
 import { getActivityOnMarket } from '@play-money/markets/lib/getActivityOnMarket'
 import schema from './schema'
 
@@ -17,7 +17,7 @@ export async function GET(
 
     return NextResponse.json({ data })
   } catch (error) {
-    if (error instanceof CommentNotFoundError) {
+    if (error instanceof MarketNotFoundError) {
       return NextResponse.json({ error: error.message }, { status: 404 })
     }
 

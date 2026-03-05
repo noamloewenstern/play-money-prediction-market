@@ -1,7 +1,7 @@
 'use client'
 
 import type { Table } from '@tanstack/react-table'
-import _ from 'lodash'
+import startCase from 'lodash/startCase'
 import { Settings2 } from 'lucide-react'
 import React from 'react'
 import { Button } from './button'
@@ -46,7 +46,7 @@ export function DataTableViewOptions<TData>({ table }: DataTableViewOptionsProps
                   e.preventDefault()
                 }}
               >
-                {_.startCase(column.id)}
+                {startCase(column.id)}
               </DropdownMenuCheckboxItem>
             )
           })}

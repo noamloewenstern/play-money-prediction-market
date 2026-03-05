@@ -1,7 +1,7 @@
 'use client'
 
 import { zodResolver } from '@hookform/resolvers/zod'
-import _ from 'lodash'
+import shuffle from 'lodash/shuffle'
 import { GavelIcon } from 'lucide-react'
 import React from 'react'
 import { useForm } from 'react-hook-form'
@@ -57,7 +57,7 @@ export const AddMoreListDialog = ({
     resolver: zodResolver(FormSchema),
     defaultValues: {
       question: '',
-      color: _.shuffle(COLORS)[0],
+      color: shuffle(COLORS)[0],
     },
   })
 
@@ -67,7 +67,7 @@ export const AddMoreListDialog = ({
 
   const onSubmit = async (data: FormData) => {
     try {
-      const colors = _.shuffle(COLORS)
+      const colors = shuffle(COLORS)
       await createListMarket(
         { listId: list.id },
         {
@@ -85,11 +85,11 @@ export const AddMoreListDialog = ({
       form.reset()
       onSuccess?.()
       onClose()
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Failed to edit market option:', error)
       toast({
         title: 'There was an issue adding the question',
-        description: error.message ?? 'Please try again later',
+        description: error instanceof Error ? error.message : 'Please try again later',
         variant: 'destructive',
       })
     }

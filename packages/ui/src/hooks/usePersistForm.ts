@@ -1,13 +1,13 @@
 'use client'
 
-import _ from 'lodash'
+import isEmpty from 'lodash/isEmpty'
 import { useEffect } from 'react'
 
 export const usePersistForm = ({ value, localStorageKey }: { value: unknown; localStorageKey: string }) => {
   'use client'
 
   useEffect(() => {
-    if (_.isEmpty(value)) {
+    if (isEmpty(value)) {
       localStorage.removeItem(localStorageKey)
     } else {
       localStorage.setItem(localStorageKey, JSON.stringify(value))
@@ -33,7 +33,7 @@ export const getPersistedData = <T>({
   if (data) {
     try {
       const savedData = JSON.parse(data) as T
-      if (_.isEmpty(savedData)) {
+      if (isEmpty(savedData)) {
         return defaultValue
       }
       return savedData

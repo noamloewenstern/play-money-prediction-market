@@ -1,7 +1,8 @@
 'use client'
 
 import { format, isPast } from 'date-fns'
-import _ from 'lodash'
+import orderBy from 'lodash/orderBy'
+import truncate from 'lodash/truncate'
 import { CircleCheckBig, ChevronDown, Link2Icon, ArrowRight } from 'lucide-react'
 import Link from 'next/link'
 import React from 'react'
@@ -50,11 +51,11 @@ function getTextContrast(hex: string): string {
 
 export function MarketOverviewPage({
   market,
-  renderActivitiy,
+  renderActivity,
   onRevalidate,
 }: {
   market: ExtendedMarket
-  renderActivitiy: React.ReactNode
+  renderActivity: React.ReactNode
   onRevalidate: () => Promise<void>
 }) {
   const { user } = useUser()
@@ -75,7 +76,7 @@ export function MarketOverviewPage({
     (prev.probability || 0) > (current.probability || 0) ? prev : current
   )
 
-  const orderedMarketOptions = _.orderBy(market.options, 'createdAt')
+  const orderedMarketOptions = orderBy(market.options, 'createdAt')
 
   const handleRevalidateBalance = async () => {
     void onRevalidate?.()
@@ -138,7 +139,7 @@ export function MarketOverviewPage({
             ) : null}
             {!market.marketResolution && !market.canceledAt ? (
               <div style={{ color: mostLikelyOption.color }} className="flex-shrink-0 font-medium">
-                {Math.round(mostLikelyOption.probability || 0)}% {_.truncate(mostLikelyOption.name, { length: 30 })}
+                {Math.round(mostLikelyOption.probability || 0)}% {truncate(mostLikelyOption.name, { length: 30 })}
               </div>
             ) : null}
             {market.liquidityCount ? (
@@ -276,7 +277,7 @@ export function MarketOverviewPage({
         <div className="mt-2 px-6">
           <CreateCommentForm onSubmit={handleCreateComment} startCollapsed />
         </div>
-        {renderActivitiy}
+        {renderActivity}
 
         <EditMarketDialog
           key={market.updatedAt.toString()} // reset form when market updates

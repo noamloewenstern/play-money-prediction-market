@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server'
 import { stripUndefined, type SchemaResponse } from '@play-money/api-helpers'
 import { getAuthUser } from '@play-money/auth/lib/getAuthUser'
-import { CommentNotFoundError } from '@play-money/comments/lib/exceptions'
+import { MarketNotFoundError } from '@play-money/markets/lib/exceptions'
 import { getMarket } from '@play-money/markets/lib/getMarket'
 import { updateMarket } from '@play-money/markets/lib/updateMarket'
 import { canModifyMarket } from '@play-money/markets/rules'
@@ -62,7 +62,7 @@ export async function PATCH(
 
     return NextResponse.json({ data: updatedMarket })
   } catch (error) {
-    if (error instanceof CommentNotFoundError) {
+    if (error instanceof MarketNotFoundError) {
       return NextResponse.json({ error: error.message }, { status: 404 })
     }
 

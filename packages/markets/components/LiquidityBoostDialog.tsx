@@ -72,11 +72,11 @@ export const LiquidityBoostDialog = ({
       form.reset({ amount: 250 })
       onSuccess?.()
       onClose()
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Failed to add liquidity:', error)
       toast({
         title: 'There was an issue adding liquidity',
-        description: error.message ?? 'Please try again later',
+        description: error instanceof Error ? error.message : 'Please try again later',
         variant: 'destructive',
       })
     }

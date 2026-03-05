@@ -1,4 +1,3 @@
-import _ from 'lodash'
 import { CommentWithReactions } from '@play-money/comments/lib/getComment'
 import { ApiKey, CommentEntityType, List, Market, MarketOption, MarketOptionPosition, User } from '@play-money/database'
 import { NetBalanceAsNumbers } from '@play-money/finance/lib/getBalances'
@@ -30,20 +29,25 @@ async function apiHandler<T>(
     // In client component
     creds.credentials = 'include'
   }
+  const headers = {
+    ...((creds.headers as Record<string, string>) || {}),
+    ...(options?.body ? { 'Content-Type': 'application/json' } : {}),
+  }
   const res = await fetch(url, {
     method: options?.method,
     body: options?.body ? JSON.stringify(options.body) : undefined,
     next: options?.next,
     ...creds,
+    headers,
   } as RequestInit)
 
-  if (!res.ok || res.status >= 400) {
-    const { error } = (await res.json()) as { error: string }
-    throw new Error(error || 'There was an error with this request')
+  if (res.status === 204) {
+    return undefined as T
   }
 
-  if (res.status === 204) {
-    throw new Error('deleted')
+  if (!res.ok) {
+    const { error } = (await res.json()) as { error: string }
+    throw new Error(error || 'There was an error with this request')
   }
 
   return res.json() as Promise<T>
@@ -431,7 +435,7 @@ export async function createMyResourceViewed({
 
 export async function getSearch({ query }: { query: string }) {
   return apiHandler<{ data: { users: Array<User>; markets: Array<Market>; lists: Array<List> } }>(
-    `${process.env.NEXT_PUBLIC_API_URL}/v1/search?query=${query}`
+    `${process.env.NEXT_PUBLIC_API_URL}/v1/search?query=${encodeURIComponent(query)}`
   )
 }
 

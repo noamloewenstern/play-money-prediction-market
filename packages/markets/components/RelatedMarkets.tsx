@@ -1,6 +1,5 @@
 'use client'
 
-import _ from 'lodash'
 import Link from 'next/link'
 import { useMarketRelated } from '@play-money/api-helpers/client/hooks'
 import { MarketProbabilityDetail } from './MarketProbabilityDetail'

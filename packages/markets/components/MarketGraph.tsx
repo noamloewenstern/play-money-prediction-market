@@ -1,5 +1,4 @@
 import { format } from 'date-fns'
-import _ from 'lodash'
 import React from 'react'
 import { LineChart, Line, ResponsiveContainer, YAxis, XAxis, CartesianGrid, Tooltip as ChartTooltip } from 'recharts'
 import { useMarketGraph } from '@play-money/api-helpers/client/hooks'

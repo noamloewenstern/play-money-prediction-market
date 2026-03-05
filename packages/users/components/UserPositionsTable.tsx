@@ -2,7 +2,7 @@
 
 import { ColumnDef } from '@tanstack/react-table'
 import Decimal from 'decimal.js'
-import _ from 'lodash'
+import truncate from 'lodash/truncate'
 import Link from 'next/link'
 import React from 'react'
 import { PageInfo } from '@play-money/api-helpers/types'
@@ -37,7 +37,7 @@ export const columns: Array<ColumnDef<ExtendedMarketPosition>> = [
         <Link href={`/questions/${row.original.market.id}/${row.original.market.slug}`} className="line-clamp-2">
           {quantity.gt(0) ? (
             <>
-              <CurrencyDisplay value={Number(row.original.value)} /> {_.truncate(option.name, { length: 40 })}
+              <CurrencyDisplay value={Number(row.original.value)} /> {truncate(option.name, { length: 40 })}
             </>
           ) : (
             <>Closed</>
@@ -55,7 +55,7 @@ export const columns: Array<ColumnDef<ExtendedMarketPosition>> = [
     cell: ({ row }) => {
       const value = new Decimal(row.original.value).toDecimalPlaces(4)
       const cost = new Decimal(row.original.cost).toDecimalPlaces(4)
-      const change = value.sub(cost).div(cost).times(100).round().toNumber()
+      const change = cost.isZero() ? 0 : value.sub(cost).div(cost).times(100).round().toNumber()
       const changeLabel = `(${change > 0 ? '+' : ''}${change}%)`
       const quantity = new Decimal(row.original.quantity).toDecimalPlaces(4)
 

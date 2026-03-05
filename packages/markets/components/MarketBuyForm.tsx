@@ -1,7 +1,8 @@
 'use client'
 
 import { zodResolver } from '@hookform/resolvers/zod'
-import _ from 'lodash'
+import orderBy from 'lodash/orderBy'
+import truncate from 'lodash/truncate'
 import React, { useState, useEffect } from 'react'
 import { useForm } from 'react-hook-form'
 import z from 'zod'
@@ -49,11 +50,11 @@ export function MarketBuyForm({
       form.reset({ amount: DAILY_TRADE_BONUS_PRIMARY })
       setQuote(null)
       onComplete?.()
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Failed to place bet:', error)
       toast({
         title: 'There was an issue placing your bet',
-        description: error.message || 'Please try again later',
+        description: error instanceof Error ? error.message : 'Please try again later',
         variant: 'destructive',
       })
     }
@@ -88,7 +89,7 @@ export function MarketBuyForm({
     return () => subscription.unsubscribe()
   }, [form, options])
 
-  const orderedOptions = _.orderBy(options, 'createdAt')
+  const orderedOptions = orderBy(options, 'createdAt')
 
   return (
     <Form {...form}>
@@ -172,7 +173,7 @@ export function MarketBuyForm({
         />
 
         <Button type="submit" className="w-full truncate" loading={form.formState.isSubmitting}>
-          Buy {_.truncate(selectedOption?.name, { length: 20 })}
+          Buy {truncate(selectedOption?.name, { length: 20 })}
         </Button>
 
         <ul className="grid gap-1 text-sm">

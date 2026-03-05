@@ -1,7 +1,7 @@
 'use client'
 
 import { ColumnDef } from '@tanstack/react-table'
-import _ from 'lodash'
+import truncate from 'lodash/truncate'
 import { PageInfo } from '@play-money/api-helpers'
 import { User } from '@play-money/database'
 import { CurrencyDisplay } from '@play-money/finance/components/CurrencyDisplay'
@@ -43,7 +43,7 @@ export const columns: Array<ColumnDef<TransactionWithEntries>> = [
           {type === 'TRADE_BUY' ? 'bought' : type === 'TRADE_SELL' ? 'sold' : ''}
           <span className="font-semibold">
             <CurrencyDisplay value={Math.abs(primaryChange?.change ?? 0)} isShort />{' '}
-            {_.truncate(optionName, { length: 30 })}
+            {truncate(optionName, { length: 30 })}
           </span>
         </div>
       )

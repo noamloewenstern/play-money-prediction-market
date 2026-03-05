@@ -72,11 +72,11 @@ export const EditMarketDialog = ({
       form.reset()
       onSuccess?.()
       onClose()
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Failed to edit market:', error)
       toast({
         title: 'There was an issue editing the market',
-        description: error.message ?? 'Please try again later',
+        description: error instanceof Error ? error.message : 'Please try again later',
         variant: 'destructive',
       })
     }

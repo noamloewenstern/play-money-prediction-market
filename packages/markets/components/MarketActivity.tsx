@@ -1,4 +1,10 @@
-import _ from 'lodash'
+import flatMap from 'lodash/flatMap'
+import filter from 'lodash/filter'
+import groupBy from 'lodash/groupBy'
+import map from 'lodash/map'
+import max from 'lodash/max'
+import sumBy from 'lodash/sumBy'
+import uniqBy from 'lodash/uniqBy'
 import { DiamondPlusIcon, CoinsIcon } from 'lucide-react'
 import { revalidateTag } from 'next/cache'
 import { getMarketActivity } from '@play-money/api-helpers/client'
@@ -15,13 +21,11 @@ function isNotNull<T>(value: T | null): value is T {
 }
 
 function summarizeTransactions(transactions: Array<TransactionWithEntries>) {
-  const highestTotal =
-    _(transactions)
-      .flatMap('entries')
-      .filter((entry) => entry.assetType === 'CURRENCY' && entry.assetId === 'PRIMARY')
-      .groupBy('toAccountId')
-      .map((entries) => _.sumBy(entries, (e) => Number(e.amount)))
-      .max() || 0
+  const allEntries = flatMap(transactions, 'entries')
+  const currencyEntries = filter(allEntries, (entry) => entry.assetType === 'CURRENCY' && entry.assetId === 'PRIMARY')
+  const grouped = groupBy(currencyEntries, 'toAccountId')
+  const totals = map(grouped, (entries) => sumBy(entries, (e) => Number(e.amount)))
+  const highestTotal = max(totals) || 0
   return highestTotal
 }
 
@@ -46,11 +50,13 @@ export async function MarketActivity({ marketId }: { marketId: string }) {
             />
           )
         } else if (activity.type === 'TRADE_TRANSACTION' && activity.transactions?.length && activity.option) {
-          const uniqueInitiators = _(activity.transactions)
-            .map((t) => t.initiator)
-            .uniqBy('id')
-            .filter(isNotNull)
-            .value()
+          const uniqueInitiators = filter(
+            uniqBy(
+              activity.transactions.map((t) => t.initiator),
+              'id'
+            ),
+            isNotNull
+          )
 
           const transactionDescriptor: Array<string> = []
           if (activity.transactions.some((transaction) => transaction.type === 'TRADE_BUY')) {
@@ -74,11 +80,13 @@ export async function MarketActivity({ marketId }: { marketId: string }) {
             </MarketActivityItem>
           )
         } else if (activity.type === 'LIQUIDITY_TRANSACTION' && activity.transactions?.length) {
-          const uniqueInitiators = _(activity.transactions)
-            .map((t) => t.initiator)
-            .uniqBy('id')
-            .filter(isNotNull)
-            .value()
+          const uniqueInitiators = filter(
+            uniqBy(
+              activity.transactions.map((t) => t.initiator),
+              'id'
+            ),
+            isNotNull
+          )
 
           return (
             <MarketActivityItem

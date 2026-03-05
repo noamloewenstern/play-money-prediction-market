@@ -3,7 +3,7 @@
 import { zodResolver } from '@hookform/resolvers/zod'
 import { PopoverClose } from '@radix-ui/react-popover'
 import { format, endOfDay, endOfWeek, endOfMonth, endOfYear, addMonths } from 'date-fns'
-import _ from 'lodash'
+import shuffle from 'lodash/shuffle'
 import { ToggleLeftIcon, XIcon, CircleIcon, CircleDotIcon, PlusIcon, AlignLeftIcon } from 'lucide-react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
@@ -72,7 +72,7 @@ export function CreateMarketForm({
   onSuccess?: () => Promise<void>
 }) {
   const { user } = useUser()
-  const [SHUFFLED_COLORS] = useState(_.shuffle(colors))
+  const [SHUFFLED_COLORS] = useState(shuffle(colors))
   const router = useRouter()
   const tzName = /\((?<tz>[A-Za-z\s].*)\)/.exec(new Date().toString())?.groups?.tz ?? null
 

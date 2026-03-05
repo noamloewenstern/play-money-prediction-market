@@ -120,6 +120,9 @@ export function distributeRemainder(arr: Array<Decimal>) {
     return []
   }
   const total = arr.reduce<Decimal>((a, b) => a.plus(b), new Decimal(0))
+  if (total.isZero()) {
+    return arr.map(() => new Decimal(0))
+  }
   const exactPercentages = arr.map((num) => num.div(total).times(100))
 
   const floored = exactPercentages.map((v) => Decimal.floor(v))

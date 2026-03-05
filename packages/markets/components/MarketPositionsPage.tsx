@@ -1,5 +1,7 @@
 import { format, isPast } from 'date-fns'
-import _ from 'lodash'
+import filter from 'lodash/filter'
+import orderBy from 'lodash/orderBy'
+import truncate from 'lodash/truncate'
 import React from 'react'
 import { CurrencyDisplay } from '@play-money/finance/components/CurrencyDisplay'
 import { formatNumber } from '@play-money/finance/lib/formatCurrency'
@@ -22,7 +24,7 @@ export function MarketPositionsPage({
     (prev.probability || 0) > (current.probability || 0) ? prev : current
   )
 
-  const orderedOptions = _.orderBy(market.options, 'createdAt')
+  const orderedOptions = orderBy(market.options, 'createdAt')
 
   return (
     <Card className="flex-1">
@@ -33,7 +35,7 @@ export function MarketPositionsPage({
         <div className="flex flex-row flex-wrap gap-x-4 gap-y-2 text-sm text-muted-foreground md:flex-nowrap">
           {!market.marketResolution ? (
             <div style={{ color: mostLikelyOption.color }} className="flex-shrink-0 font-medium">
-              {Math.round(mostLikelyOption.probability || 0)}% {_.truncate(mostLikelyOption.name, { length: 30 })}
+              {Math.round(mostLikelyOption.probability || 0)}% {truncate(mostLikelyOption.name, { length: 30 })}
             </div>
           ) : null}
           {market.liquidityCount ? (
@@ -58,12 +60,12 @@ export function MarketPositionsPage({
         {positions.length ? (
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
             {orderedOptions.map((option) => {
-              const optionPositions = _.filter(positions, { optionId: option.id })
+              const optionPositions = filter(positions, { optionId: option.id })
 
               return (
                 <Card key={option.id} className="divide-y">
                   <div className="px-4 py-2 text-sm font-medium uppercase text-muted-foreground">{option.name}</div>
-                  {_.orderBy(optionPositions, (position) => Number(position.quantity), 'desc').map((position) => (
+                  {orderBy(optionPositions, (position) => Number(position.quantity), 'desc').map((position) => (
                     <div key={position.id} className="flex flex-row flex-wrap justify-between gap-x-4 px-4 py-1">
                       {position.account.user ? (
                         <div className="flex flex-row items-center gap-2">

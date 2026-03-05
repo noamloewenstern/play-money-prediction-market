@@ -6,7 +6,7 @@ import { useEffect, useState, useCallback } from 'react'
 function getItemFromLocalStorage<T>(key: string) {
   'use client'
 
-  // FIXME: !!!!!!!!!
+  // SSR guard: localStorage is not available during server-side rendering
   if (typeof window === 'undefined') return null
 
   const item = window.localStorage.getItem(key)

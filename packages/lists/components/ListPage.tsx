@@ -1,6 +1,10 @@
 'use client'
 
-import _ from 'lodash'
+import countBy from 'lodash/countBy'
+import flatMap from 'lodash/flatMap'
+import sortBy from 'lodash/sortBy'
+import take from 'lodash/take'
+import toPairs from 'lodash/toPairs'
 import { PlusIcon } from 'lucide-react'
 import Link from 'next/link'
 import React from 'react'
@@ -122,19 +126,14 @@ export function ListPage({
 
         {list.markets.length ? (
           <div className="mt-2 flex flex-wrap gap-2">
-            {_(list.markets)
-              .flatMap((market) => market.market.tags)
-              .countBy()
-              .toPairs()
-              .sortBy(1)
-              .reverse()
-              .take(5)
-              .map(([tag, count]) => (
-                <Link href={`/questions/tagged/${tag}`} key={tag}>
-                  <Badge variant="secondary">{tag}</Badge>
-                </Link>
-              ))
-              .value()}
+            {take(
+              sortBy(toPairs(countBy(flatMap(list.markets, (market) => market.market.tags))), 1).reverse(),
+              5
+            ).map(([tag]) => (
+              <Link href={`/questions/tagged/${tag}`} key={tag}>
+                <Badge variant="secondary">{tag}</Badge>
+              </Link>
+            ))}
           </div>
         ) : null}
       </CardContent>

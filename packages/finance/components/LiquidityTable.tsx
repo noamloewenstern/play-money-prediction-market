@@ -1,7 +1,6 @@
 'use client'
 
 import { ColumnDef } from '@tanstack/react-table'
-import _ from 'lodash'
 import React from 'react'
 import { PageInfo } from '@play-money/api-helpers'
 import { User } from '@play-money/database'

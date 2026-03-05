@@ -1,6 +1,6 @@
 import { format } from 'date-fns'
 import Decimal from 'decimal.js'
-import _ from 'lodash'
+import truncate from 'lodash/truncate'
 import Link from 'next/link'
 import { redirect } from 'next/navigation'
 import React from 'react'
@@ -71,7 +71,7 @@ export async function UserTradesTable({ userId }: { userId: string }) {
                       )}
                     >
                       {transaction.type === 'TRADE_BUY' ? 'Buy' : transaction.type === 'TRADE_SELL' ? 'Sell' : ''}{' '}
-                      {_.truncate(optionName, { length: 30 })}
+                      {truncate(optionName, { length: 30 })}
                     </div>
                     <div>
                       <CurrencyDisplay value={Math.abs(primaryChange?.change ?? 0)} isShort />
@@ -255,7 +255,7 @@ export async function UserProfilePage({
                       positions.map((position) => {
                         const value = new Decimal(position.value).toDecimalPlaces(4)
                         const cost = new Decimal(position.cost).toDecimalPlaces(4)
-                        const change = value.sub(cost).div(cost).times(100).round().toNumber()
+                        const change = cost.isZero() ? 0 : value.sub(cost).div(cost).times(100).round().toNumber()
                         const changeLabel = `(${change > 0 ? '+' : ''}${change}%)`
 
                         return (

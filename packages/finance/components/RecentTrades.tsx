@@ -1,6 +1,7 @@
 'use client'
 
-import _ from 'lodash'
+import take from 'lodash/take'
+import truncate from 'lodash/truncate'
 import Link from 'next/link'
 import { useRecentTrades } from '@play-money/api-helpers/client/hooks'
 import { CurrencyDisplay } from '@play-money/finance/components/CurrencyDisplay'
@@ -14,7 +15,7 @@ export function RecentTrades() {
 
   return (
     <ul className="divide-y divide-muted text-sm">
-      {_.take(transactions, 5).map((transaction) => {
+      {take(transactions, 5).map((transaction) => {
         if (!transaction.initiator) {
           return null
         }
@@ -37,7 +38,7 @@ export function RecentTrades() {
             {transaction.type === 'TRADE_BUY' ? 'bought' : 'sold'}{' '}
             <span className="font-semibold">
               <CurrencyDisplay value={Math.abs(primaryChange?.change ?? 0)} isShort />{' '}
-              {_.truncate(optionName, { length: 40 })}
+              {truncate(optionName, { length: 40 })}
             </span>{' '}
             {transaction.market ? (
               <>
@@ -48,7 +49,7 @@ export function RecentTrades() {
                     legacyBehavior
                     key={transaction.id}
                   >
-                    {_.truncate(transaction.market.question, { length: 60 })}
+                    {truncate(transaction.market.question, { length: 60 })}
                   </Link>
                 </span>
               </>

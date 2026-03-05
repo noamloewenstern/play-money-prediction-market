@@ -1,5 +1,5 @@
 import { format, isPast } from 'date-fns'
-import _ from 'lodash'
+import truncate from 'lodash/truncate'
 import React from 'react'
 import { PageInfo } from '@play-money/api-helpers'
 import { CurrencyDisplay } from '@play-money/finance/components/CurrencyDisplay'
@@ -35,7 +35,7 @@ export function MarketLiquidityPage({
         <div className="flex flex-row flex-wrap gap-x-4 gap-y-2 text-sm text-muted-foreground md:flex-nowrap">
           {!market.marketResolution ? (
             <div style={{ color: mostLikelyOption.color }} className="flex-shrink-0 font-medium">
-              {Math.round(mostLikelyOption.probability || 0)}% {_.truncate(mostLikelyOption.name, { length: 30 })}
+              {Math.round(mostLikelyOption.probability || 0)}% {truncate(mostLikelyOption.name, { length: 30 })}
             </div>
           ) : null}
           {market.liquidityCount ? (

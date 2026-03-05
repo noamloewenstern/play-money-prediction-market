@@ -70,11 +70,11 @@ export const EditListDialog = ({
       form.reset()
       onSuccess?.()
       onClose()
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Failed to edit list:', error)
       toast({
         title: 'There was an issue editing the list',
-        description: error.message ?? 'Please try again later',
+        description: error instanceof Error ? error.message : 'Please try again later',
         variant: 'destructive',
       })
     }
