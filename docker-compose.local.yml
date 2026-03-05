@@ -1,0 +1,11 @@
+# Local dev override — exposes web and api ports to the host.
+#
+# Usage:
+#   docker compose -f docker-compose.prod.yml -f docker-compose.local.yml up -d
+services:
+  web:
+    ports:
+      - "${WEB_PORT:-3000}:3000"
+  api:
+    ports:
+      - "${API_PORT:-3001}:3001"

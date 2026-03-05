@@ -1,16 +1,14 @@
 # Production Docker Compose for Play Money
 #
-# Usage (with Caddy — handles TLS + domain routing):
-#   docker compose -f docker-compose.prod.yml --profile caddy up -d
-#
-# Usage (without Caddy — external proxy like Cloudflare/nginx):
-#   docker compose -f docker-compose.prod.yml -f docker-compose.no-caddy.yml up -d
+# Usage:
+#   docker compose -f docker-compose.prod.yml up -d
 #
 # Required env vars (no defaults — will error if unset):
 #   POSTGRES_PASSWORD, NEXTAUTH_SECRET, NEXT_PUBLIC_WEB_URL, NEXT_PUBLIC_API_URL, NEXTAUTH_URL
 #
-# Additional env vars for Caddy profile:
-#   WEB_DOMAIN (e.g. app.market.com), API_DOMAIN (e.g. api.market.com)
+# Two separate domains expected (e.g. app.market.com → web:3000, api.market.com → api:3001).
+# An external reverse proxy (Cloudflare, nginx, etc.) should route each domain to the
+# corresponding host port (WEB_PORT / API_PORT).
 
 x-ports:
   web: &web-port 3000       # internal port for web container
@@ -136,27 +134,6 @@ services:
       resources:
         limits:
           memory: 512M
-    logging: *default-logging
-
-  caddy:
-    build:
-      context: ./caddy
-      dockerfile: Dockerfile
-    restart: unless-stopped
-    expose:
-      - "80"
-    environment:
-      WEB_DOMAIN: ${WEB_DOMAIN:-}
-      API_DOMAIN: ${API_DOMAIN:-}
-    depends_on:
-      web:
-        condition: service_healthy
-      api:
-        condition: service_healthy
-    deploy:
-      resources:
-        limits:
-          memory: 128M
     logging: *default-logging
 
 volumes:
