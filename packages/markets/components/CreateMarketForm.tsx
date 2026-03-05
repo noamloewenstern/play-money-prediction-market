@@ -5,6 +5,7 @@ import { PopoverClose } from '@radix-ui/react-popover'
 import { format, endOfDay, endOfWeek, endOfMonth, endOfYear, addMonths } from 'date-fns'
 import _ from 'lodash'
 import { ToggleLeftIcon, XIcon, CircleIcon, CircleDotIcon, PlusIcon, AlignLeftIcon } from 'lucide-react'
+import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { useEffect, useMemo, useState } from 'react'
 import { CirclePicker } from 'react-color'
@@ -30,6 +31,7 @@ import { Popover, PopoverContent, PopoverTrigger } from '@play-money/ui/popover'
 import { RadioGroup, RadioGroupItem } from '@play-money/ui/radio-group'
 import { toast } from '@play-money/ui/use-toast'
 import { cn } from '@play-money/ui/utils'
+import { useUser } from '@play-money/users/context/UserContext'
 import { clearPresistedData, getPersistedData, usePersistForm } from '../../ui/src/hooks/usePersistForm'
 import { parseQuestionForDate } from '../lib/helpers'
 
@@ -69,6 +71,7 @@ export function CreateMarketForm({
   colors?: Array<string>
   onSuccess?: () => Promise<void>
 }) {
+  const { user } = useUser()
   const [SHUFFLED_COLORS] = useState(_.shuffle(colors))
   const router = useRouter()
   const tzName = /\((?<tz>[A-Za-z\s].*)\)/.exec(new Date().toString())?.groups?.tz ?? null
@@ -213,9 +216,21 @@ export function CreateMarketForm({
   const cost = type === 'list' ? calculateTotalCost(fields.length) : INITIAL_MARKET_LIQUIDITY_PRIMARY
 
   return (
-    <Card className="mx-auto flex max-w-screen-sm flex-1 p-6">
-      <Form {...form}>
-        <form autoComplete="off" className="flex-1 space-y-6" onSubmit={(e) => void handleSubmit(e)}>
+    <div className="relative mx-auto w-full max-w-screen-sm">
+      {!user ? (
+        <div className="absolute inset-0 z-10 flex items-start justify-center pt-24">
+          <div className="rounded-lg border bg-background/95 p-6 text-center shadow-lg backdrop-blur">
+            <p className="mb-2 text-lg font-semibold">Sign in to create a question</p>
+            <p className="mb-4 text-sm text-muted-foreground">You need to be signed in to create a question.</p>
+            <Link href="/login">
+              <Button>Sign in</Button>
+            </Link>
+          </div>
+        </div>
+      ) : null}
+      <Card className={cn('flex flex-1 p-6', !user && 'pointer-events-none opacity-50')}>
+        <Form {...form}>
+          <form autoComplete="off" className="flex-1 space-y-6" onSubmit={(e) => void handleSubmit(e)}>
           <FormField
             control={form.control}
             name="type"
@@ -573,8 +588,9 @@ export function CreateMarketForm({
             Create for
             <CurrencyDisplay value={cost} />
           </Button>
-        </form>
-      </Form>
-    </Card>
+          </form>
+        </Form>
+      </Card>
+    </div>
   )
 }
