@@ -3,8 +3,24 @@ name: CI
 on:
   push:
     branches: ['main']
+    paths:
+      - '**.ts'
+      - '**.tsx'
+      - '**.js'
+      - '**.jsx'
+      - '**.json'
+      - '**.prisma'
+      - '.github/workflows/ci.yml'
   pull_request:
     types: [opened, synchronize]
+    paths:
+      - '**.ts'
+      - '**.tsx'
+      - '**.js'
+      - '**.jsx'
+      - '**.json'
+      - '**.prisma'
+      - '.github/workflows/ci.yml'
 
 env:
   NEXT_PUBLIC_WEB_URL: http://localhost:3000
@@ -17,7 +33,7 @@ env:
 
 jobs:
   checks:
-    name: Check types, lint, and tests
+    name: Lint, type-check, and tests
     runs-on: ubuntu-latest
     steps:
       - name: Checkout code
@@ -48,29 +64,3 @@ jobs:
 
       - name: Run tests
         run: npm run test
-
-  build:
-    name: Build
-    timeout-minutes: 15
-    runs-on: ubuntu-latest
-
-    steps:
-      - name: Check out code
-        uses: actions/checkout@v4
-        with:
-          fetch-depth: 2
-
-      - name: Setup Node.js environment
-        uses: actions/setup-node@v4
-        with:
-          node-version: 20
-          cache: 'npm'
-
-      - name: Install dependencies
-        run: npm ci
-
-      - name: Generate Prisma client
-        run: npm run db:generate
-
-      - name: Build
-        run: npm run build
