@@ -5,12 +5,14 @@
 	}
 
 	# NextAuth routes — must go to web, not api
-	handle /api/auth/* {
+	@auth path /api/auth /api/auth/*
+	handle @auth {
 		reverse_proxy web:3000
 	}
 
 	# API routes
-	handle /api/* {
+	@api path /api /api/*
+	handle @api {
 		reverse_proxy api:3001
 	}
 	handle /v1/* {
