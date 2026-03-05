@@ -24,7 +24,7 @@ services:
     environment:
       POSTGRES_PRISMA_URL: postgresql://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-password}@postgres:5432/${POSTGRES_DB:-playmoney}?schema=public
       POSTGRES_URL_NON_POOLING: postgresql://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-password}@postgres:5432/${POSTGRES_DB:-playmoney}?schema=public
-    command: npx prisma db push --schema=packages/database/schema.prisma --skip-generate
+    command: npx prisma migrate deploy --schema=packages/database/schema.prisma
     depends_on:
       postgres:
         condition: service_healthy

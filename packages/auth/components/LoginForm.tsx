@@ -6,33 +6,34 @@ import { signIn } from 'next-auth/react'
 import React, { useState } from 'react'
 import { useForm } from 'react-hook-form'
 import z from 'zod'
-import { UserSchema } from '@play-money/database'
 import { Alert, AlertDescription } from '@play-money/ui/alert'
 import { Button } from '@play-money/ui/button'
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@play-money/ui/form'
 import { Input } from '@play-money/ui/input'
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@play-money/ui/tabs'
 import { toast } from '@play-money/ui/use-toast'
 
-const FormSchema = z.object({ email: z.string().email() })
+const MagicLinkSchema = z.object({ email: z.string().email() })
+type MagicLinkData = z.infer<typeof MagicLinkSchema>
 
-type FormData = z.infer<typeof FormSchema>
+const PasswordSchema = z.object({
+  email: z.string().email(),
+  password: z.string().min(8, 'Password must be at least 8 characters'),
+})
+type PasswordData = z.infer<typeof PasswordSchema>
 
-export function LoginForm() {
+function MagicLinkForm() {
   const [isLoading, setIsLoading] = useState(false)
   const form = useForm({
-    resolver: zodResolver(FormSchema),
-    defaultValues: {
-      email: '',
-    },
+    resolver: zodResolver(MagicLinkSchema),
+    defaultValues: { email: '' },
   })
 
-  const onSubmit = async (data: FormData) => {
-    const { email } = data
-
+  const onSubmit = async (data: MagicLinkData) => {
     try {
       setIsLoading(true)
-      await signIn('resend', { email, callbackUrl: '/' })
-    } catch (error: any) {
+      await signIn('resend', { email: data.email, callbackUrl: '/' })
+    } catch (error: unknown) {
       console.error('Login Failed:', error)
       toast({ title: 'There was an issue signing you in', description: 'Please try again later' })
     } finally {
@@ -68,5 +69,126 @@ export function LoginForm() {
         <AlertDescription>We will email you a magic link for a password-free sign in.</AlertDescription>
       </Alert>
     </Form>
+  )
+}
+
+function PasswordForm() {
+  const [isLoading, setIsLoading] = useState(false)
+  const [isRegister, setIsRegister] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+
+  const form = useForm({
+    resolver: zodResolver(PasswordSchema),
+    defaultValues: { email: '', password: '' },
+  })
+
+  const onSubmit = async (data: PasswordData) => {
+    setError(null)
+    setIsLoading(true)
+
+    try {
+      if (isRegister) {
+        // Register first, then sign in
+        const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/v1/auth/register`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ email: data.email, password: data.password }),
+        })
+
+        if (!res.ok) {
+          const { error: errMsg } = await res.json()
+          setError(errMsg || 'Registration failed')
+          return
+        }
+      }
+
+      // Sign in with credentials
+      const result = await signIn('credentials', {
+        email: data.email,
+        password: data.password,
+        redirect: false,
+      })
+
+      if (result?.error) {
+        setError(isRegister ? 'Registration succeeded but sign in failed. Try signing in.' : 'Invalid email or password')
+        return
+      }
+
+      // Redirect on success
+      window.location.href = '/'
+    } catch (err: unknown) {
+      console.error('Auth error:', err)
+      setError('Something went wrong. Please try again.')
+    } finally {
+      setIsLoading(false)
+    }
+  }
+
+  return (
+    <Form {...form}>
+      <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+        <FormField
+          control={form.control}
+          name="email"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Email</FormLabel>
+              <FormControl>
+                <Input placeholder="Email" type="email" {...field} />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+
+        <FormField
+          control={form.control}
+          name="password"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Password</FormLabel>
+              <FormControl>
+                <Input placeholder="Password" type="password" {...field} />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+
+        {error ? (
+          <Alert variant="destructive">
+            <AlertDescription>{error}</AlertDescription>
+          </Alert>
+        ) : null}
+
+        <Button type="submit" className="w-full" loading={isLoading}>
+          {isRegister ? 'Create account' : 'Sign in'}
+        </Button>
+
+        <p className="text-center text-sm text-muted-foreground">
+          {isRegister ? 'Already have an account? ' : "Don't have an account? "}
+          <button type="button" className="underline hover:text-primary" onClick={() => { setIsRegister(!isRegister); setError(null) }}>
+            {isRegister ? 'Sign in' : 'Register'}
+          </button>
+        </p>
+      </form>
+    </Form>
+  )
+}
+
+export function LoginForm() {
+  return (
+    <Tabs defaultValue="password" className="w-full">
+      <TabsList className="grid w-full grid-cols-2">
+        <TabsTrigger value="password">Password</TabsTrigger>
+        <TabsTrigger value="magic-link">Magic Link</TabsTrigger>
+      </TabsList>
+      <TabsContent value="password" className="mt-4">
+        <PasswordForm />
+      </TabsContent>
+      <TabsContent value="magic-link" className="mt-4">
+        <MagicLinkForm />
+      </TabsContent>
+    </Tabs>
   )
 }

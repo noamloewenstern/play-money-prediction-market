@@ -9,6 +9,7 @@ export const clientOptions = {
     user: {
       email: true,
       emailVerified: true,
+      passwordHash: true,
     },
   },
 } satisfies Prisma.PrismaClientOptions
@@ -16,6 +17,7 @@ export const clientOptions = {
 export type OmittedUserFields = {
   email: string
   emailVerified: Date | null
+  passwordHash: string | null
 }
 
 let prisma: PrismaClient<typeof clientOptions>
