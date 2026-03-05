@@ -7,8 +7,10 @@ import { createDailyMarketBonusTransaction } from '@play-money/quests/lib/create
 import { hasCreatedMarketToday } from '@play-money/quests/lib/helpers'
 import { getUserPrimaryAccount } from '@play-money/users/lib/getUserPrimaryAccount'
 import { createMarketLiquidityTransaction } from './createMarketLiquidityTransaction'
+import { InsufficientBalanceError } from './exceptions'
 import { getMarketTagsLLM } from './getMarketTagsLLM'
 import { slugifyTitle } from './helpers'
+import { notifyTagFollowers } from './notifyTagFollowers'
 
 type PartialOptions = Pick<MarketOption, 'name' | 'color'>
 
@@ -58,7 +60,7 @@ export async function createMarket({
   })
 
   if (!userPrimaryBalance.total.gte(subsidyAmount)) {
-    throw new Error('User does not have enough balance to create market')
+    throw new InsufficientBalanceError('User does not have enough balance to create market')
   }
 
   const generatedTags = tags ?? (await getMarketTagsLLM({ question }))
@@ -163,6 +165,9 @@ export async function createMarket({
       initiatorId: createdBy,
     })
   }
+
+  // Notify users who follow any of this market's tags (fire-and-forget)
+  void notifyTagFollowers({ market: createdMarket })
 
   return createdMarket
 }

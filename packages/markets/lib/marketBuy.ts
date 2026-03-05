@@ -10,6 +10,7 @@ import { getUserPrimaryAccount } from '@play-money/users/lib/getUserPrimaryAccou
 import { isMarketTradable } from '../rules'
 import { createLiquidityVolumeBonusTransaction } from './createLiquidityVolumeBonusTransaction'
 import { createMarketBuyTransaction } from './createMarketBuyTransaction'
+import { MarketClosedError } from './exceptions'
 import { createMarketLiquidityTransaction } from './createMarketLiquidityTransaction'
 import { createMarketTraderBonusTransactions } from './createMarketTraderBonusTransactions'
 import { getMarket } from './getMarket'
@@ -28,7 +29,7 @@ export async function marketBuy({
   const [market, userAccount] = await Promise.all([getMarket({ id: marketId }), getUserPrimaryAccount({ userId })])
 
   if (!isMarketTradable({ market })) {
-    throw new Error('Market is closed')
+    throw new MarketClosedError()
   }
 
   const transaction = await createMarketBuyTransaction({

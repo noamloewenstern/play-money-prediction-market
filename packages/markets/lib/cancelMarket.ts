@@ -1,9 +1,11 @@
+import { createAuditLog } from '@play-money/audit-log/lib/createAuditLog'
 import { createComment } from '@play-money/comments/lib/createComment'
 import db from '@play-money/database'
 import { calculateBalanceChanges } from '@play-money/finance/lib/helpers'
 import { updateGlobalBalances } from '@play-money/finance/lib/updateGlobalBalances'
 import { createNotification } from '@play-money/notifications/lib/createNotification'
 import { isMarketResolved, isMarketCanceled } from '../rules'
+import { MarketCanceledError, MarketResolvedError } from './exceptions'
 import { getMarket } from './getMarket'
 import { getUniqueTraderIds } from './getUniqueTraderIds'
 import { updateMarketBalances } from './updateMarketBalances'
@@ -20,11 +22,11 @@ export async function cancelMarket({
   const market = await getMarket({ id: marketId, extended: true })
 
   if (isMarketResolved({ market })) {
-    throw new Error('Market already resolved')
+    throw new MarketResolvedError()
   }
 
   if (isMarketCanceled({ market })) {
-    throw new Error('Market already canceled')
+    throw new MarketCanceledError('Market already canceled')
   }
 
   const transactions = await db.transaction.findMany({
@@ -55,14 +57,15 @@ export async function cancelMarket({
     },
   })
 
-  for (const transaction of transactions) {
-    const reverseTransactionExists = await db.transaction.findFirst({
-      where: {
-        reverseOfId: transaction.id,
-      },
-    })
+  const transactionIds = transactions.map((t) => t.id)
+  const existingReverses = await db.transaction.findMany({
+    where: { reverseOfId: { in: transactionIds } },
+    select: { reverseOfId: true },
+  })
+  const reversedIds = new Set(existingReverses.map((r) => r.reverseOfId))
 
-    if (reverseTransactionExists) {
+  for (const transaction of transactions) {
+    if (reversedIds.has(transaction.id)) {
       continue
     }
 
@@ -114,9 +117,10 @@ export async function cancelMarket({
     },
   })
 
+  const now = new Date()
   await db.market.update({
     where: { id: marketId },
-    data: { canceledAt: new Date(), canceledById },
+    data: { canceledAt: now, closedAt: now, canceledById },
   })
 
   const recipientIds = await getUniqueTraderIds(marketId, [canceledById])
@@ -140,5 +144,15 @@ export async function cancelMarket({
     parentId: null,
     entityType: 'MARKET',
     entityId: market.id,
+  })
+
+  await createAuditLog({
+    action: 'MARKET_CANCEL',
+    actorId: canceledById,
+    targetType: 'Market',
+    targetId: marketId,
+    before: { canceledAt: null },
+    after: { canceledAt: new Date().toISOString(), canceledById },
+    metadata: { marketQuestion: market.question, reason },
   })
 }

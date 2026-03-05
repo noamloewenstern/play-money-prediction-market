@@ -49,7 +49,9 @@ export async function updateUserById({
       if (user) {
         updatedData.referredBy = referredBy
       }
-    } catch (_error) {}
+    } catch (error) {
+      console.error('Failed to set referrer:', error)
+    }
   }
 
   const updatedUser = await db.user.update({

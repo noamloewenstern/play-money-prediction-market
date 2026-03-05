@@ -1,10 +1,13 @@
 import { NextResponse } from 'next/server'
 import { stripUndefined, type SchemaResponse } from '@play-money/api-helpers'
+import { createAuditLog } from '@play-money/audit-log/lib/createAuditLog'
 import { getAuthUser } from '@play-money/auth/lib/getAuthUser'
 import { deleteComment } from '@play-money/comments/lib/deleteComment'
 import { CommentNotFoundError } from '@play-money/comments/lib/exceptions'
 import { getComment } from '@play-money/comments/lib/getComment'
 import { updateComment } from '@play-money/comments/lib/updateComment'
+import { getUserById } from '@play-money/users/lib/getUserById'
+import { isAdmin } from '@play-money/users/rules'
 import schema from './schema'
 
 export const dynamic = 'force-dynamic'
@@ -76,11 +79,26 @@ export async function DELETE(
     const { id } = schema.delete.parameters.parse(params)
 
     const comment = await getComment({ id })
-    if (comment.authorId !== userId) {
+    const user = await getUserById({ id: userId })
+    const userIsAdmin = isAdmin({ user })
+
+    if (comment.authorId !== userId && !userIsAdmin) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
     await deleteComment({ id })
+
+    if (userIsAdmin && comment.authorId !== userId) {
+      await createAuditLog({
+        action: 'COMMENT_DELETE',
+        actorId: userId,
+        targetType: 'Comment',
+        targetId: id,
+        before: { content: comment.content, authorId: comment.authorId, entityType: comment.entityType, entityId: comment.entityId },
+        after: null,
+        metadata: { deletedByAdmin: true },
+      })
+    }
 
     return new Response(null, { status: 204 }) as NextResponse<Record<string, never>>
   } catch (error) {

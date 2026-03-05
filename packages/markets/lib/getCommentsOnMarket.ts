@@ -15,6 +15,8 @@ export async function getCommentsOnMarket({ marketId }: { marketId: string }): P
         },
       },
     },
+    orderBy: { createdAt: 'desc' },
+    take: 100,
   })
 
   return comments

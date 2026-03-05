@@ -12,6 +12,7 @@ export async function getMarketTransactions({ marketId }: { marketId: string }) 
     include: {
       entries: true,
     },
+    take: 100,
   })
 
   return transactions

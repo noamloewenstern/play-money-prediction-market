@@ -1,9 +1,11 @@
+import { createAuditLog } from '@play-money/audit-log/lib/createAuditLog'
 import db from '@play-money/database'
 import { getUniqueTraderIds } from '@play-money/markets/lib/getUniqueTraderIds'
 import { createNotification } from '@play-money/notifications/lib/createNotification'
 import { getUserById } from '@play-money/users/lib/getUserById'
-import { canModifyMarket, isMarketCanceled, isMarketResolved } from '../rules'
+import { isMarketCanceled, isMarketResolved } from '../rules'
 import { createMarketExcessLiquidityTransactions } from './createMarketExcessLiquidityTransactions'
+import { MarketCanceledError, MarketResolvedError } from './exceptions'
 import { createMarketResolveLossTransactions } from './createMarketResolveLossTransactions'
 import { createMarketResolveWinTransactions } from './createMarketResolveWinTransactions'
 import { getMarket } from './getMarket'
@@ -23,11 +25,11 @@ export async function resolveMarket({
   const resolvingUser = await getUserById({ id: resolverId })
 
   if (isMarketResolved({ market })) {
-    throw new Error('Market already resolved')
+    throw new MarketResolvedError()
   }
 
   if (isMarketCanceled({ market })) {
-    throw new Error('Market is canceled')
+    throw new MarketCanceledError()
   }
 
   await db.$transaction(
@@ -54,7 +56,7 @@ export async function resolveMarket({
 
       await tx.market.update({
         where: { id: marketId },
-        data: { resolvedAt: now, closeDate: now, updatedAt: now },
+        data: { resolvedAt: now, closedAt: now, closeDate: now, updatedAt: now },
       })
     },
     {
@@ -92,4 +94,15 @@ export async function resolveMarket({
       })
     )
   )
+
+  const resolvedOption = market.options.find((o) => o.id === optionId)
+  await createAuditLog({
+    action: 'MARKET_RESOLVE',
+    actorId: resolverId,
+    targetType: 'Market',
+    targetId: marketId,
+    before: { resolvedAt: null },
+    after: { resolvedAt: new Date().toISOString(), resolutionOptionId: optionId, resolutionOptionName: resolvedOption?.name },
+    metadata: { marketQuestion: market.question, supportingLink },
+  })
 }

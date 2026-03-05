@@ -2,6 +2,7 @@ import Decimal from 'decimal.js'
 import { findShareIndex, quote } from '@play-money/finance/amms/maniswap-v1.1'
 import { getMarketBalances } from '@play-money/finance/lib/getBalances'
 import { calculateRealizedGainsTax, distributeRemainder } from '@play-money/finance/lib/helpers'
+import { MarketOptionNotFoundError } from './exceptions'
 import { getMarketAmmAccount } from './getMarketAmmAccount'
 
 export async function getMarketQuote({
@@ -23,7 +24,7 @@ export async function getMarketQuote({
   const optionsShares = optionBalances.map(({ total }) => total)
 
   if (!targetBalance) {
-    throw new Error('Target balance not found')
+    throw new MarketOptionNotFoundError('Target balance not found')
   }
 
   // TODO: Change to multi-step quote to account for limit orders

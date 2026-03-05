@@ -1,0 +1,343 @@
+================================================================================
+                          PLAY MONEY - APPLICATION SPECIFICATION
+================================================================================
+
+1. PROJECT OVERVIEW
+================================================================================
+
+Play Money is an open-source prediction market platform where users trade on the
+outcomes of questions using virtual currency. Users can create markets (questions
+with multiple options), buy and sell positions, provide liquidity, and earn
+rewards -- all powered by an Automated Market Maker (AMM) engine.
+
+The platform uses play money (not real currency), making it accessible for
+anyone who wants to engage in forecasting and prediction without financial risk.
+
+
+2. CORE FEATURES
+================================================================================
+
+2.1 Prediction Markets
+----------------------
+- Users create markets by posing a question with two or more outcome options
+- Each option has a probability that adjusts based on trading activity
+- Markets have an optional close date after which trading stops
+- Markets can be resolved (declaring a winning outcome) or canceled
+- Each market gets a URL-friendly slug for SEO and sharing
+- Markets support tagging for categorization (up to 5 tags per market)
+- Auto-generate tags via OpenAI integration (optional)
+- Related markets surfaced via API
+
+2.2 Trading Engine (AMM)
+-------------------------
+- Automated Market Maker using a constant-function algorithm
+- Buy: Users purchase shares of an outcome option using virtual currency
+- Sell: Users sell shares back to the AMM
+- Quote: Get a price quote before committing to a trade
+- Prices adjust dynamically based on supply/demand (liquidity probability)
+- All trades recorded as double-entry accounting transactions
+- Transaction types: TRADE_BUY, TRADE_SELL, TRADE_WIN, TRADE_LOSS
+
+2.3 Liquidity System
+---------------------
+- Initial liquidity provided when a market is created (LIQUIDITY_INITIALIZE)
+- Users can add liquidity to markets (LIQUIDITY_DEPOSIT)
+- Liquidity can be withdrawn (LIQUIDITY_WITHDRAWAL)
+- Returned to providers on market resolution (LIQUIDITY_RETURNED)
+- Volume-based liquidity bonuses (LIQUIDITY_VOLUME_BONUS)
+
+2.4 Double-Entry Accounting
+----------------------------
+- Every financial operation is a Transaction with TransactionEntry records
+- Each entry moves an amount from one Account to another
+- Account types: USER, MARKET_AMM, MARKET_CLEARING, HOUSE
+- Asset types: CURRENCY (virtual money), MARKET_OPTION (shares)
+- Balances tracked per account, per asset, with subtotals as JSON
+- MarketOptionPosition tracks cost basis, quantity, and value per user per option
+
+2.5 User System
+----------------
+- Registration with email/password or magic link (via Resend)
+- OAuth support via NextAuth.js (extensible to social providers)
+- User profiles: username, display name, avatar, bio, social links
+- Each user has a primary Account for their virtual currency balance
+- User roles: USER, ADMIN
+- Optional email whitelist for restricted registration
+- API key management for programmatic access
+
+2.6 Notifications
+------------------
+- In-app notification system with grouped notifications
+- Notification types:
+  - MARKET_RESOLVED, MARKET_CANCELED, MARKET_TRADE
+  - MARKET_LIQUIDITY_ADDED, MARKET_COMMENT
+  - LIST_COMMENT, LIST_MARKET_ADDED
+  - COMMENT_REPLY, COMMENT_MENTION, COMMENT_REACTION
+  - REFERRER_BONUS
+- Mark as read functionality
+- Grouped by type with time-windowed deduplication
+
+2.7 Comments
+-------------
+- Threaded comments on markets and lists
+- Rich text editing via TipTap editor
+- Nested replies (parent/child structure)
+- Emoji reactions on comments
+- Comment mentions trigger notifications
+- Comments can be hidden (moderation)
+- Max length: 5,000 characters
+
+2.8 Lists
+----------
+- Curated collections of related markets
+- Owner-controlled with contribution policies:
+  - DISABLED, OWNERS_ONLY, FRIENDS_ONLY, PUBLIC
+- Optional contribution review (moderation queue)
+- Markets can belong to multiple lists
+- Lists support comments and tagging
+- Lists can serve as parent containers for markets
+
+2.9 Leaderboard
+-----------------
+- Monthly leaderboard tracking top performers
+- Rankings based on trading performance metrics
+- Historical leaderboards accessible by year/month
+
+2.10 Quest / Reward System
+---------------------------
+- Daily bonuses for engagement:
+  - DAILY_TRADE_BONUS
+  - DAILY_MARKET_BONUS
+  - DAILY_COMMENT_BONUS
+  - DAILY_LIQUIDITY_BONUS
+- Creator bonuses (CREATOR_TRADER_BONUS)
+- House signup bonus (HOUSE_SIGNUP_BONUS)
+- House gift transactions (HOUSE_GIFT)
+
+2.11 Referral System
+---------------------
+- Each user gets a unique referral code
+- Referrer receives REFERRER_BONUS
+- Referred user receives REFERREE_BONUS
+- Referral tracking via user relationships
+
+2.12 Search
+------------
+- Full-text search across markets (Prisma fullTextIndex)
+- Search API endpoint for unified results
+
+2.13 Transparency
+------------------
+- Public transparency dashboard
+- Platform-wide statistics (user counts, etc.)
+- Designed for trust and openness
+
+
+3. TECHNICAL ARCHITECTURE
+================================================================================
+
+3.1 Monorepo Structure (Turborepo + npm workspaces)
+-----------------------------------------------------
+apps/
+  web/              Next.js 14 frontend (App Router, SSR, port 3000)
+  api/              Next.js 14 API server (REST, port 3001)
+  storybook/        Component library (port 6006)
+
+packages/
+  database/         Prisma schema, migrations, seeds, Zod types, mocks
+  ui/               shadcn/ui + custom components (CSS build step)
+  config/           Shared ESLint, Prettier, Jest, TypeScript, Tailwind
+  auth/             NextAuth v5 + Prisma adapter
+  api-helpers/      Zod schemas, API client, SWR hooks, pagination
+  finance/          AMM math, transaction execution, Decimal.js
+  markets/          Prediction market core logic
+  users/            User profiles and context
+  comments/         Comments + TipTap editor
+  notifications/    Notification system
+  lists/            List management
+  referrals/        Referral system
+  quests/           Quest and reward system
+  search/           Search functionality
+  transparency/     Platform transparency stats
+
+3.2 Tech Stack
+---------------
+- Runtime:          Node.js >= 18
+- Framework:        Next.js 14 (App Router)
+- Language:         TypeScript (strict)
+- Database:         PostgreSQL
+- ORM:             Prisma (with omitApi, fullTextIndex preview features)
+- Schema Validation: Zod (auto-generated from Prisma schema)
+- Authentication:   NextAuth.js v5
+- State Management:  SWR (server state), React Context (client state)
+- UI Components:    shadcn/ui + Tailwind CSS
+- Rich Text:        TipTap editor
+- Math:             Decimal.js (for precise financial calculations)
+- Testing:          Jest + ts-jest + jest-mock-extended
+- Build:            Turborepo
+- Package Manager:  npm 10.5+
+- Code Style:       Prettier + ESLint (@vercel/style-guide)
+
+3.3 Database Schema (PostgreSQL + Prisma)
+------------------------------------------
+Core Models:
+- User              User accounts with profiles and roles
+- AuthAccount       OAuth provider accounts
+- Session           Authentication sessions
+- Market            Prediction market questions
+- MarketOption      Outcome options per market
+- MarketResolution  Resolution records
+- Account           Financial accounts (user, AMM, clearing, house)
+- Balance           Asset balances per account
+- Transaction       Financial transaction records
+- TransactionEntry  Double-entry ledger entries
+- TransactionBatch  Grouped transaction batches
+- MarketOptionPosition  User positions per option
+- Comment           Threaded comments
+- CommentReaction   Emoji reactions
+- Notification      User notifications
+- NotificationGroup Grouped notification batches
+- List              Market collections
+- MarketList        Many-to-many market-list associations
+- ApiKey            API access keys
+- VerificationToken Email verification tokens
+
+3.4 API Design (REST)
+----------------------
+Base path: /api/v1/
+
+Markets:
+  GET/POST    /markets
+  GET/PATCH   /markets/:id
+  POST        /markets/:id/buy
+  POST        /markets/:id/sell
+  GET         /markets/:id/quote
+  POST        /markets/:id/resolve
+  POST        /markets/:id/cancel
+  GET         /markets/:id/positions
+  GET/POST    /markets/:id/liquidity
+  GET         /markets/:id/balance
+  GET         /markets/:id/balances
+  GET         /markets/:id/activity
+  GET         /markets/:id/graph
+  GET/POST    /markets/:id/comments
+  PATCH       /markets/:id/options/:optionId
+  GET         /markets/:id/related
+  POST        /markets/generate-tags
+
+Users:
+  GET/PATCH   /users/:id
+  GET         /users/:id/balance
+  GET         /users/:id/positions
+  GET         /users/:id/transactions
+  GET         /users/:id/stats
+  GET         /users/:id/graph
+  GET         /users/me
+  PATCH       /users/me
+  GET         /users/me/balance
+  GET         /users/me/notifications
+  GET/POST    /users/me/api-keys
+  GET         /users/me/referrals
+  POST        /users/me/resource-viewed
+  GET         /users/check-username
+  GET         /users/username/:username
+  GET         /users/referral/:code
+
+Lists:
+  GET/POST    /lists
+  GET/PATCH   /lists/:id
+  GET/POST    /lists/:id/markets
+  GET         /lists/:id/balance
+  GET/POST    /lists/:id/comments
+  GET         /lists/:id/graph
+
+Comments:
+  GET/POST    /comments
+  GET/PATCH   /comments/:id
+  POST        /comments/:id/reaction
+
+Other:
+  GET         /activity
+  GET         /leaderboard
+  GET         /search
+  GET         /transactions
+  GET         /transparency/stats/users
+  POST        /auth/register
+
+3.5 Frontend Pages
+-------------------
+/                           Home / market feed
+/login                      Authentication
+/check-email                Magic link confirmation
+/setup                      New user onboarding
+/questions                  Browse all markets
+/questions/tagged/:tag      Markets by tag
+/questions/:id/:slug        Market detail (overview, comments, liquidity, positions, trades)
+/create-post                Create new market
+/lists/:id/:slug            List detail
+/:username                  User profile
+/me                         Current user redirect
+/leaderboard                Monthly leaderboard
+/leaderboard/:year/:month   Historical leaderboard
+/settings                   User settings (profile, API keys, referrals)
+/transparency               Platform transparency dashboard
+
+3.6 Authentication & Security
+-------------------------------
+- NextAuth.js v5 with Prisma adapter
+- Session-based auth (cookie) for web
+- API key auth (x-api-key header) as fallback
+- Per-route auth checks (no middleware-level auth)
+- PII protection: email/emailVerified omitted from User queries by default
+- Custom ESLint rule blocks returning email in API responses
+- Zod validation on all API inputs
+
+
+4. DEPLOYMENT
+================================================================================
+
+4.1 Self-Hosted (Docker)
+--------------------------
+- Docker Compose setup with web, api, and postgres services
+- Configurable host ports (WEB_PORT, API_PORT)
+- Internal networking between containers (INTERNAL_API_URL)
+- Database auto-migration on startup
+
+4.2 Environment Variables
+--------------------------
+Required:
+- NEXT_PUBLIC_WEB_URL       Frontend URL
+- NEXT_PUBLIC_API_URL       API URL
+- POSTGRES_PRISMA_URL       PostgreSQL connection (pooled)
+- POSTGRES_URL_NON_POOLING  PostgreSQL connection (direct)
+- NEXTAUTH_URL              Auth callback URL
+- NEXTAUTH_SECRET           Session encryption key
+
+Optional:
+- AUTH_RESEND_KEY            Magic link email provider
+- AUTH_RESEND_EMAIL          Sender email for magic links
+- AUTH_EMAIL_WHITELIST       Restrict registration to listed emails
+- DEV_DB_SEED_EMAIL          Seed data for dev user
+- OPENAI_API_KEY             Auto-generate market tags
+- BLOB_READ_WRITE_TOKEN      Avatar upload storage (Vercel Blob)
+
+
+5. DEVELOPMENT WORKFLOW
+================================================================================
+
+- npm run dev             Start all services (web, api, storybook, db studio)
+- npm run build           Production build
+- npm run test            Run all tests
+- npm run lint            ESLint
+- npm run format          Prettier check
+- npm run type-check      TypeScript check
+- npm run db:generate     Regenerate Prisma client + Zod types
+- npm run db:push         Push schema to database
+- npm run db:reset        Reset and reseed database
+
+CI checks: format -> lint -> type-check -> test -> build -> Chromatic (visual regression)
+
+
+================================================================================
+                              END OF SPECIFICATION
+================================================================================

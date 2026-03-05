@@ -1,4 +1,5 @@
 import db from '@play-money/database'
+import { MarketAccountNotFoundError } from './exceptions'
 
 export async function getMarketAmmAccount({ marketId }: { marketId: string }) {
   const account = await db.account.findFirst({
@@ -9,7 +10,7 @@ export async function getMarketAmmAccount({ marketId }: { marketId: string }) {
   })
 
   if (!account) {
-    throw new Error('Market amm account does not exist')
+    throw new MarketAccountNotFoundError('Market amm account does not exist')
   }
 
   return account

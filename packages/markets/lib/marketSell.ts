@@ -2,6 +2,7 @@ import Decimal from 'decimal.js'
 import { getUserPrimaryAccount } from '@play-money/users/lib/getUserPrimaryAccount'
 import { isMarketTradable } from '../rules'
 import { createMarketSellTransaction } from './createMarketSellTransaction'
+import { MarketClosedError } from './exceptions'
 import { getMarket } from './getMarket'
 
 export async function marketSell({
@@ -20,7 +21,7 @@ export async function marketSell({
     getUserPrimaryAccount({ userId: userId }),
   ])
   if (!isMarketTradable({ market })) {
-    throw new Error('Market is closed')
+    throw new MarketClosedError()
   }
 
   await createMarketSellTransaction({

@@ -26,6 +26,7 @@ export async function getMarketLiquidity(
           },
         },
       },
+      take: 100,
     }),
   ])
 

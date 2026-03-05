@@ -45,6 +45,7 @@ model User {
   accounts         Account[]
   transactions     Transaction[]
   role             UserRole           @default(USER)
+  suspendedAt      DateTime?
   referralCode     String?            @unique
   referredBy       String?
   referredUsers    User[]             @relation("Referrals")
@@ -56,13 +57,16 @@ model User {
   emailVerified DateTime? /// @zod.custom.omit([model, input])
   passwordHash  String? /// @zod.custom.omit([model, input])
 
+  auditLogs AuditLog[] @relation("AuditLogActor")
+
   // Unnecessary reverse relations
   recipientNotifications Notification[]      @relation("NotificationRecipient")
   actorNotifications     Notification[]      @relation("NotificationActor")
   notificationGroups     NotificationGroup[] @relation()
 
-  createdLists List[]   @relation("ListCreator")
+  createdLists List[]      @relation("ListCreator")
   apiKeys      ApiKey[]
+  tagFollows   TagFollow[]
 
   @@index([referredBy])
 }
@@ -101,6 +105,7 @@ model Market {
   description       String
   slug              String /// @zod.string.min(1, { message: "Slug is required" })
   closeDate         DateTime?
+  closedAt          DateTime?
   resolvedAt        DateTime?
   canceledAt        DateTime?
   canceledById      String?
@@ -134,6 +139,12 @@ model Market {
 
   parentListId String?
   parentList   List?   @relation("ParentListMarkets", fields: [parentListId], references: [id])
+
+  @@index([resolvedAt])
+  @@index([canceledAt])
+  @@index([closeDate])
+  @@index([createdBy])
+  @@index([parentListId])
 }
 
 model MarketResolution {
@@ -172,6 +183,8 @@ model MarketOption {
 
   // Unnecessary reverse relations
   notifications Notification[] @relation()
+
+  @@index([marketId])
 }
 
 model VerificationToken {
@@ -355,12 +368,12 @@ model MarketOptionPosition {
   updatedAt DateTime     @updatedAt
 
   @@unique(fields: [accountId, optionId])
-  @@index(fields: [accountId, optionId])
 }
 
 enum NotificationType {
   MARKET_RESOLVED
   MARKET_CANCELED
+  MARKET_CLOSED
   MARKET_TRADE
   MARKET_LIQUIDITY_ADDED
   MARKET_COMMENT
@@ -370,6 +383,19 @@ enum NotificationType {
   COMMENT_MENTION
   COMMENT_REACTION
   REFERRER_BONUS
+  TAG_NEW_MARKET
+}
+
+model TagFollow {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  tag       String
+  createdAt DateTime @default(now())
+
+  @@unique([userId, tag])
+  @@index([tag])
+  @@index([userId])
 }
 
 model Notification {
@@ -420,7 +446,6 @@ model NotificationGroup {
   updatedAt          DateTime         @updatedAt
 
   @@unique(fields: [recipientId, type, groupWindowEnd, groupKey])
-  @@index(fields: [recipientId, type, groupWindowEnd, groupKey])
 }
 
 enum QuestionContributionPolicy {
@@ -480,4 +505,35 @@ model ApiKey {
 
   @@index([key])
   @@index([userId])
+}
+
+enum AuditLogAction {
+  MARKET_RESOLVE
+  MARKET_CANCEL
+  COMMENT_DELETE
+  COMMENT_HIDE
+  USER_SUSPEND
+  USER_UNSUSPEND
+  USER_ROLE_CHANGE
+  BALANCE_ADJUST
+  RESOLUTION_OVERRIDE
+  USER_IMPERSONATE
+}
+
+model AuditLog {
+  id         String         @id @default(cuid())
+  action     AuditLogAction
+  actorId    String
+  actor      User           @relation("AuditLogActor", fields: [actorId], references: [id])
+  targetType String
+  targetId   String
+  before     Json?
+  after      Json?
+  metadata   Json?
+  createdAt  DateTime       @default(now())
+
+  @@index([actorId])
+  @@index([action])
+  @@index([targetType, targetId])
+  @@index([createdAt])
 }

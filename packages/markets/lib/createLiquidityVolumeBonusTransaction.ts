@@ -17,6 +17,8 @@ export async function createLiquidityVolumeBonusTransaction({
   const amountToDistribute = amountTraded.times(LIQUIDITY_VOLUME_BONUS_PERCENT)
   const transactions: Array<Promise<Transaction>> = []
 
+  if (liquidity.total.isZero()) return transactions
+
   for (const [accountId, providedAmount] of Object.entries(liquidity.providers)) {
     if (providedAmount.isZero()) continue
 

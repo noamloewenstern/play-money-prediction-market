@@ -28,6 +28,8 @@ export async function createMarketExcessLiquidityTransactions({
   const liquidity = await getMarketLiquidity(marketId)
   const transactions: Array<Promise<Transaction>> = []
 
+  if (liquidity.total.isZero()) return Promise.all(transactions)
+
   for (const [accountId, providedAmount] of Object.entries(liquidity.providers)) {
     if (providedAmount.isZero()) continue
 

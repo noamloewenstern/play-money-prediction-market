@@ -28,7 +28,7 @@ export const UserProvider = ({ children, user: initialUser }: { children: React.
     if (!user) return
     const browserTimezone = Intl.DateTimeFormat().resolvedOptions().timeZone
     if (user.timezone === PRISMA_DEFAULT_TIMEZONE && browserTimezone !== PRISMA_DEFAULT_TIMEZONE) {
-      updateMe({ timezone: browserTimezone }).then(({ data }) => setUser(data)).catch(() => {})
+      updateMe({ timezone: browserTimezone }).then(({ data }) => setUser(data)).catch((error) => { console.error('Failed to update timezone:', error) })
     }
   }, [user?.id]) // eslint-disable-line react-hooks/exhaustive-deps
 

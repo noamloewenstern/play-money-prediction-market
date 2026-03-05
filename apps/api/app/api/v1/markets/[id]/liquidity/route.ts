@@ -3,6 +3,7 @@ import { NextResponse } from 'next/server'
 import type { SchemaResponse } from '@play-money/api-helpers'
 import { getAuthUser } from '@play-money/auth/lib/getAuthUser'
 import { addLiquidity } from '@play-money/markets/lib/addLiquidity'
+import { InsufficientBalanceError, MarketCanceledError, MarketResolvedError } from '@play-money/markets/lib/exceptions'
 import schema from './schema'
 
 export const dynamic = 'force-dynamic'
@@ -35,6 +36,13 @@ export async function POST(
     })
   } catch (error) {
     console.log(error) // eslint-disable-line no-console -- Log error for debugging
+    if (
+      error instanceof InsufficientBalanceError ||
+      error instanceof MarketResolvedError ||
+      error instanceof MarketCanceledError
+    ) {
+      return NextResponse.json({ error: error.message }, { status: 400 })
+    }
     return NextResponse.json({ error: 'Error processing request' }, { status: 500 })
   }
 }

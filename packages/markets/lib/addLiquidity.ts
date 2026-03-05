@@ -9,6 +9,7 @@ import { hasBoostedLiquidityToday } from '@play-money/quests/lib/helpers'
 import { getUserPrimaryAccount } from '@play-money/users/lib/getUserPrimaryAccount'
 import { isMarketCanceled, isMarketResolved } from '../rules'
 import { createMarketLiquidityTransaction } from './createMarketLiquidityTransaction'
+import { InsufficientBalanceError, MarketCanceledError, MarketResolvedError } from './exceptions'
 import { getMarket } from './getMarket'
 
 export async function addLiquidity({
@@ -28,15 +29,15 @@ export async function addLiquidity({
   const balance = await getBalance({ accountId: userAccount.id, assetType: 'CURRENCY', assetId: 'PRIMARY' })
 
   if (!balance.total.gte(amount)) {
-    throw new Error('User does not have enough balance')
+    throw new InsufficientBalanceError('User does not have enough balance')
   }
 
   if (isMarketResolved({ market })) {
-    throw new Error('Market already resolved')
+    throw new MarketResolvedError()
   }
 
   if (isMarketCanceled({ market })) {
-    throw new Error('Market is canceled')
+    throw new MarketCanceledError()
   }
 
   const transaction = await createMarketLiquidityTransaction({

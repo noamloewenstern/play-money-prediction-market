@@ -49,15 +49,25 @@ export async function getMarketBalances({
   accountId: string
   marketId: string
 }): Promise<Array<NetBalance>> {
-  const market = marketId ? await getMarket({ id: marketId, extended: true }) : undefined
-  const balances = await Promise.all([
-    ...(market?.options || []).map((option) => {
-      return getBalance({ accountId, assetType: 'MARKET_OPTION', assetId: option.id, marketId })
-    }),
-    getBalance({ accountId, assetType: 'CURRENCY', assetId: 'PRIMARY', marketId }),
-  ])
+  const market = await getMarket({ id: marketId, extended: true })
 
-  return balances.filter((x) => x !== null)
+  const conditions = [
+    { assetType: 'CURRENCY' as const, assetId: 'PRIMARY', marketId },
+    ...(market?.options || []).map((option) => ({
+      assetType: 'MARKET_OPTION' as const,
+      assetId: option.id,
+      marketId,
+    })),
+  ]
+
+  const balances = await db.balance.findMany({
+    where: {
+      accountId,
+      OR: conditions,
+    },
+  })
+
+  return balances as unknown as Array<NetBalance>
 }
 
 export async function getListBalances({

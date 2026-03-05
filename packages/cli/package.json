@@ -1,0 +1,33 @@
+{
+  "name": "play-money",
+  "version": "1.0.0",
+  "description": "CLI for installing Claude Code skills for the Play Money prediction market platform",
+  "bin": {
+    "play-money": "./dist/index.js"
+  },
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "build": "tsc",
+    "dev": "tsc --watch",
+    "prepublishOnly": "npm run build"
+  },
+  "dependencies": {
+    "commander": "^12.1.0"
+  },
+  "devDependencies": {
+    "@types/node": "^20.11.24",
+    "typescript": "^5.3.3"
+  },
+  "engines": {
+    "node": ">=18"
+  },
+  "keywords": [
+    "play-money",
+    "prediction-markets",
+    "claude-code",
+    "claude-skills"
+  ],
+  "license": "MIT"
+}

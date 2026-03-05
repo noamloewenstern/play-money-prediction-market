@@ -2,6 +2,7 @@ import Decimal from 'decimal.js'
 import { NextResponse } from 'next/server'
 import type { SchemaResponse } from '@play-money/api-helpers'
 import { getAuthUser } from '@play-money/auth/lib/getAuthUser'
+import { InsufficientBalanceError, MarketClosedError } from '@play-money/markets/lib/exceptions'
 import { marketBuy } from '@play-money/markets/lib/marketBuy'
 import schema from './schema'
 
@@ -32,6 +33,9 @@ export async function POST(
     return NextResponse.json({ data: { success: true } })
   } catch (error) {
     console.log(error) // eslint-disable-line no-console -- Log error for debugging
+    if (error instanceof MarketClosedError || error instanceof InsufficientBalanceError) {
+      return NextResponse.json({ error: error.message }, { status: 400 })
+    }
     return NextResponse.json({ error: 'Error processing request' }, { status: 500 })
   }
 }

@@ -15,6 +15,8 @@ export async function getCommentsOnList({ listId }: { listId: string }): Promise
         },
       },
     },
+    orderBy: { createdAt: 'desc' },
+    take: 100,
   })
 
   return comments
