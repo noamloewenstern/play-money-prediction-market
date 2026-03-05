@@ -1,18 +1,20 @@
 # Production Docker Compose for Play Money
 #
-# Usage:
-#   docker compose -f docker-compose.prod.yml build
-#   docker compose -f docker-compose.prod.yml up -d
+# Usage (with Caddy — handles TLS + domain routing):
+#   docker compose -f docker-compose.prod.yml --profile caddy up -d
+#
+# Usage (without Caddy — external proxy like Cloudflare/nginx):
+#   docker compose -f docker-compose.prod.yml -f docker-compose.no-caddy.yml up -d
 #
 # Required env vars (no defaults — will error if unset):
 #   POSTGRES_PASSWORD, NEXTAUTH_SECRET, NEXT_PUBLIC_WEB_URL, NEXT_PUBLIC_API_URL, NEXTAUTH_URL
 #
-# See docs/deploy.md for full setup guide.
+# Additional env vars for Caddy profile:
+#   WEB_DOMAIN (e.g. app.market.com), API_DOMAIN (e.g. api.market.com)
 
 x-ports:
   web: &web-port 3000       # internal port for web container
   api: &api-port 3001       # internal port for api container
-  # Caddy listens on :80 inside container, exposed on host via CADDY_PORT (default 3080)
 
 x-logging: &default-logging
   driver: json-file
@@ -69,7 +71,8 @@ services:
       args:
         NEXT_PUBLIC_WEB_URL: ${NEXT_PUBLIC_WEB_URL:?NEXT_PUBLIC_WEB_URL is required}
         NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL:?NEXT_PUBLIC_API_URL is required}
-    # No host port — accessed via Caddy on CADDY_PORT (default 3080)
+    expose:
+      - "3000"
     environment:
       PORT: *web-port
       POSTGRES_PRISMA_URL: postgresql://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:?}@postgres:5432/${POSTGRES_DB:-playmoney}?schema=public
@@ -106,7 +109,8 @@ services:
       args:
         NEXT_PUBLIC_WEB_URL: ${NEXT_PUBLIC_WEB_URL:?}
         NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL:?}
-    # No host port — accessed via Caddy on CADDY_PORT (default 3080)
+    expose:
+      - "3001"
     environment:
       PORT: *api-port
       POSTGRES_PRISMA_URL: postgresql://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:?}@postgres:5432/${POSTGRES_DB:-playmoney}?schema=public
@@ -140,7 +144,10 @@ services:
       dockerfile: Dockerfile
     restart: unless-stopped
     expose:
-      - 80
+      - "80"
+    environment:
+      WEB_DOMAIN: ${WEB_DOMAIN:-}
+      API_DOMAIN: ${API_DOMAIN:-}
     depends_on:
       web:
         condition: service_healthy

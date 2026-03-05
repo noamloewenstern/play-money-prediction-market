@@ -36,7 +36,7 @@ export const columns: Array<ColumnDef<ExtendedMarket>> = [
     cell: ({ row }) => {
       return (
         <Link
-          href={`/questions/${row.original.id}/${row.original.slug}`}
+          href={`/questions/${row.original.id}/${row.original.slug || 'market'}`}
           className="ml-1 line-clamp-2 visited:text-muted-foreground"
         >
           {row.getValue('question')}
@@ -56,7 +56,7 @@ export const columns: Array<ColumnDef<ExtendedMarket>> = [
       const canceledAt = row.original.canceledAt
 
       return (
-        <Link href={`/questions/${row.original.id}/${row.original.slug}`}>
+        <Link href={`/questions/${row.original.id}/${row.original.slug || 'market'}`}>
           {canceledAt ? (
             <div className="text-muted-foreground">
               <span className="font-semibold">Canceled</span>
