@@ -1,0 +1,49 @@
+# Dependencies — biggest win (~1.3 GB excluded)
+**/node_modules
+
+# Build outputs
+**/.next
+**/out
+**/build
+**/dist
+**/.swc
+**/storybook-static
+**/tsconfig.tsbuildinfo
+
+# Turbo cache
+**/.turbo
+
+# Version control
+.git
+
+# Environment files (secrets must not be baked into images)
+.env
+.env.*
+!.env.example
+
+# Testing / coverage
+**/coverage
+**/*.test.ts
+**/*.test.tsx
+**/*.spec.ts
+**/*.spec.tsx
+**/mocks
+
+# IDE / editor
+.vscode
+.idea
+
+# OS
+**/.DS_Store
+
+# AI tooling
+.claude
+.aider*
+
+# CI / misc
+.github
+.playwright
+.vercel
+*.pem
+npm-debug.log*
+tmp
