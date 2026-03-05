@@ -85,7 +85,7 @@ export async function calculateBalanceSubtotals({
     select: { subtotals: true },
   })
 
-  const existingSubtotals = existingBalance?.subtotals as unknown as Record<string, number> | null
+  const existingSubtotals = (existingBalance?.subtotals ?? null) as Record<string, number> | null
 
   return existingSubtotals
     ? {

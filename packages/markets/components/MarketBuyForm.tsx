@@ -1,9 +1,10 @@
 'use client'
 
 import { zodResolver } from '@hookform/resolvers/zod'
+import debounce from 'lodash/debounce'
 import orderBy from 'lodash/orderBy'
 import truncate from 'lodash/truncate'
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, useCallback } from 'react'
 import { useForm } from 'react-hook-form'
 import z from 'zod'
 import { createMarketBuy, getMarketQuote } from '@play-money/api-helpers/client'
@@ -69,6 +70,9 @@ export function MarketBuyForm({
     }
   }
 
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  const debouncedFetchQuote = useCallback(debounce(fetchQuote, 300), [marketId])
+
   useEffect(() => {
     form.setValue('optionId', options[0].id)
   }, [options])
@@ -78,16 +82,19 @@ export function MarketBuyForm({
     const optionId = form?.getValues('optionId')
 
     if (amount && optionId) {
-      fetchQuote(amount, optionId)
+      debouncedFetchQuote(amount, optionId)
     }
 
     const subscription = form.watch(({ amount, optionId }) => {
       if (amount && optionId) {
-        fetchQuote(amount, optionId)
+        debouncedFetchQuote(amount, optionId)
       }
     })
-    return () => subscription.unsubscribe()
-  }, [form, options])
+    return () => {
+      subscription.unsubscribe()
+      debouncedFetchQuote.cancel()
+    }
+  }, [form, options, debouncedFetchQuote])
 
   const orderedOptions = orderBy(options, 'createdAt')
 

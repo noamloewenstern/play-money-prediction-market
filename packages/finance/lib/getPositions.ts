@@ -1,17 +1,17 @@
 import db from '@play-money/database'
 import { ExtendedMarketOptionPosition } from '../types'
 
-interface PositionsFilterOptions {
+type PositionsFilterOptions = {
   accountId?: string
   status?: 'active' | 'closed' | 'all'
 }
 
-interface SortOptions {
+type SortOptions = {
   field: string
   direction: 'asc' | 'desc'
 }
 
-interface PaginationOptions {
+type PaginationOptions = {
   skip: number
   take: number
 }

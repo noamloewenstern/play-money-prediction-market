@@ -10,7 +10,7 @@ import {
 } from '@play-money/database'
 import { NotificationTypeType } from '@play-money/database/zod/inputTypeSchemas/NotificationTypeSchema'
 
-interface CreateNotificationBase {
+type CreateNotificationBase = {
   type: NotificationTypeType
   actorId?: string
   marketId?: string
@@ -21,37 +21,49 @@ interface CreateNotificationBase {
   transactionId?: string
 }
 
-interface NotificationContentBase {
+type NotificationContentBase = {
   type: NotificationTypeType
 }
 
-export interface CreateMarketResolvedNotification extends CreateNotificationBase {
+export type CreateMarketResolvedNotification = CreateNotificationBase & {
   type: 'MARKET_RESOLVED'
   actorId: string
   marketId: string
   marketOptionId: string
 }
 
-export interface MarketResolvedNotificationContent extends NotificationContentBase {
+export type MarketResolvedNotificationContent = NotificationContentBase & {
   type: 'MARKET_RESOLVED'
   actor: User
   market: Market
   marketOption: MarketOption
 }
 
-export interface CreateMarketCanceledNotification extends CreateNotificationBase {
+export type CreateMarketCanceledNotification = CreateNotificationBase & {
   type: 'MARKET_CANCELED'
   actorId: string
   marketId: string
 }
 
-export interface MarketCanceledNotificationContent extends NotificationContentBase {
+export type MarketCanceledNotificationContent = NotificationContentBase & {
   type: 'MARKET_CANCELED'
   actor: User
   market: Market
 }
 
-export interface MarketTradeNotificationContent extends NotificationContentBase {
+export type CreateMarketClosedNotification = CreateNotificationBase & {
+  type: 'MARKET_CLOSED'
+  actorId: string
+  marketId: string
+}
+
+export type MarketClosedNotificationContent = NotificationContentBase & {
+  type: 'MARKET_CLOSED'
+  actor: User
+  market: Market
+}
+
+export type MarketTradeNotificationContent = NotificationContentBase & {
   type: 'MARKET_TRADE'
   actor: User
   market: Market
@@ -61,7 +73,7 @@ export interface MarketTradeNotificationContent extends NotificationContentBase 
   }
 }
 
-export interface CreateMarketTradeNotification extends CreateNotificationBase {
+export type CreateMarketTradeNotification = CreateNotificationBase & {
   type: 'MARKET_TRADE'
   actorId: string
   marketId: string
@@ -69,7 +81,7 @@ export interface CreateMarketTradeNotification extends CreateNotificationBase {
   transactionId: string
 }
 
-export interface MarketLiquidityAddedNotificationContent extends NotificationContentBase {
+export type MarketLiquidityAddedNotificationContent = NotificationContentBase & {
   type: 'MARKET_LIQUIDITY_ADDED'
   actor: User
   market: Market
@@ -78,28 +90,28 @@ export interface MarketLiquidityAddedNotificationContent extends NotificationCon
   }
 }
 
-export interface CreateMarketLiquidityAddedNotification extends CreateNotificationBase {
+export type CreateMarketLiquidityAddedNotification = CreateNotificationBase & {
   type: 'MARKET_LIQUIDITY_ADDED'
   actorId: string
   marketId: string
   transactionId: string
 }
 
-export interface MarketCommentNotificationContent extends NotificationContentBase {
+export type MarketCommentNotificationContent = NotificationContentBase & {
   type: 'MARKET_COMMENT'
   actor: User
   market: Market
   comment: Comment
 }
 
-export interface CreateMarketCommentNotification extends CreateNotificationBase {
+export type CreateMarketCommentNotification = CreateNotificationBase & {
   type: 'MARKET_COMMENT'
   actorId: string
   marketId: string
   commentId: string
 }
 
-export interface ListCommentNotificationContent extends NotificationContentBase {
+export type ListCommentNotificationContent = NotificationContentBase & {
   type: 'LIST_COMMENT'
   actor: User
   list: List
@@ -107,7 +119,7 @@ export interface ListCommentNotificationContent extends NotificationContentBase 
   comment: Comment
 }
 
-export interface CreateListCommentNotification extends CreateNotificationBase {
+export type CreateListCommentNotification = CreateNotificationBase & {
   type: 'LIST_COMMENT'
   actorId: string
   listId: string
@@ -115,7 +127,7 @@ export interface CreateListCommentNotification extends CreateNotificationBase {
   commentId: string
 }
 
-export interface CommentReplyNotificationContent extends NotificationContentBase {
+export type CommentReplyNotificationContent = NotificationContentBase & {
   type: 'COMMENT_REPLY'
   actor: User
   market?: Market
@@ -124,7 +136,7 @@ export interface CommentReplyNotificationContent extends NotificationContentBase
   parentComment: Comment
 }
 
-export interface CreateCommentReplyNotification extends CreateNotificationBase {
+export type CreateCommentReplyNotification = CreateNotificationBase & {
   type: 'COMMENT_REPLY'
   actorId: string
   marketId?: string
@@ -133,7 +145,7 @@ export interface CreateCommentReplyNotification extends CreateNotificationBase {
   parentCommentId: string
 }
 
-export interface CommentReactionNotificationContent extends NotificationContentBase {
+export type CommentReactionNotificationContent = NotificationContentBase & {
   type: 'COMMENT_REACTION'
   actor: User
   market?: Market
@@ -142,7 +154,7 @@ export interface CommentReactionNotificationContent extends NotificationContentB
   commentReaction: CommentReaction
 }
 
-export interface CreateCommentReactionNotification extends CreateNotificationBase {
+export type CreateCommentReactionNotification = CreateNotificationBase & {
   type: 'COMMENT_REACTION'
   actorId: string
   marketId?: string
@@ -151,7 +163,7 @@ export interface CreateCommentReactionNotification extends CreateNotificationBas
   commentReactionId: string
 }
 
-export interface CommentMentionNotificationContent extends NotificationContentBase {
+export type CommentMentionNotificationContent = NotificationContentBase & {
   type: 'COMMENT_MENTION'
   actor: User
   market?: Market
@@ -160,7 +172,7 @@ export interface CommentMentionNotificationContent extends NotificationContentBa
   parentComment?: Comment
 }
 
-export interface CreateCommentMentionNotification extends CreateNotificationBase {
+export type CreateCommentMentionNotification = CreateNotificationBase & {
   type: 'COMMENT_MENTION'
   actorId: string
   marketId?: string
@@ -169,7 +181,7 @@ export interface CreateCommentMentionNotification extends CreateNotificationBase
   parentCommentId?: string
 }
 
-export interface ReferrerBonusNotificationContent extends NotificationContentBase {
+export type ReferrerBonusNotificationContent = NotificationContentBase & {
   type: 'REFERRER_BONUS'
   actor: User
   market?: Market
@@ -178,16 +190,29 @@ export interface ReferrerBonusNotificationContent extends NotificationContentBas
   }
 }
 
-export interface CreateReferrerBonusNotification extends CreateNotificationBase {
+export type CreateReferrerBonusNotification = CreateNotificationBase & {
   type: 'REFERRER_BONUS'
   actorId: string
   marketId?: string
   transactionId?: string
 }
 
+export type TagNewMarketNotificationContent = NotificationContentBase & {
+  type: 'TAG_NEW_MARKET'
+  actor: User
+  market: Market
+}
+
+export type CreateTagNewMarketNotification = CreateNotificationBase & {
+  type: 'TAG_NEW_MARKET'
+  actorId: string
+  marketId: string
+}
+
 export type NotificationContent =
   | MarketResolvedNotificationContent
   | MarketCanceledNotificationContent
+  | MarketClosedNotificationContent
   | MarketTradeNotificationContent
   | MarketLiquidityAddedNotificationContent
   | MarketCommentNotificationContent
@@ -196,10 +221,12 @@ export type NotificationContent =
   | CommentMentionNotificationContent
   | CommentReactionNotificationContent
   | ReferrerBonusNotificationContent
+  | TagNewMarketNotificationContent
 
 export type CreateNotificationData =
   | CreateMarketResolvedNotification
   | CreateMarketCanceledNotification
+  | CreateMarketClosedNotification
   | CreateMarketTradeNotification
   | CreateMarketLiquidityAddedNotification
   | CreateMarketCommentNotification
@@ -208,3 +235,4 @@ export type CreateNotificationData =
   | CreateCommentReactionNotification
   | CreateCommentMentionNotification
   | CreateReferrerBonusNotification
+  | CreateTagNewMarketNotification

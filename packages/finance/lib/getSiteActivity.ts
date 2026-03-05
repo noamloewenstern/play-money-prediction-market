@@ -128,14 +128,19 @@ function groupTransactionsByType(
 ): Array<MarketActivity> {
   const sortedTransactions = [...transactions].sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime())
   const buckets: Record<string, Array<TransactionWithEntries>> = {}
+  // Map from composite key (type-option-market) to the most recent bucket key for O(1) lookup
+  const bucketKeyMap = new Map<string, string>()
 
   for (const transaction of sortedTransactions) {
     const transactionType = transactionToActivityType(transaction)
     const option = transaction.options?.[0]
+    const compositeKey = `${transactionType}_${option?.id || 'none'}_${transaction.market?.id || 'none'}`
 
-    // Try to find an existing bucket within granularity period
     let foundBucket = false
-    for (const [existingKey, existingTransactions] of Object.entries(buckets)) {
+    const existingBucketKey = bucketKeyMap.get(compositeKey)
+
+    if (existingBucketKey && buckets[existingBucketKey]) {
+      const existingTransactions = buckets[existingBucketKey]
       const existingTime = existingTransactions[0].createdAt
 
       const isWithinGranularity = isWithinInterval(transaction.createdAt, {
@@ -143,21 +148,17 @@ function groupTransactionsByType(
         end: addDays(existingTime, granularityDays),
       })
 
-      const isSameType = transactionToActivityType(existingTransactions[0]) === transactionType
-      const isSameOption = (existingTransactions[0].options?.[0]?.id || 'none') === (option?.id || 'none')
-      const isSameMarket = (existingTransactions[0].market?.id || 'none') === (transaction.market?.id || 'none')
-
-      if (isWithinGranularity && isSameType && isSameOption && isSameMarket) {
-        buckets[existingKey].push(transaction)
+      if (isWithinGranularity) {
+        buckets[existingBucketKey].push(transaction)
         foundBucket = true
-        break
       }
     }
 
     if (!foundBucket) {
       // Create new bucket if no matching bucket found
-      const newKey = `${transaction.createdAt.getTime()}_${transactionType}_${option?.id || 'none'}_${transaction.market?.id || 'none'}`
+      const newKey = `${transaction.createdAt.getTime()}_${compositeKey}`
       buckets[newKey] = [transaction]
+      bucketKeyMap.set(compositeKey, newKey)
     }
   }
 
@@ -196,17 +197,39 @@ function splitTransactionGroup(
   let currentTransactions: any[] = []
   let currentTimestamp = group.transactions![0].createdAt
 
+  // timePoints is sorted descending. Use a pointer to avoid re-scanning from the start.
+  // Transactions are also sorted descending, so both currentTimestamp and transaction.createdAt decrease over time.
+  let timePointIdx = 0
+
   for (const transaction of group.transactions!) {
-    // Check if any timePoint falls between the current timestamp and this transaction
-    const splitPoint = timePoints.find(
-      (point) =>
-        point.timestampAt.getTime() > transaction.createdAt.getTime() &&
-        point.timestampAt.getTime() < currentTimestamp.getTime() &&
-        isWithinInterval(point.timestampAt, {
+    const transactionTime = transaction.createdAt.getTime()
+    const currentTime = currentTimestamp.getTime()
+
+    // Advance pointer past timePoints that are >= currentTimestamp (not between current and transaction)
+    while (timePointIdx < timePoints.length && timePoints[timePointIdx].timestampAt.getTime() >= currentTime) {
+      timePointIdx++
+    }
+
+    // Check timePoints starting from pointer for a split point between transaction and currentTimestamp
+    let splitPoint: MarketActivity | undefined
+    for (let i = timePointIdx; i < timePoints.length; i++) {
+      const pointTime = timePoints[i].timestampAt.getTime()
+      if (pointTime <= transactionTime) {
+        // Past the window — no more candidates since timePoints is sorted descending
+        break
+      }
+      if (
+        pointTime > transactionTime &&
+        pointTime < currentTime &&
+        isWithinInterval(timePoints[i].timestampAt, {
           start: addDays(currentTimestamp, -granularityDays),
           end: addDays(currentTimestamp, granularityDays),
         })
-    )
+      ) {
+        splitPoint = timePoints[i]
+        break
+      }
+    }
 
     if (splitPoint && currentTransactions.length > 0) {
       // Create a new group with accumulated transactions

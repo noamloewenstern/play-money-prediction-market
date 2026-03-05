@@ -1,6 +1,6 @@
 import db, { List, Market, User } from '@play-money/database'
 
-interface SearchResults {
+type SearchResults = {
   users: Array<User>
   markets: Array<Market>
   lists: Array<List>

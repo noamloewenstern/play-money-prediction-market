@@ -3,7 +3,7 @@ import db from '@play-money/database'
 import { TransactionTypeType } from '@play-money/database/zod/inputTypeSchemas/TransactionTypeSchema'
 import { TransactionWithEntries } from '../types'
 
-interface TransactionFilterOptions {
+type TransactionFilterOptions = {
   marketId?: string
   userId?: string
   transactionType?: Array<TransactionTypeType>

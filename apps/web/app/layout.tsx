@@ -3,7 +3,7 @@ import { Inter } from 'next/font/google'
 import { SWRProvider } from '@play-money/api-helpers/components/SWRProvider'
 import { auth } from '@play-money/auth'
 import { SessionProvider } from '@play-money/auth/components/SessionProvider'
-import { EditorExtensions } from '@play-money/comments/components/EditorExtensions'
+import { LazyEditorExtensions } from '@play-money/comments/components/LazyEditorExtensions'
 import { ReferralProvider } from '@play-money/referrals/components/ReferralContext'
 import { ThemeProvider } from '@play-money/ui/ThemeProvider'
 import '@play-money/ui/emoji'
@@ -39,11 +39,11 @@ export default async function RootLayout({ children }: { children: React.ReactNo
           <SWRProvider>
             <SessionProvider session={session}>
               <UserProvider user={user}>
-                <EditorExtensions>
+                <LazyEditorExtensions>
                   <ReferralProvider>
                     <TooltipProvider>{children}</TooltipProvider>
                   </ReferralProvider>
-                </EditorExtensions>
+                </LazyEditorExtensions>
               </UserProvider>
             </SessionProvider>
             <Toaster />

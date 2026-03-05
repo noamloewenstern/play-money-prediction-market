@@ -14,7 +14,7 @@ export type PageInfo = {
   total: number
 }
 
-export interface PaginatedResponse<T> {
-  data: T[]
+export type PaginatedResponse<T> = {
+  data: Array<T>
   pageInfo: PageInfo
 }

@@ -5,7 +5,11 @@ import { MarketSchema } from '@play-money/database'
 export default {
   get: {
     summary: 'Get a market',
-    parameters: MarketSchema.pick({ id: true }).extend({ extended: z.boolean().optional() }),
+    parameters: MarketSchema.pick({ id: true }).extend({
+      extended: z
+        .union([z.boolean(), z.string().transform((s) => s === 'true')])
+        .optional(),
+    }),
     responses: {
       200: z.object({ data: MarketSchema }),
       404: ServerErrorSchema,

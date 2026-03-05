@@ -2,10 +2,10 @@ import { getPaginatedItems, PaginationRequest } from '@play-money/api-helpers'
 import db, { Market } from '@play-money/database'
 import { ExtendedMarket } from '../types'
 
-interface MarketFilterOptions {
+type MarketFilterOptions = {
   status?: 'active' | 'halted' | 'closed' | 'resolved' | 'canceled' | 'all'
   createdBy?: string
-  tags?: string[]
+  tags?: Array<string>
 }
 
 function getStatusFilters(status: MarketFilterOptions['status']) {

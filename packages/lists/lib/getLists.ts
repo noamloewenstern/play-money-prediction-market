@@ -1,7 +1,7 @@
 import { getPaginatedItems, PaginationRequest } from '@play-money/api-helpers'
 import db, { List } from '@play-money/database'
 
-interface ListFilterOptions {
+type ListFilterOptions = {
   ownerId?: string
 }
 

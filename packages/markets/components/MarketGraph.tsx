@@ -1,5 +1,5 @@
 import { format } from 'date-fns'
-import React from 'react'
+import React, { useMemo } from 'react'
 import { LineChart, Line, ResponsiveContainer, YAxis, XAxis, CartesianGrid, Tooltip as ChartTooltip } from 'recharts'
 import { useMarketGraph } from '@play-money/api-helpers/client/hooks'
 import { Card } from '@play-money/ui/card'
@@ -30,8 +30,10 @@ function CustomizedYAxisTick({ x, y, payload }: { x: number; y: number; payload:
 
 export function MarketGraph({ market, activeOptionId }: { market: ExtendedMarket; activeOptionId: string }) {
   const { data: graph } = useMarketGraph({ marketId: market.id })
-  const createdOrderOptions = market.options.sort(
-    (a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()
+  const createdOrderOptions = useMemo(
+    () =>
+      [...market.options].sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()),
+    [market.options]
   )
   const activeOptionIndex = createdOrderOptions.findIndex((o) => o.id === activeOptionId)
 

@@ -1,7 +1,7 @@
 import Decimal from 'decimal.js'
 import { TransactionClient } from '@play-money/database'
 import { AssetTypeType } from '@play-money/database/zod/inputTypeSchemas/AssetTypeSchema'
-import { NetBalance } from './getBalances'
+import { toNetBalance } from './getBalances'
 
 export async function updateBalance({
   tx,
@@ -30,7 +30,7 @@ export async function updateBalance({
     select: { id: true },
   })
 
-  return tx.balance.upsert({
+  const result = await tx.balance.upsert({
     where: {
       id: existingBalance?.id ?? '',
     },
@@ -47,5 +47,7 @@ export async function updateBalance({
       subtotals,
       createdAt: new Date(),
     },
-  }) as unknown as NetBalance
+  })
+
+  return toNetBalance(result)
 }

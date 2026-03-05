@@ -12,11 +12,6 @@ export async function GET(req: Request): Promise<SchemaResponse<typeof schema.ge
     const searchParams = new URLSearchParams(url.search)
     const params = Object.fromEntries(searchParams)
 
-    if (params.transactionType) {
-      // TODO: Transform this within zod before parsing. This is a workaround for now.
-      params.transactionType = params.transactionType.split(',') as unknown as string
-    }
-
     const { marketId, userId, transactionType, ...paginationParams } = schema.get.parameters.parse(params) ?? {}
 
     const results = await getTransactions({ marketId, userId, transactionType }, paginationParams)

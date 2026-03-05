@@ -15,6 +15,10 @@ export type MarketOptionPositionAsNumbers = Omit<MarketOptionPosition, 'value' |
   quantity: number
 }
 
+export function toNetBalance(balance: Balance): NetBalance {
+  return { ...balance, subtotals: (balance.subtotals ?? {}) as Record<string, number> }
+}
+
 export async function getBalance({
   accountId,
   assetType,
@@ -39,7 +43,7 @@ export async function getBalance({
     throw new Error('No balance')
   }
 
-  return balance as unknown as NetBalance
+  return toNetBalance(balance)
 }
 
 export async function getMarketBalances({
@@ -67,7 +71,7 @@ export async function getMarketBalances({
     },
   })
 
-  return balances as unknown as Array<NetBalance>
+  return balances.map(toNetBalance)
 }
 
 export async function getListBalances({
@@ -112,7 +116,7 @@ export async function getListBalances({
     },
   })
 
-  return balances as unknown as Array<NetBalance>
+  return balances.map(toNetBalance)
 }
 
 export function transformMarketBalancesToNumbers(balances: Array<NetBalance> = []): Array<NetBalanceAsNumbers> {

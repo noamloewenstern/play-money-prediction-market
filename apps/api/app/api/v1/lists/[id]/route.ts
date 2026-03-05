@@ -19,11 +19,6 @@ export async function GET(
     const searchParams = new URLSearchParams(url.search)
     const params = Object.fromEntries(searchParams)
 
-    if (params.extended) {
-      // TODO: Transform this within zod before parsing. This is a workaround for now.
-      params.extended = (params.extended === 'true') as unknown as string
-    }
-
     const { id, extended } = schema.get.parameters.parse({ ...params, ...idParams })
 
     const list = await getList({ id, extended })

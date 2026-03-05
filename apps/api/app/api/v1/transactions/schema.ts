@@ -26,7 +26,10 @@ export default {
       .object({
         marketId: z.string().optional(),
         userId: z.string().optional(),
-        transactionType: z.array(TransactionTypeSchema).optional(),
+        transactionType: z
+          .union([z.string().transform((s) => s.split(',')), z.array(z.string())])
+          .pipe(z.array(TransactionTypeSchema))
+          .optional(),
       })
       .merge(paginationSchema)
       .optional(),

@@ -85,8 +85,9 @@ export async function getMarketTransactionsTimeSeries({
     // Start with the previous bucket's shares
     if (i > 0) {
       const lastBucket = buckets[i - 1]
+      const lastBucketOptionsMap = new Map(lastBucket.options.map((o) => [o.id, o]))
       bucket.options = bucket.options.map((option) => {
-        const lastBucketOption = lastBucket.options.find((o) => option.id === o.id)!
+        const lastBucketOption = lastBucketOptionsMap.get(option.id)!
         return {
           ...option,
           shares: lastBucketOption.shares,
@@ -94,9 +95,10 @@ export async function getMarketTransactionsTimeSeries({
       })
     }
 
+    const optionsMap = new Map(bucket.options.map((o) => [o.id, o]))
     bucket.transactions.forEach((transaction) => {
       transaction.entries.forEach((item) => {
-        const option = bucket.options.find((o) => o.id === item.assetId)
+        const option = optionsMap.get(item.assetId)
 
         if (!option) {
           return

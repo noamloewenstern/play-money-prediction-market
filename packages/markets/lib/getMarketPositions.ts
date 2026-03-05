@@ -2,7 +2,7 @@ import Decimal from 'decimal.js'
 import { getPaginatedItems, PaginationRequest } from '@play-money/api-helpers'
 import db, { MarketOptionPosition } from '@play-money/database'
 
-interface MarketPositionFilterOptions {
+type MarketPositionFilterOptions = {
   status?: 'active' | 'closed' | 'all'
   ownerId?: string
   marketId?: string
