@@ -2,14 +2,19 @@ import crypto from 'crypto'
 import { generateMnemonic } from 'bip39'
 import { NextResponse } from 'next/server'
 import { SchemaResponse } from '@play-money/api-helpers'
+import { rateLimit } from '@play-money/api-helpers/lib/rateLimit'
 import { auth } from '@play-money/auth'
 import db from '@play-money/database'
 import schema from './schema'
 
 export const dynamic = 'force-dynamic'
 
+const limiter = rateLimit({ windowMs: 60000, maxRequests: 5 })
+
 export async function POST(req: Request): Promise<SchemaResponse<typeof schema.post.responses>> {
   try {
+    const rateLimitResponse = limiter(req)
+    if (rateLimitResponse) return rateLimitResponse
     const session = await auth()
 
     if (!session?.user?.id) {

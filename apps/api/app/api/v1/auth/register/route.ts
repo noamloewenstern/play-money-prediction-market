@@ -1,12 +1,17 @@
 import { NextResponse } from 'next/server'
+import { rateLimit } from '@play-money/api-helpers/lib/rateLimit'
 import { registerUser, WhitelistError } from '@play-money/auth/lib/registerUser'
 import { UserExistsError } from '@play-money/users/lib/exceptions'
 import schema from './schema'
 
 export const dynamic = 'force-dynamic'
 
+const limiter = rateLimit({ windowMs: 60000, maxRequests: 10 })
+
 export async function POST(req: Request) {
   try {
+    const rateLimitResponse = limiter(req)
+    if (rateLimitResponse) return rateLimitResponse
     const body = (await req.json()) as unknown
     const { email, password, timezone } = schema.post.requestBody.parse(body)
 
