@@ -8,9 +8,9 @@ export const dynamic = 'force-dynamic'
 export async function POST(req: Request) {
   try {
     const body = (await req.json()) as unknown
-    const { email, password } = schema.post.requestBody.parse(body)
+    const { email, password, timezone } = schema.post.requestBody.parse(body)
 
-    const result = await registerUser({ email, password })
+    const result = await registerUser({ email, password, timezone })
 
     return NextResponse.json({ data: result })
   } catch (error) {

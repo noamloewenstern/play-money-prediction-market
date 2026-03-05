@@ -10,7 +10,7 @@ export class WhitelistError extends Error {
   }
 }
 
-export async function registerUser({ email, password }: { email: string; password: string }) {
+export async function registerUser({ email, password, timezone }: { email: string; password: string; timezone?: string }) {
   // Check whitelist
   const whitelist = process.env.AUTH_EMAIL_WHITELIST
   if (whitelist) {
@@ -21,7 +21,7 @@ export async function registerUser({ email, password }: { email: string; passwor
   }
 
   // Create user (handles duplicate check, username gen, signup bonus, referral code)
-  const user = await createUser({ email })
+  const user = await createUser({ email, timezone })
 
   // Set password hash
   const passwordHash = await bcrypt.hash(password, 12)

@@ -5,6 +5,7 @@ const schema = {
     requestBody: z.object({
       email: z.string().email(),
       password: z.string().min(8, 'Password must be at least 8 characters'),
+      timezone: z.string().optional(),
     }),
     responses: {
       200: z.object({ data: z.object({ success: z.boolean() }) }),
