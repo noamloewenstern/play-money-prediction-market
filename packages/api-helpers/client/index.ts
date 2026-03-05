@@ -564,8 +564,8 @@ export async function getLeaderboard({ month, year }: { month?: string; year?: s
   }>(`${process.env.NEXT_PUBLIC_API_URL}/v1/leaderboard${month && year ? `?year=${year}&month=${month}` : ''}`)
 }
 
-export async function createMyApiKey({ name }: { name: string }): Promise<{ data: ApiKey }> {
-  return apiHandler<{ data: ApiKey }>(`${process.env.NEXT_PUBLIC_API_URL}/v1/users/me/api-keys`, {
+export async function createMyApiKey({ name }: { name: string }): Promise<{ data: ApiKey & { key: string } }> {
+  return apiHandler<{ data: ApiKey & { key: string } }>(`${process.env.NEXT_PUBLIC_API_URL}/v1/users/me/api-keys`, {
     method: 'POST',
     body: {
       name,
@@ -576,3 +576,150 @@ export async function createMyApiKey({ name }: { name: string }): Promise<{ data
 export async function getMyApiKeys(): Promise<{ data: Array<ApiKey> }> {
   return apiHandler<{ data: Array<ApiKey> }>(`${process.env.NEXT_PUBLIC_API_URL}/v1/users/me/api-keys`)
 }
+
+export async function followTag({ tag }: { tag: string }) {
+  return apiHandler<{ data: { success: boolean } }>(`${process.env.NEXT_PUBLIC_API_URL}/v1/tags/${encodeURIComponent(tag)}/follow`, {
+    method: 'POST',
+  })
+}
+
+export async function unfollowTag({ tag }: { tag: string }) {
+  return apiHandler<{ data: { success: boolean } }>(`${process.env.NEXT_PUBLIC_API_URL}/v1/tags/${encodeURIComponent(tag)}/follow`, {
+    method: 'DELETE',
+  })
+}
+
+export async function getMyFollowedTags(): Promise<{ data: Array<string> }> {
+  return apiHandler<{ data: Array<string> }>(`${process.env.NEXT_PUBLIC_API_URL}/v1/users/me/followed-tags`)
+}
+
+export async function getMyFeed(paginationParams: PaginationRequest = {}) {
+  const currentParams = new URLSearchParams(JSON.parse(JSON.stringify(paginationParams)))
+  const search = currentParams.toString()
+
+  return apiHandler<PaginatedResponse<ExtendedMarket>>(
+    `${process.env.NEXT_PUBLIC_API_URL}/v1/users/me/feed${search ? `?${search}` : ''}`
+  )
+}
+
+// Admin API functions
+
+export async function getAdminStats() {
+  return apiHandler<{
+    data: {
+      users: { total: number; newToday: number; newThisWeek: number; newThisMonth: number }
+      markets: { total: number; active: number; resolved: number; canceled: number }
+      comments: { total: number; hidden: number }
+      trades: { last24h: number }
+    }
+  }>(`${process.env.NEXT_PUBLIC_API_URL}/v1/admin/stats`)
+}
+
+export async function getAdminUsers({ search, page, limit }: { search?: string; page?: number; limit?: number } = {}) {
+  const params = new URLSearchParams(JSON.parse(JSON.stringify({ search, page, limit })))
+  const qs = params.toString()
+  return apiHandler<{
+    data: Array<{
+      id: string
+      username: string
+      displayName: string
+      email: string
+      role: string
+      avatarUrl: string | null
+      suspendedAt: string | null
+      createdAt: string
+      updatedAt: string
+      _count: { markets: number; transactions: number; comments: number }
+    }>
+    page: number
+    limit: number
+    total: number
+    totalPages: number
+  }>(`${process.env.NEXT_PUBLIC_API_URL}/v1/admin/users${qs ? `?${qs}` : ''}`)
+}
+
+export async function updateAdminUser({
+  userId,
+  body,
+}: {
+  userId: string
+  body: {
+    role?: string
+    grantAmount?: number
+    balanceAdjustment?: number
+    balanceReason?: string
+    suspended?: boolean
+    suspendReason?: string
+  }
+}) {
+  return apiHandler<{ data: User }>(`${process.env.NEXT_PUBLIC_API_URL}/v1/admin/users/${userId}`, {
+    method: 'PATCH',
+    body,
+  })
+}
+
+export async function getAdminMarkets({
+  search,
+  status,
+  page,
+  limit,
+}: { search?: string; status?: string; page?: number; limit?: number } = {}) {
+  const params = new URLSearchParams(JSON.parse(JSON.stringify({ search, status, page, limit })))
+  const qs = params.toString()
+  return apiHandler<{
+    data: Array<{
+      id: string
+      question: string
+      slug: string
+      closeDate: string | null
+      resolvedAt: string | null
+      canceledAt: string | null
+      createdBy: string
+      commentCount: number | null
+      uniqueTradersCount: number | null
+      liquidityCount: number | null
+      createdAt: string
+      updatedAt: string
+      user: { id: string; username: string; displayName: string }
+    }>
+    page: number
+    limit: number
+    total: number
+    totalPages: number
+  }>(`${process.env.NEXT_PUBLIC_API_URL}/v1/admin/markets${qs ? `?${qs}` : ''}`)
+}
+
+export async function getAdminComments({
+  search,
+  hidden,
+  page,
+  limit,
+}: { search?: string; hidden?: boolean; page?: number; limit?: number } = {}) {
+  const params = new URLSearchParams(JSON.parse(JSON.stringify({ search, hidden, page, limit })))
+  const qs = params.toString()
+  return apiHandler<{
+    data: Array<{
+      id: string
+      content: string
+      hidden: boolean
+      entityType: string
+      entityId: string
+      createdAt: string
+      updatedAt: string | null
+      author: { id: string; username: string; displayName: string }
+    }>
+    page: number
+    limit: number
+    total: number
+    totalPages: number
+  }>(`${process.env.NEXT_PUBLIC_API_URL}/v1/admin/comments${qs ? `?${qs}` : ''}`)
+}
+
+export async function updateAdminComment({ commentId, body }: { commentId: string; body: { hidden?: boolean } }) {
+  return apiHandler<{ data: unknown }>(`${process.env.NEXT_PUBLIC_API_URL}/v1/admin/comments/${commentId}`, {
+    method: 'PATCH',
+    body,
+  })
+}
+
+

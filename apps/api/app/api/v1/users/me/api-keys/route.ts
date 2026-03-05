@@ -1,3 +1,4 @@
+import crypto from 'crypto'
 import { generateMnemonic } from 'bip39'
 import { NextResponse } from 'next/server'
 import { SchemaResponse } from '@play-money/api-helpers'
@@ -18,17 +19,20 @@ export async function POST(req: Request): Promise<SchemaResponse<typeof schema.p
     const body = (await req.json()) as unknown
     const { name } = schema.post.requestBody.parse(body)
 
-    const key = generateMnemonic(128)
+    const plaintextKey = generateMnemonic(128).replace(/\s+/g, '-')
+    const hashedKey = crypto.createHash('sha256').update(plaintextKey).digest('hex')
+    const keyPrefix = plaintextKey.substring(0, 8)
 
     const apiKey = await db.apiKey.create({
       data: {
         name,
-        key: key.replace(/\s+/g, '-'),
+        hashedKey,
+        keyPrefix,
         userId: session.user.id,
       },
     })
 
-    return NextResponse.json({ data: apiKey })
+    return NextResponse.json({ data: { ...apiKey, key: plaintextKey } })
   } catch (error) {
     console.log(error) // eslint-disable-line no-console -- Log error for debugging
 

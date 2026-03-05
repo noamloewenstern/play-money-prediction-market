@@ -1,3 +1,4 @@
+import crypto from 'crypto'
 import { auth } from '@play-money/auth'
 import db from '@play-money/database'
 
@@ -12,17 +13,23 @@ export async function getAuthUser(request: Request): Promise<string | null> {
     return null
   }
 
-  const apiKeyRecord = await db.apiKey.findUnique({
+  const keyPrefix = apiKey.substring(0, 8)
+  const hashedKey = crypto.createHash('sha256').update(apiKey).digest('hex')
+
+  const candidates = await db.apiKey.findMany({
     where: {
-      key: apiKey,
+      keyPrefix,
       isRevoked: false,
       OR: [{ expiresAt: null }, { expiresAt: { gt: new Date() } }],
     },
     select: {
       id: true,
       userId: true,
+      hashedKey: true,
     },
   })
+
+  const apiKeyRecord = candidates.find((candidate) => candidate.hashedKey === hashedKey)
 
   if (!apiKeyRecord) {
     return null

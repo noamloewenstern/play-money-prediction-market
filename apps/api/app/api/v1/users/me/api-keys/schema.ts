@@ -11,7 +11,7 @@ export default {
       name: z.string(),
     }),
     responses: {
-      200: z.object({ data: ApiKeySchema }),
+      200: z.object({ data: ApiKeySchema.extend({ key: z.string() }) }),
       401: ServerErrorSchema,
       500: ServerErrorSchema,
     },

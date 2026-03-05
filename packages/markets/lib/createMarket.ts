@@ -1,5 +1,6 @@
 import { Prisma } from '@prisma/client'
 import Decimal from 'decimal.js'
+import DOMPurify from 'isomorphic-dompurify'
 import db, { MarketSchema, MarketOption, MarketOptionSchema } from '@play-money/database'
 import { INITIAL_MARKET_LIQUIDITY_PRIMARY } from '@play-money/finance/economy'
 import { getBalance } from '@play-money/finance/lib/getBalances'
@@ -33,6 +34,8 @@ export async function createMarket({
   subsidyAmount?: Decimal
   parentListId?: string
 }) {
+  const sanitizedDescription = DOMPurify.sanitize(description)
+
   let slug = slugifyTitle(question)
 
   let parsedOptions: Array<PartialOptions>
@@ -69,7 +72,7 @@ export async function createMarket({
   const createdMarket = await db.market.create({
     data: {
       question,
-      description,
+      description: sanitizedDescription,
       closeDate,
       slug,
       tags: generatedTags.map((tag) => slugifyTitle(tag)),

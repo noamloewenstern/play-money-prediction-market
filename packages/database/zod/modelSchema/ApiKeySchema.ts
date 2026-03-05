@@ -7,7 +7,8 @@ import { z } from 'zod';
 export const ApiKeySchema = z.object({
   id: z.string().cuid(),
   name: z.string().trim().min(1, { message: "Name is required" }),
-  key: z.string(),
+  hashedKey: z.string(),
+  keyPrefix: z.string(),
   userId: z.string(),
   lastUsedAt: z.coerce.date().nullable(),
   createdAt: z.coerce.date(),

@@ -8,12 +8,14 @@
     "type-check": "tsc --noEmit"
   },
   "dependencies": {
+    "@play-money/audit-log": "*",
     "@play-money/database": "*",
     "@play-money/finance": "*",
     "@play-money/notifications": "*",
     "@play-money/quests": "*",
     "chrono-node": "^2.7.7",
     "decimal.js": "^10.4.3",
+    "isomorphic-dompurify": "^2.16.0",
     "next": "^14.1.1",
     "openai": "^4.56.1",
     "react": "^18.2.0",

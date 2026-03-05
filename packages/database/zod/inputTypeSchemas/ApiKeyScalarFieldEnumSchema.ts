@@ -1,5 +1,5 @@
 import { z } from 'zod';
 
-export const ApiKeyScalarFieldEnumSchema = z.enum(['id','name','key','userId','lastUsedAt','createdAt','updatedAt','expiresAt','isRevoked']);
+export const ApiKeyScalarFieldEnumSchema = z.enum(['id','name','hashedKey','keyPrefix','userId','lastUsedAt','createdAt','updatedAt','expiresAt','isRevoked']);
 
 export default ApiKeyScalarFieldEnumSchema;

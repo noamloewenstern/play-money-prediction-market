@@ -494,7 +494,8 @@ model MarketList {
 model ApiKey {
   id         String    @id @default(cuid())
   name       String /// @zod.string.trim().min(1, { message: "Name is required" })
-  key        String    @unique
+  hashedKey  String
+  keyPrefix  String
   userId     String
   user       User      @relation(fields: [userId], references: [id], onDelete: Cascade)
   lastUsedAt DateTime?
@@ -503,7 +504,7 @@ model ApiKey {
   expiresAt  DateTime?
   isRevoked  Boolean   @default(false)
 
-  @@index([key])
+  @@index([keyPrefix])
   @@index([userId])
 }
 

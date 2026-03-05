@@ -1,3 +1,4 @@
+import DOMPurify from 'isomorphic-dompurify'
 import db, { Comment } from '@play-money/database'
 import { getList } from '@play-money/lists/lib/getList'
 import { getMarket } from '@play-money/markets/lib/getMarket'
@@ -28,7 +29,11 @@ export async function createComment({
   entityType,
   entityId,
 }: Pick<Comment, 'content' | 'authorId' | 'parentId' | 'entityType' | 'entityId'>) {
-  const trimmedContent = content.replace(/<p><\/p>/g, '')
+  const sanitizedContent = DOMPurify.sanitize(content, {
+    ADD_TAGS: ['mention'],
+    ADD_ATTR: ['data-id'],
+  })
+  const trimmedContent = sanitizedContent.replace(/<p><\/p>/g, '')
 
   const comment = await db.comment.create({
     data: {
@@ -45,7 +50,7 @@ export async function createComment({
 
   const entity = entityType === 'MARKET' ? await getMarket({ id: entityId }) : await getList({ id: entityId })
 
-  const userIdsMentioned = extractUniqueMentionIds(content)
+  const userIdsMentioned = extractUniqueMentionIds(trimmedContent)
 
   await Promise.all(
     userIdsMentioned.map(async (mentionedUserId) => {
