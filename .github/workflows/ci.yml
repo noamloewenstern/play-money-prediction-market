@@ -1,15 +1,19 @@
 name: CI
 
-env:
-  VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
-  VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
-  VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
-
 on:
   push:
     branches: ['main']
   pull_request:
     types: [opened, synchronize]
+
+env:
+  NEXT_PUBLIC_WEB_URL: http://localhost:3000
+  NEXT_PUBLIC_API_URL: http://localhost:3001
+  NEXTAUTH_URL: http://localhost:3000
+  NEXTAUTH_SECRET: ci-test-secret
+  AUTH_RESEND_EMAIL: ci@test.com
+  POSTGRES_PRISMA_URL: postgresql://postgres:postgres@localhost:5432/playmoney?schema=public
+  POSTGRES_URL_NON_POOLING: postgresql://postgres:postgres@localhost:5432/playmoney?schema=public
 
 jobs:
   checks:
@@ -30,8 +34,8 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
-      - name: Pull Vercel Environment Information
-        run: npm_config_yes=true npx vercel env pull .env --yes --environment=preview --token=${{ env.VERCEL_TOKEN }}
+      - name: Generate Prisma client
+        run: npm run db:generate
 
       - name: Run format
         run: npm run format
@@ -63,10 +67,10 @@ jobs:
           cache: 'npm'
 
       - name: Install dependencies
-        run: npm install
+        run: npm ci
 
-      - name: Pull Vercel Environment Information
-        run: npm_config_yes=true npx vercel env pull .env --yes --environment=preview --token=${{ env.VERCEL_TOKEN }}
+      - name: Generate Prisma client
+        run: npm run db:generate
 
       - name: Build
-        run: dotenv -- npm run build
+        run: npm run build
