@@ -135,12 +135,12 @@ services:
     logging: *default-logging
 
   caddy:
-    image: caddy:2-alpine
+    build:
+      context: ./caddy
+      dockerfile: Dockerfile
     restart: unless-stopped
     expose:
       - 80
-    volumes:
-      - ./Caddyfile:/etc/caddy/Caddyfile:ro
     depends_on:
       web:
         condition: service_healthy

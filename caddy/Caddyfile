@@ -1,5 +1,15 @@
 :80 {
-	# API routes — must come before the catch-all
+	log {
+		output stdout
+		format console
+	}
+
+	# NextAuth routes — must go to web, not api
+	handle /api/auth/* {
+		reverse_proxy web:3000
+	}
+
+	# API routes
 	handle /api/* {
 		reverse_proxy api:3001
 	}

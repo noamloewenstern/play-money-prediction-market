@@ -21,6 +21,7 @@
     "**/.hg": true,
     "**/.next": true,
     "**/.turbo": true,
+    "**/.playwright-cli/": true,
     "**/node_modules": true,
     "**/.DS_Store": true,
     "**/Thumbs.db": true
