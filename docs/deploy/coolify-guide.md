@@ -42,7 +42,6 @@ In the resource's **Environment Variables** tab, add:
 
 | Variable | Value | Notes |
 |----------|-------|-------|
-| `DOMAIN` | `example.com` | Public domain for URLs |
 | `POSTGRES_PASSWORD` | *(generate a strong random password)* | `openssl rand -base64 24` |
 | `NEXTAUTH_SECRET` | *(generate a random secret)* | `openssl rand -base64 32` |
 | `NEXTAUTH_URL` | `https://example.com` | Must match the domain |

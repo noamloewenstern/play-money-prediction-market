@@ -59,7 +59,6 @@ Edit `.env.prod` with production values (see [Environment Variables](#environmen
 
 ```bash
 # .env.prod — minimum required values
-DOMAIN=example.com
 POSTGRES_PASSWORD=<strong-random-password>
 NEXTAUTH_SECRET=<openssl rand -base64 32>
 NEXTAUTH_URL=https://example.com
@@ -87,7 +86,6 @@ curl https://example.com/v1/markets    # API endpoint
 
 | Variable | Description |
 |----------|-------------|
-| `DOMAIN` | Public domain (e.g., `example.com`). Used in `NEXTAUTH_URL` and `NEXT_PUBLIC_*` URLs. |
 | `POSTGRES_PASSWORD` | Database password. Use a strong random value. |
 | `NEXTAUTH_SECRET` | Session encryption key. Generate: `openssl rand -base64 32` |
 | `NEXTAUTH_URL` | Canonical URL (e.g., `https://example.com`). Used for auth callbacks and cookie domain. |
