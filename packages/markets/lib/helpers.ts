@@ -11,6 +11,11 @@ export function slugifyTitle(title: string, maxLen = 50) {
     .replace(/[\s]/g, '-') // Replace whitespace with a dash
     .replace(/-+/, '-') // Replace multiple dashes with a single dash
 
+  if (!slug) {
+    // Non-Latin titles (Hebrew, Arabic, etc.) produce empty slugs — use a random fallback
+    slug = Math.random().toString(36).substring(2, 10)
+  }
+
   if (slug.length > maxLen) {
     slug = slug.substring(0, maxLen).replace(/-+[^-]*?$/, '') // Remove the last word, since it might be cut off
   }
