@@ -12,5 +12,17 @@
   "[typescriptreact]": {
     "editor.defaultFormatter": "esbenp.prettier-vscode"
   },
-  "tailwindCSS.experimental.classRegex": ["class:\\s*?[\"'`]([^\"'`]*).*?,"]
+  "tailwindCSS.experimental.classRegex": ["class:\\s*?[\"'`]([^\"'`]*).*?,"],
+  "typescript.tsdk": "node_modules/typescript/lib",
+  "prisma.pinToPrisma6": true,
+  "files.exclude": {
+    "**/.git": true,
+    "**/.svn": true,
+    "**/.hg": true,
+    "**/.next": true,
+    "**/.turbo": true,
+    "**/node_modules": true,
+    "**/.DS_Store": true,
+    "**/Thumbs.db": true
+  }
 }
