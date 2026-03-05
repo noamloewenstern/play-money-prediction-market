@@ -54,6 +54,7 @@ model User {
 
   email         String    @unique /// @zod.custom.omit([model, input])
   emailVerified DateTime? /// @zod.custom.omit([model, input])
+  passwordHash  String? /// @zod.custom.omit([model, input])
 
   // Unnecessary reverse relations
   recipientNotifications Notification[]      @relation("NotificationRecipient")

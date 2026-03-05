@@ -1,6 +1,8 @@
 {
   "private": true,
   "scripts": {
+    "start": "dotenv -- turbo start",
+    "start:docker": "scripts/docker-start.sh",
     "build": "dotenv -- turbo build",
     "dev": "dotenv -- turbo dev",
     "lint": "dotenv -- turbo lint",

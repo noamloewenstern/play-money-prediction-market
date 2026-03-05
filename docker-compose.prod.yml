@@ -1,0 +1,163 @@
+# Production Docker Compose for Play Money
+#
+# Usage (with Caddy — handles TLS + domain routing):
+#   docker compose -f docker-compose.prod.yml --profile caddy up -d
+#
+# Usage (without Caddy — external proxy like Cloudflare/nginx):
+#   docker compose -f docker-compose.prod.yml -f docker-compose.no-caddy.yml up -d
+#
+# Required env vars (no defaults — will error if unset):
+#   POSTGRES_PASSWORD, NEXTAUTH_SECRET, NEXT_PUBLIC_WEB_URL, NEXT_PUBLIC_API_URL, NEXTAUTH_URL
+#
+# Additional env vars for Caddy profile:
+#   WEB_DOMAIN (e.g. app.market.com), API_DOMAIN (e.g. api.market.com)
+
+x-ports:
+  web: &web-port 3000       # internal port for web container
+  api: &api-port 3001       # internal port for api container
+
+x-logging: &default-logging
+  driver: json-file
+  options:
+    max-size: "10m"
+    max-file: "3"
+
+services:
+  postgres:
+    image: postgres:16
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-postgres}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?POSTGRES_PASSWORD is required}
+      POSTGRES_DB: ${POSTGRES_DB:-playmoney}
+    # No host port exposed — only reachable by other services on the internal network
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-postgres} -d ${POSTGRES_DB:-playmoney}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    deploy:
+      resources:
+        limits:
+          memory: 512M
+    logging: *default-logging
+
+  db-setup:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: builder
+    environment:
+      POSTGRES_PRISMA_URL: postgresql://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:?}@postgres:5432/${POSTGRES_DB:-playmoney}?schema=public
+      POSTGRES_URL_NON_POOLING: postgresql://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:?}@postgres:5432/${POSTGRES_DB:-playmoney}?schema=public
+    command: npx prisma migrate deploy --schema=packages/database/schema.prisma
+    depends_on:
+      postgres:
+        condition: service_healthy
+    restart: "no"
+    deploy:
+      resources:
+        limits:
+          memory: 512M
+    logging: *default-logging
+
+  web:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: web
+      args:
+        NEXT_PUBLIC_WEB_URL: ${NEXT_PUBLIC_WEB_URL:?NEXT_PUBLIC_WEB_URL is required}
+        NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL:?NEXT_PUBLIC_API_URL is required}
+    expose:
+      - "3000"
+    environment:
+      PORT: *web-port
+      POSTGRES_PRISMA_URL: postgresql://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:?}@postgres:5432/${POSTGRES_DB:-playmoney}?schema=public
+      POSTGRES_URL_NON_POOLING: postgresql://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:?}@postgres:5432/${POSTGRES_DB:-playmoney}?schema=public
+      NEXTAUTH_URL: ${NEXTAUTH_URL:?NEXTAUTH_URL is required}
+      NEXTAUTH_SECRET: ${NEXTAUTH_SECRET:?NEXTAUTH_SECRET is required}
+      AUTH_RESEND_KEY: ${AUTH_RESEND_KEY:-}
+      AUTH_RESEND_EMAIL: ${AUTH_RESEND_EMAIL:-}
+      AUTH_EMAIL_WHITELIST: ${AUTH_EMAIL_WHITELIST:-}
+      NEXT_PUBLIC_WEB_URL: ${NEXT_PUBLIC_WEB_URL:?}
+      NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL:?}
+      INTERNAL_API_URL: http://api:3001
+    depends_on:
+      db-setup:
+        condition: service_completed_successfully
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "wget", "-qO", "/dev/null", "http://0.0.0.0:3000/"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+    deploy:
+      resources:
+        limits:
+          memory: 512M
+    logging: *default-logging
+
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: api
+      args:
+        NEXT_PUBLIC_WEB_URL: ${NEXT_PUBLIC_WEB_URL:?}
+        NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL:?}
+    expose:
+      - "3001"
+    environment:
+      PORT: *api-port
+      POSTGRES_PRISMA_URL: postgresql://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:?}@postgres:5432/${POSTGRES_DB:-playmoney}?schema=public
+      POSTGRES_URL_NON_POOLING: postgresql://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:?}@postgres:5432/${POSTGRES_DB:-playmoney}?schema=public
+      NEXTAUTH_URL: ${NEXTAUTH_URL:?}
+      NEXTAUTH_SECRET: ${NEXTAUTH_SECRET:?}
+      AUTH_RESEND_KEY: ${AUTH_RESEND_KEY:-}
+      AUTH_RESEND_EMAIL: ${AUTH_RESEND_EMAIL:-}
+      AUTH_EMAIL_WHITELIST: ${AUTH_EMAIL_WHITELIST:-}
+      NEXT_PUBLIC_WEB_URL: ${NEXT_PUBLIC_WEB_URL:?}
+      NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL:?}
+    depends_on:
+      db-setup:
+        condition: service_completed_successfully
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "wget", "-qO", "/dev/null", "http://0.0.0.0:3001/api/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+    deploy:
+      resources:
+        limits:
+          memory: 512M
+    logging: *default-logging
+
+  caddy:
+    build:
+      context: ./caddy
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    expose:
+      - "80"
+    environment:
+      WEB_DOMAIN: ${WEB_DOMAIN:-}
+      API_DOMAIN: ${API_DOMAIN:-}
+    depends_on:
+      web:
+        condition: service_healthy
+      api:
+        condition: service_healthy
+    deploy:
+      resources:
+        limits:
+          memory: 128M
+    logging: *default-logging
+
+volumes:
+  postgres_data:

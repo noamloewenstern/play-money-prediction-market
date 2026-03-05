@@ -7,7 +7,7 @@ import { createHouseSingupBonusTransaction } from '@play-money/finance/lib/creat
 import { generateReferralCode } from '@play-money/referrals/lib/helpers'
 import { UserExistsError } from './exceptions'
 
-export async function createUser({ email }: { email: string }): Promise<User & OmittedUserFields> {
+export async function createUser({ email, timezone }: { email: string; timezone?: string }): Promise<User & OmittedUserFields> {
   const existingUser = await db.user.findUnique({
     where: {
       email,
@@ -42,6 +42,7 @@ export async function createUser({ email }: { email: string }): Promise<User & O
         },
       },
       referralCode,
+      ...(timezone ? { timezone } : {}),
     },
   })
 

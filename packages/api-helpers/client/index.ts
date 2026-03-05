@@ -14,16 +14,23 @@ async function apiHandler<T>(
   options?: { method?: string; body?: Record<string, unknown>; next?: unknown }
 ) {
   const creds: Record<string, unknown> = {}
+  let url = input
 
   try {
     // In server component
     const { cookies } = require('next/headers')
     creds.headers = { Cookie: cookies().toString() }
+    // When running in Docker, server-side requests need to reach the API via internal hostname
+    const internalApiUrl = process.env.INTERNAL_API_URL
+    const publicApiUrl = process.env.NEXT_PUBLIC_API_URL
+    if (internalApiUrl && publicApiUrl && url.startsWith(publicApiUrl)) {
+      url = url.replace(publicApiUrl, internalApiUrl)
+    }
   } catch (error) {
     // In client component
     creds.credentials = 'include'
   }
-  const res = await fetch(input, {
+  const res = await fetch(url, {
     method: options?.method,
     body: options?.body ? JSON.stringify(options.body) : undefined,
     next: options?.next,

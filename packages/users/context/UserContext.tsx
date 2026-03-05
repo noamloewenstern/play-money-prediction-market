@@ -1,7 +1,10 @@
 'use client'
 
-import React, { createContext, useContext, useState } from 'react'
+import React, { createContext, useContext, useEffect, useState } from 'react'
+import { updateMe } from '@play-money/api-helpers/client'
 import { User } from '@play-money/database'
+
+const PRISMA_DEFAULT_TIMEZONE = 'America/Los_Angeles'
 
 interface UserContextType {
   user: User | null
@@ -20,6 +23,14 @@ export function useUser() {
 
 export const UserProvider = ({ children, user: initialUser }: { children: React.ReactNode; user: User | null }) => {
   const [user, setUser] = useState<User | null>(initialUser)
+
+  useEffect(() => {
+    if (!user) return
+    const browserTimezone = Intl.DateTimeFormat().resolvedOptions().timeZone
+    if (user.timezone === PRISMA_DEFAULT_TIMEZONE && browserTimezone !== PRISMA_DEFAULT_TIMEZONE) {
+      updateMe({ timezone: browserTimezone }).then(({ data }) => setUser(data)).catch(() => {})
+    }
+  }, [user?.id]) // eslint-disable-line react-hooks/exhaustive-deps
 
   return <UserContext.Provider value={{ user, setUser }}>{children}</UserContext.Provider>
 }

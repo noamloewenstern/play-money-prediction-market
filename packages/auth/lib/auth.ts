@@ -1,22 +1,70 @@
-import NextAuth from 'next-auth'
+import bcrypt from 'bcryptjs'
+import NextAuth, { NextAuthConfig, NextAuthResult } from 'next-auth'
+import Credentials from 'next-auth/providers/credentials'
 import Resend from 'next-auth/providers/resend'
 import db from '@play-money/database'
-import { updateUserById } from '@play-money/users/lib/updateUserById'
 import { PrismaAdapter } from './auth-prisma-adapter'
+
+// Re-declare the internal type that NextAuth uses but doesn't export,
+// so TypeScript can name the inferred type of `auth`.
+declare module 'next-auth' {
+  interface AppRouteHandlerFn {
+    (req: Request, ctx: { params: Record<string, string> }): Promise<Response>
+  }
+}
 
 if (!process.env.NEXTAUTH_URL) {
   throw new Error('NEXTAUTH_URL is not set')
-}
-
-if (!process.env.AUTH_RESEND_EMAIL) {
-  throw new Error('AUTH_RESEND_EMAIL is not set')
 }
 
 const useSecureCookies = process.env.NEXTAUTH_URL.startsWith('https://')
 const cookiePrefix = useSecureCookies ? '__Secure-' : ''
 const hostName = new URL(process.env.NEXTAUTH_URL).hostname
 
-export const { handlers, signIn, signOut, auth } = NextAuth({
+const providers: NextAuthConfig['providers'] = [
+  Credentials({
+    credentials: {
+      email: { label: 'Email', type: 'email' },
+      password: { label: 'Password', type: 'password' },
+    },
+    async authorize(credentials) {
+      const email = credentials?.email as string | undefined
+      const password = credentials?.password as string | undefined
+
+      if (!email || !password) {
+        return null
+      }
+
+      const user = await db.user.findUnique({
+        where: { email },
+        select: { id: true, email: true, emailVerified: true, passwordHash: true },
+      })
+
+      if (!user?.passwordHash) {
+        return null
+      }
+
+      const valid = await bcrypt.compare(password, user.passwordHash)
+      if (!valid) {
+        return null
+      }
+
+      return { id: user.id, email: user.email }
+    },
+  }),
+]
+
+// Only add Resend provider if configured
+if (process.env.AUTH_RESEND_EMAIL) {
+  providers.push(
+    Resend({
+      from: process.env.AUTH_RESEND_EMAIL,
+    })
+  )
+}
+
+const nextAuthConfig: NextAuthConfig = {
+  trustHost: true,
   adapter: PrismaAdapter(db),
   pages: {
     signIn: '/login',
@@ -25,6 +73,7 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
     newUser: '/setup',
   },
   session: {
+    strategy: 'jwt',
     maxAge: 30 * 24 * 60 * 60, // 30 days
   },
 
@@ -42,24 +91,36 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
     },
   },
 
-  providers: [
-    Resend({
-      from: process.env.AUTH_RESEND_EMAIL,
-    }),
-  ],
+  providers,
 
   callbacks: {
     async signIn({ user }) {
-      // This actually runs on the server so the timezone is not actually the users.
-      // TODO: Move this to the user account setup on create account when created.
-      // if (user?.id) {
-      //   const timezone = Intl.DateTimeFormat().resolvedOptions().timeZone
-
-      //   if (Intl.supportedValuesOf('timeZone').includes(timezone)) {
-      //     await updateUserById({ id: user.id, timezone })
-      //   }
-      // }
+      const whitelist = process.env.AUTH_EMAIL_WHITELIST
+      if (whitelist) {
+        const allowed = whitelist.split(',').map((e) => e.trim().toLowerCase())
+        if (!user.email || !allowed.includes(user.email.toLowerCase())) {
+          return false
+        }
+      }
       return true
     },
+    async jwt({ token, user }) {
+      if (user) {
+        token.id = user.id
+      }
+      return token
+    },
+    async session({ session, token }) {
+      if (token?.id) {
+        session.user.id = token.id as string
+      }
+      return session
+    },
   },
-})
+}
+
+const nextAuth = NextAuth(nextAuthConfig)
+export const signIn: NextAuthResult['signIn'] = nextAuth.signIn
+export const auth: NextAuthResult['auth'] = nextAuth.auth
+export const handlers: NextAuthResult['handlers'] = nextAuth.handlers
+export const signOut: NextAuthResult['signOut'] = nextAuth.signOut

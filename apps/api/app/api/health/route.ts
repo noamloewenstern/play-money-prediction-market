@@ -2,6 +2,8 @@ import { NextResponse } from 'next/server'
 import os from 'node:os'
 import db from '@play-money/database'
 
+export const dynamic = 'force-dynamic'
+
 export async function GET() {
   const startTime = Date.now()
   const downstreamServices: Record<string, 'OK' | 'FAIL'> = {}

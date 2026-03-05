@@ -23,6 +23,7 @@ export const UserSchema = z.object({
   updatedAt: z.coerce.date(),
   // omitted: email: z.string(),
   // omitted: emailVerified: z.coerce.date().nullable(),
+  // omitted: passwordHash: z.string().nullable(),
 })
 
 export type User = z.infer<typeof UserSchema>

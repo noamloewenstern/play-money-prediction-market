@@ -3,6 +3,7 @@
   "version": "0.0.0",
   "private": true,
   "scripts": {
+    "db:studio": "prisma studio",
     "db:generate": "prisma generate && prisma format",
     "db:push": "prisma db push --skip-generate",
     "db:reset": "prisma migrate reset --force",
