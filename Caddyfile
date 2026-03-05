@@ -1,0 +1,14 @@
+:80 {
+	# API routes — must come before the catch-all
+	handle /api/* {
+		reverse_proxy api:3001
+	}
+	handle /v1/* {
+		reverse_proxy api:3001
+	}
+
+	# Everything else → web
+	handle {
+		reverse_proxy web:3000
+	}
+}

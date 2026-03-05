@@ -1,42 +1,46 @@
 # Production Deployment Guide
 
-Deploy Play Money on a remote server using Docker Compose.
+Deploy Play Money on a remote server using Docker Compose with built-in Caddy reverse proxy.
 
 ## Prerequisites
 
 - Docker >= 24 with Compose v2
 - 2 vCPU / 2 GB RAM / 20 GB disk (minimum)
-- A domain name with DNS pointing to the server
-- (Recommended) Reverse proxy for SSL termination (Caddy, nginx, etc.)
+- A domain name with DNS A record pointing to the server
 
 ## Architecture
+
+Single domain — Caddy handles SSL and routes by path.
 
 ```
   Internet
      |
-  [ Reverse Proxy ]   (Caddy / nginx — terminates SSL)
-     |          |
-  :3000      :3001
-     |          |
-  +-----+   +-----+
-  | web |   | api |        (Next.js containers)
-  +-----+   +-----+
-     |          |
-     +----+-----+
-          |
-     +----------+
-     | postgres |          (internal only — no exposed port)
-     +----------+
-          |
-    [ volume: postgres_data ]
+  [ Caddy ]       (ports 80/443, auto-SSL via Let's Encrypt)
+     |
+     |── /api/* ──→ api:3001
+     |── /v1/*  ──→ api:3001
+     |── /*     ──→ web:3000
+     |
+  +-----+  +-----+
+  | web |  | api |    (Next.js containers, no exposed ports)
+  +-----+  +-----+
+     |        |
+     +---+----+
+         |
+    +----------+
+    | postgres |      (internal only)
+    +----------+
+         |
+   [ volumes: postgres_data, caddy_data ]
 ```
 
 ### Service Communication
 
 | From | To | URL | Network |
 |------|----|-----|---------|
-| Browser | Web | `https://play.example.com` | Public |
-| Browser | API | `https://api.example.com` | Public |
+| Browser | Caddy | `https://example.com` | Public (80/443) |
+| Caddy | Web | `web:3000` | Internal (Docker) |
+| Caddy | API | `api:3001` | Internal (Docker) |
 | Web (SSR) | API | `http://api:3001` | Internal (Docker) |
 | Web / API | Postgres | `postgres:5432` | Internal (Docker) |
 
@@ -55,12 +59,15 @@ Edit `.env.prod` with production values (see [Environment Variables](#environmen
 
 ```bash
 # .env.prod — minimum required values
+DOMAIN=example.com
 POSTGRES_PASSWORD=<strong-random-password>
 NEXTAUTH_SECRET=<openssl rand -base64 32>
-NEXTAUTH_URL=https://play.example.com
-NEXT_PUBLIC_WEB_URL=https://play.example.com
-NEXT_PUBLIC_API_URL=https://api.example.com
+NEXTAUTH_URL=https://example.com
+NEXT_PUBLIC_WEB_URL=https://example.com
+NEXT_PUBLIC_API_URL=https://example.com
 ```
+
+Note: `NEXT_PUBLIC_WEB_URL` and `NEXT_PUBLIC_API_URL` are the **same domain** — Caddy routes `/api/*` and `/v1/*` to the API container automatically.
 
 ```bash
 # 3. Build and start
@@ -69,7 +76,9 @@ docker compose -f docker-compose.prod.yml --env-file .env.prod up -d
 
 # 4. Verify
 docker compose -f docker-compose.prod.yml ps
-docker compose -f docker-compose.prod.yml logs -f web api
+curl https://example.com/              # Web app (if using standard ports)
+curl https://example.com/api/health    # API health check
+curl https://example.com/v1/markets    # API endpoint
 ```
 
 ## Environment Variables
@@ -78,11 +87,12 @@ docker compose -f docker-compose.prod.yml logs -f web api
 
 | Variable | Description |
 |----------|-------------|
+| `DOMAIN` | Public domain (e.g., `example.com`). Used in `NEXTAUTH_URL` and `NEXT_PUBLIC_*` URLs. |
 | `POSTGRES_PASSWORD` | Database password. Use a strong random value. |
 | `NEXTAUTH_SECRET` | Session encryption key. Generate: `openssl rand -base64 32` |
-| `NEXTAUTH_URL` | Canonical URL of the web app (e.g., `https://play.example.com`). Used for auth callbacks and cookie domain. |
-| `NEXT_PUBLIC_WEB_URL` | Public URL for the web frontend. Baked into client JS at build time. |
-| `NEXT_PUBLIC_API_URL` | Public URL for the API. Baked into client JS at build time. |
+| `NEXTAUTH_URL` | Canonical URL (e.g., `https://example.com`). Used for auth callbacks and cookie domain. |
+| `NEXT_PUBLIC_WEB_URL` | Public URL for web. Set to `https://example.com`. Baked at build time. |
+| `NEXT_PUBLIC_API_URL` | Public URL for API. Set to `https://example.com` (same domain). Baked at build time. |
 
 ### Optional
 
@@ -90,77 +100,26 @@ docker compose -f docker-compose.prod.yml logs -f web api
 |----------|---------|-------------|
 | `POSTGRES_USER` | `postgres` | Database user |
 | `POSTGRES_DB` | `playmoney` | Database name |
-| `WEB_PORT` | `3000` | Host port for web container |
-| `API_PORT` | `3001` | Host port for API container |
 | `AUTH_RESEND_KEY` | *(empty)* | Resend API key for magic link email login |
 | `AUTH_RESEND_EMAIL` | *(empty)* | Sender address for auth emails |
 | `AUTH_EMAIL_WHITELIST` | *(empty)* | Comma-separated allowed emails. Empty = open registration. |
+| `CADDY_PORT` | `3080` | Host port for Caddy reverse proxy |
 | `OPENAI_API_KEY` | *(empty)* | Auto-generate question tags |
 
-## Cookie Domain Caveat
+## How Routing Works
 
-The auth cookie domain is set to `.{hostname}` extracted from `NEXTAUTH_URL`. For cross-subdomain auth to work, the cookie domain must be a parent of both the web and API domains.
+The `Caddyfile` at the project root defines path-based routing:
 
-**Example**: If web is at `play.example.com` and API is at `api.example.com`:
-- Set `NEXTAUTH_URL=https://example.com` so the cookie domain is `.example.com` (covers all subdomains)
-- Do NOT set `NEXTAUTH_URL=https://play.example.com` — the cookie on `.play.example.com` won't reach `api.example.com`
+- `/api/*` and `/v1/*` → API container (port 3001)
+- Everything else → Web container (port 3000)
 
-**Simplest approach**: Use a single domain for both, with path-based routing:
-- `example.com` for web
-- `example.com/api/` proxied to the API container
+Only Caddy exposes a port to the host (default: 3080, configurable via `CADDY_PORT`). Web and API containers are internal-only. Caddy serves plain HTTP — use an external reverse proxy (Coolify/Traefik, nginx, or a host-level Caddy) for SSL termination.
 
-## SSL / Reverse Proxy
+Caddy serves plain HTTP inside the Docker network. SSL should be handled by an external reverse proxy (Coolify's Traefik, host-level Caddy, nginx, etc.).
 
-The containers serve plain HTTP. Use a reverse proxy for SSL.
+## Cookie Domain
 
-### Caddy (automatic HTTPS)
-
-```
-# /etc/caddy/Caddyfile
-play.example.com {
-    reverse_proxy localhost:3000
-}
-
-api.example.com {
-    reverse_proxy localhost:3001
-}
-```
-
-### nginx (with certbot)
-
-```nginx
-server {
-    listen 443 ssl;
-    server_name play.example.com;
-
-    ssl_certificate     /etc/letsencrypt/live/play.example.com/fullchain.pem;
-    ssl_certificate_key /etc/letsencrypt/live/play.example.com/privkey.pem;
-
-    location / {
-        proxy_pass http://localhost:3000;
-        proxy_set_header Host $host;
-        proxy_set_header X-Real-IP $remote_addr;
-        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-        proxy_set_header X-Forwarded-Proto $scheme;
-    }
-}
-
-server {
-    listen 443 ssl;
-    server_name api.example.com;
-
-    ssl_certificate     /etc/letsencrypt/live/api.example.com/fullchain.pem;
-    ssl_certificate_key /etc/letsencrypt/live/api.example.com/privkey.pem;
-
-    location / {
-        proxy_pass http://localhost:3001;
-        proxy_set_header Host $host;
-        proxy_set_header X-Real-IP $remote_addr;
-        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-        proxy_set_header X-Forwarded-Proto $scheme;
-    }
-}
-```
+With a single domain, cookies just work — no cross-origin issues. The auth cookie is set on `.example.com` from `NEXTAUTH_URL`, which covers all paths on that domain.
 
 ## Common Operations
 
@@ -175,6 +134,7 @@ alias dc="docker compose -f docker-compose.prod.yml --env-file .env.prod"
 ```bash
 dc logs -f              # All services
 dc logs -f web api      # Web + API only
+dc logs -f caddy        # Reverse proxy logs
 dc logs --tail 100 api  # Last 100 lines
 ```
 
@@ -226,7 +186,7 @@ All required vars use `${VAR:?message}` syntax — compose will refuse to start 
 
 ### Auth redirects to wrong URL
 
-Verify `NEXTAUTH_URL` matches the public URL users access. If behind a reverse proxy, ensure `X-Forwarded-Proto: https` is set so auth callbacks use the correct scheme.
+Verify `NEXTAUTH_URL` matches the public URL users access. Caddy automatically sets `X-Forwarded-Proto` headers.
 
 ### `NEXT_PUBLIC_*` changes not taking effect
 
@@ -256,4 +216,17 @@ dc ps
 docker inspect --format='{{json .State.Health}}' play-money-web-1 | jq
 ```
 
-Web health checks hit `/` on port 3000, API health checks hit `/api/health` on port 3001. Ensure those endpoints respond with 2xx.
+Web health checks hit `/` on port 3000, API health checks hit `/api/health` on port 3001.
+
+### Caddy not starting
+
+Caddy depends on web and api being healthy first. If Caddy shows as "Created" but not "Up", check that web and api are healthy:
+
+```bash
+dc ps
+dc logs web api
+```
+
+### Port conflict
+
+By default Caddy binds to host port 3080. Set `CADDY_PORT=80` if you want standard HTTP port, or any other port to avoid conflicts.
