@@ -1,7 +1,7 @@
 import { faker } from '@faker-js/faker'
 import { User } from '@prisma/client'
 import Decimal from 'decimal.js'
-import _ from 'lodash'
+import times from 'lodash/times'
 import { createComment } from '@play-money/comments/lib/createComment'
 import db from '@play-money/database'
 import { createHouseSingupBonusTransaction } from '@play-money/finance/lib/createHouseSingupBonusTransaction'
@@ -13,7 +13,7 @@ import { OmittedUserFields } from './prisma'
 
 async function main() {
   let user_ids = await Promise.all(
-    _.times(5, async (i) => {
+    times(5, async (i) => {
       const devOverride =
         i === 0 && process.env.DEV_DB_SEED_EMAIL
           ? {

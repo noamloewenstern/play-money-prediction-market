@@ -1,7 +1,7 @@
 import { faker } from '@faker-js/faker'
 import cuid from 'cuid'
 import Decimal from 'decimal.js'
-import _ from 'lodash'
+import times from 'lodash/times'
 import { NetBalance } from '@play-money/finance/lib/getBalances'
 import { TransactionWithEntries } from '@play-money/finance/types'
 import { ExtendedMarket } from '@play-money/markets/types'
@@ -163,7 +163,7 @@ export function mockTransactionWithEntries(overrides?: Partial<TransactionWithEn
     updatedAt: faker.date.past(),
     initiatorId,
     marketId: market.id,
-    entries: _.times(faker.number.int({ min: 1, max: 5 }), () => mockTransactionEntry({ transactionId })),
+    entries: times(faker.number.int({ min: 1, max: 5 }), () => mockTransactionEntry({ transactionId })),
     options: [],
     batchId: null,
     market,
