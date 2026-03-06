@@ -1,5 +1,7 @@
 import {
+  AlertTriangleIcon,
   AtSignIcon,
+  BellRingIcon,
   BookmarkIcon,
   CheckCircle2Icon,
   DropletsIcon,
@@ -7,8 +9,11 @@ import {
   HashIcon,
   LockIcon,
   MessageSquareIcon,
+  ScaleIcon,
   SmileIcon,
   TrendingUpIcon,
+  UnlockIcon,
+  UserPlusIcon,
   XCircleIcon,
 } from 'lucide-react'
 import Link from 'next/link'
@@ -34,6 +39,12 @@ const NOTIFICATION_ICON_MAP: Record<string, { icon: React.ElementType; className
   REFERRER_BONUS: { icon: GiftIcon, className: 'text-success' },
   TAG_NEW_MARKET: { icon: HashIcon, className: 'text-info' },
   MARKET_BOOKMARK_RESOLVED: { icon: BookmarkIcon, className: 'text-success' },
+  MARKET_EVIDENCE_ADDED: { icon: ScaleIcon, className: 'text-info' },
+  MARKET_PROBABILITY_ALERT: { icon: BellRingIcon, className: 'text-warning' },
+  RESOLUTION_DISPUTE_FLAGGED: { icon: AlertTriangleIcon, className: 'text-warning' },
+  RESOLUTION_DISPUTE_REVIEWED: { icon: CheckCircle2Icon, className: 'text-info' },
+  USER_FOLLOWED: { icon: UserPlusIcon, className: 'text-primary' },
+  CONDITIONAL_MARKET_ACTIVATED: { icon: UnlockIcon, className: 'text-success' },
 }
 
 function createSnippet(htmlString: string, maxLength = 150) {
@@ -190,6 +201,36 @@ export function NotificationItem({
     case 'MARKET_BOOKMARK_RESOLVED': {
       topLine = 'Bookmarked market resolved'
       bottomLine = `${notification.market?.question} resolved ${notification.marketOption?.name}`
+      break
+    }
+    case 'MARKET_EVIDENCE_ADDED': {
+      topLine = 'New evidence submitted'
+      bottomLine = `${notification.actor?.displayName} added evidence to: ${notification.market?.question}`
+      break
+    }
+    case 'MARKET_PROBABILITY_ALERT': {
+      topLine = 'Probability alert triggered'
+      bottomLine = `${notification.marketOption?.name} crossed your alert threshold on: ${notification.market?.question}`
+      break
+    }
+    case 'RESOLUTION_DISPUTE_FLAGGED': {
+      topLine = 'Resolution dispute filed'
+      bottomLine = `${notification.actor?.displayName} flagged the resolution of: ${notification.market?.question}`
+      break
+    }
+    case 'RESOLUTION_DISPUTE_REVIEWED': {
+      topLine = 'Resolution dispute reviewed'
+      bottomLine = `Your dispute for "${notification.market?.question}" has been reviewed`
+      break
+    }
+    case 'USER_FOLLOWED': {
+      topLine = 'New follower'
+      bottomLine = `${notification.actor?.displayName} started following you`
+      break
+    }
+    case 'CONDITIONAL_MARKET_ACTIVATED': {
+      topLine = 'Conditional market activated'
+      bottomLine = `Your market "${notification.market?.question}" is now open for trading`
       break
     }
     // default: {

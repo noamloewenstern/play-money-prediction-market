@@ -30,6 +30,7 @@ export async function createList({
   closeDate,
   markets,
   contributionPolicy,
+  isGroup = false,
 }: {
   title: string
   description?: string
@@ -38,6 +39,7 @@ export async function createList({
   closeDate: Date | null
   markets: Array<{ name: string; color?: string }>
   contributionPolicy: QuestionContributionPolicyType
+  isGroup?: boolean
 }) {
   const slug = slugifyTitle(title)
   if (markets.length === 0) {
@@ -68,6 +70,7 @@ export async function createList({
       slug,
       tags: generatedTags.map((tag) => slugifyTitle(tag)),
       contributionPolicy,
+      isGroup,
     },
     include: {
       markets: {
@@ -77,6 +80,17 @@ export async function createList({
       },
     },
   })
+
+  // Add owner as the initial group member with OWNER role
+  if (isGroup) {
+    await db.groupMember.create({
+      data: {
+        listId: list.id,
+        userId: ownerId,
+        role: 'OWNER',
+      },
+    })
+  }
 
   const createdMarkets: Array<Market> = []
   for (const market of markets) {

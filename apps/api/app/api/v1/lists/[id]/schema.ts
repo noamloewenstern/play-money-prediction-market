@@ -25,6 +25,8 @@ export default {
       description: true,
       tags: true,
       ownerId: true,
+    }).extend({
+      isGroup: z.boolean().optional(),
     }).partial(),
     responses: {
       200: z.object({ data: ListSchema }),

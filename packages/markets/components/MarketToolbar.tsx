@@ -1,6 +1,6 @@
 'use client'
 
-import { MoreVertical, Link, Pencil } from 'lucide-react'
+import { MoreVertical, Link, Pencil, Copy } from 'lucide-react'
 import { useRouter, usePathname, useSearchParams } from 'next/navigation'
 import React, { useCallback } from 'react'
 import { updateMarket } from '@play-money/api-helpers/client'
@@ -57,6 +57,7 @@ export function MarketToolbar({
   onRevalidate?: () => void
 }) {
   const { user } = useUser()
+  const router = useRouter()
   const [isResolving, setResolving] = useQueryString('resolve')
   const [isCanceling, setCanceling] = useQueryString('cancel')
   const canResolve = user ? canModifyMarket({ market, user: user }) : false
@@ -83,6 +84,10 @@ export function MarketToolbar({
   const handleHalt = async () => {
     await updateMarket({ marketId: market.id, body: { closeDate: new Date() } })
     onRevalidate?.()
+  }
+
+  const handleDuplicate = () => {
+    router.push(`/create-post?duplicateFrom=${market.id}`)
   }
 
   return (
@@ -116,6 +121,13 @@ export function MarketToolbar({
           {user ? <DropdownMenuItem onClick={handleCopyReferralLink}>Copy referral link</DropdownMenuItem> : null}
           {!market.resolvedAt && !market.canceledAt ? (
             <DropdownMenuItem onClick={onInitiateBoost}>Liquidity boost</DropdownMenuItem>
+          ) : null}
+
+          {user ? (
+            <DropdownMenuItem onClick={handleDuplicate} data-testid="duplicate-market-button">
+              <Copy className="mr-2 h-4 w-4" />
+              Duplicate market
+            </DropdownMenuItem>
           ) : null}
 
           {canResolve ? (

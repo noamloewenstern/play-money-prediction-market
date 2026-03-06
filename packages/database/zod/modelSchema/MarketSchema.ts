@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { MarketVisibilitySchema } from '../inputTypeSchemas/MarketVisibilitySchema';
 
 /////////////////////////////////////////
 // MARKET SCHEMA
@@ -26,6 +27,16 @@ export const MarketSchema = z.object({
   uniquePromotersCount: z.number().int().nullable(),
   liquidityCount: z.number().int().nullable(),
   parentListId: z.string().nullable(),
+  visibility: MarketVisibilitySchema.optional(),
+  isFeatured: z.boolean().optional(),
+  featuredAt: z.coerce.date().nullable().optional(),
+  parentMarketId: z.string().nullable().optional(),
+  conditionResolution: z.string().nullable().optional(),
+  activatedAt: z.coerce.date().nullable().optional(),
+  numericMin: z.number().nullable().optional(),
+  numericMax: z.number().nullable().optional(),
+  numericUnit: z.string().nullable().optional(),
+  numericResolution: z.number().nullable().optional(),
 })
 
 export type Market = z.infer<typeof MarketSchema>

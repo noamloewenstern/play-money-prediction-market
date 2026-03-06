@@ -17,6 +17,8 @@ export default {
                 probability: z.number(),
               })
             ),
+            volume: z.number().optional(),
+            tradeCount: z.number().optional(),
           })
         ),
       }),

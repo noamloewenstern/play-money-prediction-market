@@ -4,7 +4,7 @@ import { zodResolver } from '@hookform/resolvers/zod'
 import { PopoverClose } from '@radix-ui/react-popover'
 import { format, endOfDay, endOfWeek, endOfMonth, endOfYear, addMonths } from 'date-fns'
 import shuffle from 'lodash/shuffle'
-import { ToggleLeftIcon, XIcon, CircleIcon, CircleDotIcon, PlusIcon, AlignLeftIcon, CheckCircle2Icon, EyeIcon, EyeOffIcon } from 'lucide-react'
+import { ToggleLeftIcon, XIcon, CircleIcon, CircleDotIcon, PlusIcon, AlignLeftIcon, CheckCircle2Icon, EyeIcon, EyeOffIcon, GitMergeIcon, LockIcon, GlobeIcon, BarChart2Icon } from 'lucide-react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { useCallback, useEffect, useMemo, useState } from 'react'
@@ -14,7 +14,7 @@ import { mutate } from 'swr'
 import { z } from 'zod'
 import { createMarket, createMarketGenerateTags } from '@play-money/api-helpers/client'
 import { MY_BALANCE_PATH } from '@play-money/api-helpers/client/hooks'
-import { MarketSchema, MarketOptionSchema, QuestionContributionPolicySchema } from '@play-money/database'
+import { MarketSchema, MarketOptionSchema, MarketVisibilitySchema, QuestionContributionPolicySchema } from '@play-money/database'
 import { CurrencyDisplay } from '@play-money/finance/components/CurrencyDisplay'
 import { INITIAL_MARKET_LIQUIDITY_PRIMARY } from '@play-money/finance/economy'
 import { calculateTotalCost } from '@play-money/lists/lib/helpers'
@@ -36,7 +36,9 @@ import { cn } from '@play-money/ui/utils'
 import { useUser } from '@play-money/users/context/UserContext'
 import { clearPresistedData, getPersistedData, usePersistForm } from '../../ui/src/hooks/usePersistForm'
 import { parseQuestionForDate, slugifyTitle } from '../lib/helpers'
+import { type MarketTemplate, MARKET_TEMPLATES } from '../lib/marketTemplates'
 import { MarketPreviewCard } from './MarketPreviewCard'
+import { MarketTemplateSelector } from './MarketTemplateSelector'
 
 const CREATE_MARKET_FORM_KEY = 'create-market-form'
 const QUESTION_MAX_LENGTH = 200
@@ -72,8 +74,14 @@ const marketCreateFormSchema = MarketSchema.pick({
 }).and(
   z.object({
     options: z.array(MarketOptionSchema.pick({ name: true, color: true })),
-    type: z.enum(['binary', 'multi', 'list']),
+    type: z.enum(['binary', 'multi', 'list', 'numeric']),
     contributionPolicy: QuestionContributionPolicySchema,
+    visibility: MarketVisibilitySchema.default('PUBLIC'),
+    parentMarketId: z.string().optional(),
+    conditionResolution: z.string().optional(),
+    numericMin: z.coerce.number().optional(),
+    numericMax: z.coerce.number().optional(),
+    numericUnit: z.string().optional(),
   })
 )
 type MarketCreateFormValues = z.infer<typeof marketCreateFormSchema>
@@ -83,11 +91,13 @@ export function CreateMarketForm({
   onSuccess,
   initialQuestion,
   initialTags,
+  initialValues,
 }: {
   colors?: Array<string>
   onSuccess?: () => Promise<void>
   initialQuestion?: string
   initialTags?: Array<string>
+  initialValues?: Partial<MarketCreateFormValues>
 }) {
   const { user } = useUser()
   const [SHUFFLED_COLORS] = useState(shuffle(colors))
@@ -106,13 +116,18 @@ export function CreateMarketForm({
         { name: 'No', color: SHUFFLED_COLORS[1] },
       ],
       contributionPolicy: 'OWNERS_ONLY' as const,
+      visibility: 'PUBLIC' as const,
       tags: [] as Array<string>,
+      numericMin: undefined as number | undefined,
+      numericMax: undefined as number | undefined,
+      numericUnit: '' as string,
     }),
     [] // eslint-disable-line react-hooks/exhaustive-deps -- Only compute on mount
   )
 
   const [hasDraft, setHasDraft] = useState(() => {
     if (typeof window === 'undefined') return false
+    if (initialValues) return false // Don't show draft banner when pre-filling from duplicate
     const raw = localStorage.getItem(CREATE_MARKET_FORM_KEY)
     if (!raw) return false
     try {
@@ -125,6 +140,11 @@ export function CreateMarketForm({
 
   const getDefaultValues = useMemo(
     () => {
+      if (initialValues) {
+        // When initial values are provided (e.g. duplicating a market), skip localStorage draft
+        return { ...freshDefaults, ...initialValues }
+      }
+
       const persisted = getPersistedData<MarketCreateFormValues>({
         defaultValue: freshDefaults,
         localStorageKey: CREATE_MARKET_FORM_KEY,
@@ -161,12 +181,19 @@ export function CreateMarketForm({
     setHasDraft(false)
   }, [])
 
+  const [selectedTemplateId, setSelectedTemplateId] = useState<string | null>(null)
+
   const { actionState: createActionState, setLoading: setCreateLoading, setSuccess: setCreateSuccess, setError: setCreateError } = useStatefulAction()
 
   async function onSubmit(market: MarketCreateFormValues) {
     try {
       setCreateLoading()
-      const { data: created } = await createMarket(market)
+      const { data: created } = await createMarket({
+        ...market,
+        ...(market.type === 'numeric'
+          ? { numericMin: market.numericMin, numericMax: market.numericMax, numericUnit: market.numericUnit ?? '' }
+          : {}),
+      })
 
       setCreateSuccess()
       clearPresistedData({ localStorageKey: CREATE_MARKET_FORM_KEY })
@@ -208,7 +235,29 @@ export function CreateMarketForm({
     name: 'options',
   })
 
+  function applyTemplate(template: MarketTemplate) {
+    if (!template.id) {
+      // Clear template
+      setSelectedTemplateId(null)
+      return
+    }
+
+    const foundTemplate = MARKET_TEMPLATES.find((t) => t.id === template.id)
+    if (!foundTemplate) return
+
+    setSelectedTemplateId(foundTemplate.id)
+    form.setValue('type', foundTemplate.type)
+    form.setValue('question', foundTemplate.question)
+    form.setValue('tags', foundTemplate.tags)
+    form.setValue('closeDate', foundTemplate.getCloseDate())
+    if (foundTemplate.resolutionCriteria) {
+      form.setValue('resolutionCriteria', foundTemplate.resolutionCriteria)
+    }
+    replace(foundTemplate.options)
+  }
+
   const [showPreview, setShowPreview] = useState(true)
+  const [isConditional, setIsConditional] = useState(false)
 
   const type = form.watch('type')
   const watchedQuestion = form.watch('question')
@@ -267,6 +316,9 @@ export function CreateMarketForm({
         } else if (options.length === 3) {
           append({ name: '', color: SHUFFLED_COLORS[3] })
         }
+      } else if (type === 'numeric') {
+        // Numeric markets auto-generate options from the range; clear manual options
+        replace([])
       }
       // TODO: List
     },
@@ -315,6 +367,9 @@ export function CreateMarketForm({
         <Card className={cn('flex flex-1 p-6 md:p-8', !user && 'pointer-events-none opacity-50')}>
         <Form {...form}>
           <form autoComplete="off" className="flex-1 space-y-6" onSubmit={(e) => void handleSubmit(e)}>
+
+          <MarketTemplateSelector onSelect={applyTemplate} selectedTemplateId={selectedTemplateId} />
+
           <FormField
             control={form.control}
             name="type"
@@ -322,7 +377,7 @@ export function CreateMarketForm({
               <FormItem className="space-y-3">
                 <FormLabel>Market type</FormLabel>
                 <FormControl>
-                  <RadioGroup onValueChange={field.onChange} defaultValue={field.value} className="grid grid-cols-3 gap-2">
+                  <RadioGroup onValueChange={field.onChange} defaultValue={field.value} className="grid grid-cols-2 gap-2 sm:grid-cols-4">
                       <FormItem
                         className={cn(
                           'flex rounded-xl border-2 border-transparent transition-all duration-150 hover:border-muted-foreground/20',
@@ -385,6 +440,27 @@ export function CreateMarketForm({
                           </div>
                         </FormLabel>
                       </FormItem>
+
+                      <FormItem
+                        data-testid="market-type-numeric"
+                        className={cn(
+                          'flex rounded-xl border-2 border-transparent transition-all duration-150 hover:border-muted-foreground/20',
+                          field.value === 'numeric' && 'border-primary bg-primary/5 hover:border-primary'
+                        )}
+                      >
+                        <FormControl>
+                          <RadioGroupItem value="numeric" className="hidden" />
+                        </FormControl>
+                        <FormLabel className="flex w-full cursor-pointer flex-col items-center justify-center gap-1.5 p-3">
+                          <div className="flex size-9 items-center justify-center rounded-lg bg-muted">
+                            <BarChart2Icon className="size-5" />
+                          </div>
+                          <div className="flex flex-col items-center">
+                            <div className="text-sm font-semibold">Numeric</div>
+                            <div className="text-[11px] text-muted-foreground">Number range</div>
+                          </div>
+                        </FormLabel>
+                      </FormItem>
                   </RadioGroup>
                 </FormControl>
                 <FormMessage />
@@ -404,6 +480,7 @@ export function CreateMarketForm({
                 <FormItem>
                   <div className="flex items-center justify-between">
                     <FormLabel>{type === 'list' ? 'Name' : 'Question'}</FormLabel>
+                    {type === 'numeric' ? <span className="text-xs text-muted-foreground">What numeric outcome are you predicting?</span> : null}
                     {isValid ? <CheckCircle2Icon className="size-4 text-success" /> : null}
                   </div>
                   <FormControl>
@@ -415,7 +492,9 @@ export function CreateMarketForm({
                             ? 'Who will win the 2024 US Presidential Election?'
                             : type === 'list'
                               ? 'What will be true of of the next iPhone?'
-                              : ''
+                              : type === 'numeric'
+                                ? "What will Bitcoin's price be on Jan 1, 2026?"
+                                : ''
                       }
                       maxLength={QUESTION_MAX_LENGTH}
                       onBlur={() => {
@@ -447,6 +526,72 @@ export function CreateMarketForm({
             }}
           />
 
+          {type === 'numeric' ? (
+            <div className="space-y-4" data-testid="numeric-fields">
+              <div className="grid grid-cols-2 gap-3">
+                <FormField
+                  control={form.control}
+                  name="numericMin"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Minimum value</FormLabel>
+                      <FormControl>
+                        <Input
+                          type="number"
+                          placeholder="e.g. 40000"
+                          {...field}
+                          value={field.value ?? ''}
+                          onChange={(e) => field.onChange(e.target.value === '' ? undefined : Number(e.target.value))}
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <FormField
+                  control={form.control}
+                  name="numericMax"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Maximum value</FormLabel>
+                      <FormControl>
+                        <Input
+                          type="number"
+                          placeholder="e.g. 90000"
+                          {...field}
+                          value={field.value ?? ''}
+                          onChange={(e) => field.onChange(e.target.value === '' ? undefined : Number(e.target.value))}
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              </div>
+              <FormField
+                control={form.control}
+                name="numericUnit"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Unit prefix <span className="text-muted-foreground">(optional)</span></FormLabel>
+                    <FormControl>
+                      <Input
+                        placeholder="e.g. $, €, °F"
+                        {...field}
+                        value={field.value ?? ''}
+                      />
+                    </FormControl>
+                    <p className="text-xs text-muted-foreground">
+                      Displayed before each bracket value (e.g. &quot;$40k – $50k&quot;)
+                    </p>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            </div>
+          ) : null}
+
+          {type !== 'numeric' ? (
           <div className="space-y-2">
             <Label>{type === 'list' ? 'Questions' : 'Options'}</Label>
 
@@ -552,6 +697,7 @@ export function CreateMarketForm({
               </Button>
             ) : null}
           </div>
+          ) : null}
 
           {type === 'list' ? (
             <FormField
@@ -730,6 +876,101 @@ export function CreateMarketForm({
           <p className="text-xs text-muted-foreground">
             Trading will stop at this time in your local timezone {tzName === null ? '' : `(${tzName})`}
           </p>
+
+          <div className="space-y-3">
+            <div className="flex items-center space-x-3">
+              <Checkbox
+                id="isConditional"
+                checked={isConditional}
+                onCheckedChange={(checked) => {
+                  setIsConditional(Boolean(checked))
+                  if (!checked) {
+                    form.setValue('parentMarketId', undefined)
+                    form.setValue('conditionResolution', undefined)
+                  }
+                }}
+              />
+              <div className="flex items-center gap-1.5">
+                <GitMergeIcon className="size-3.5 text-muted-foreground" />
+                <Label htmlFor="isConditional" className="cursor-pointer text-muted-foreground">
+                  Conditional market — only activates if a parent market resolves to a specific outcome
+                </Label>
+              </div>
+            </div>
+            {isConditional ? (
+              <div className="ml-7 space-y-3 rounded-md border border-info/30 bg-info/5 p-3">
+                <FormField
+                  control={form.control}
+                  name="parentMarketId"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Parent Market ID</FormLabel>
+                      <FormControl>
+                        <Input
+                          {...field}
+                          placeholder="Enter the parent market ID (e.g. clxyz...)"
+                          value={field.value ?? ''}
+                        />
+                      </FormControl>
+                      <p className="text-xs text-muted-foreground">
+                        The ID of the market whose resolution determines if this market activates.
+                      </p>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <FormField
+                  control={form.control}
+                  name="conditionResolution"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Activating Resolution</FormLabel>
+                      <FormControl>
+                        <Input
+                          {...field}
+                          placeholder="Yes"
+                          value={field.value ?? ''}
+                        />
+                      </FormControl>
+                      <p className="text-xs text-muted-foreground">
+                        The option name that activates this market (e.g. "Yes"). If the parent resolves to a different
+                        option, this market will be automatically canceled.
+                      </p>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              </div>
+            ) : null}
+          </div>
+
+          <FormField
+            control={form.control}
+            name="visibility"
+            render={({ field }) => (
+              <FormItem className="flex flex-row items-center space-x-3 space-y-0">
+                <FormControl>
+                  <Checkbox
+                    checked={field.value === 'PRIVATE'}
+                    onCheckedChange={(checked) => {
+                      field.onChange(checked ? 'PRIVATE' : 'PUBLIC')
+                    }}
+                  />
+                </FormControl>
+                <div className="flex items-center gap-1.5">
+                  {field.value === 'PRIVATE' ? (
+                    <LockIcon className="size-3.5 text-muted-foreground" />
+                  ) : (
+                    <GlobeIcon className="size-3.5 text-muted-foreground" />
+                  )}
+                  <FormLabel className="text-muted-foreground">
+                    {field.value === 'PRIVATE' ? 'Private — only accessible via direct link' : 'Public — visible to everyone'}
+                  </FormLabel>
+                </div>
+                <InfoTooltip description="Private markets are only accessible to people you share the link with. They won't appear in public listings." />
+              </FormItem>
+            )}
+          />
 
           <div className="border-t pt-6">
             <Button actionState={createActionState} type="submit" size="lg" className="w-full">

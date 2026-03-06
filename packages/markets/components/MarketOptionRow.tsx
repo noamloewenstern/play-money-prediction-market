@@ -1,6 +1,6 @@
 import { formatDistanceToNow } from 'date-fns'
-import { EllipsisVerticalIcon } from 'lucide-react'
-import React from 'react'
+import { BellIcon, EllipsisVerticalIcon } from 'lucide-react'
+import React, { useState } from 'react'
 import { MarketOption } from '@play-money/database'
 import { Button } from '@play-money/ui/button'
 import { Checkbox } from '@play-money/ui/checkbox'
@@ -15,6 +15,7 @@ import {
 } from '@play-money/ui/dropdown-menu'
 import { cn } from '@play-money/ui/utils'
 import { MarketProbabilityDetail } from './MarketProbabilityDetail'
+import { ProbabilityAlertDialog } from './ProbabilityAlertDialog'
 
 export function MarketOptionRow({
   option,
@@ -22,6 +23,7 @@ export function MarketOptionRow({
   probability,
   className,
   canEdit = false,
+  marketId,
   onEdit,
   onSelect,
 }: {
@@ -30,42 +32,76 @@ export function MarketOptionRow({
   probability: number
   className?: string
   canEdit?: boolean
+  marketId?: string
   onEdit?: () => void
   onSelect?: () => void
 }) {
+  const [isAlertDialogOpen, setIsAlertDialogOpen] = useState(false)
+
   return (
-    <div
-      className={cn('flex cursor-pointer items-center hover:bg-muted/50', active && 'bg-muted/50', className)}
-      key={option.id}
-    >
-      <div className="flex flex-1 flex-row items-center gap-3 p-3" onClick={onSelect}>
-        <Checkbox variant="outline" checked={active} />
-        <div className="flex flex-1 flex-col gap-1">
-          <div className="line-clamp-2 font-semibold leading-none">{option.name}</div>
-          <MarketProbabilityDetail options={[option]} size="sm" />
+    <>
+      <div
+        className={cn(
+          'flex cursor-pointer items-center transition-colors duration-150 hover:bg-muted/50',
+          active && 'bg-muted/50',
+          className
+        )}
+        key={option.id}
+      >
+        <div className="flex flex-1 flex-row items-center gap-3 p-3" onClick={onSelect}>
+          <Checkbox variant="outline" checked={active} />
+          <div className="flex flex-1 flex-col gap-1">
+            <div className="line-clamp-2 font-semibold leading-none">{option.name}</div>
+            <MarketProbabilityDetail options={[option]} size="sm" />
+          </div>
         </div>
+
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button size="icon" className="mr-2 size-6" variant="ghost">
+              <EllipsisVerticalIcon className="size-4 text-muted-foreground" />
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent className="w-48" align="end">
+            {canEdit ? (
+              <>
+                <DropdownMenuGroup>
+                  <DropdownMenuItem onClick={onEdit}>Edit</DropdownMenuItem>
+                </DropdownMenuGroup>
+                <DropdownMenuSeparator />
+              </>
+            ) : null}
+            {marketId ? (
+              <>
+                <DropdownMenuGroup>
+                  <DropdownMenuItem
+                    onClick={(e) => {
+                      e.preventDefault()
+                      setIsAlertDialogOpen(true)
+                    }}
+                  >
+                    <BellIcon className="mr-2 size-3.5 text-muted-foreground" />
+                    Set Probability Alert
+                  </DropdownMenuItem>
+                </DropdownMenuGroup>
+                <DropdownMenuSeparator />
+              </>
+            ) : null}
+            <DropdownMenuLabel className="text-xs font-normal text-muted-foreground">
+              Created {formatDistanceToNow(option.createdAt, { addSuffix: true })}
+            </DropdownMenuLabel>
+          </DropdownMenuContent>
+        </DropdownMenu>
       </div>
 
-      <DropdownMenu>
-        <DropdownMenuTrigger asChild>
-          <Button size="icon" className="mr-2 size-6" variant="ghost">
-            <EllipsisVerticalIcon className="size-4 text-muted-foreground" />
-          </Button>
-        </DropdownMenuTrigger>
-        <DropdownMenuContent className="w-48" align="end">
-          {canEdit ? (
-            <>
-              <DropdownMenuGroup>
-                <DropdownMenuItem onClick={onEdit}>Edit</DropdownMenuItem>
-              </DropdownMenuGroup>
-              <DropdownMenuSeparator />
-            </>
-          ) : null}
-          <DropdownMenuLabel className="text-xs font-normal text-muted-foreground">
-            Created {formatDistanceToNow(option.createdAt, { addSuffix: true })}
-          </DropdownMenuLabel>
-        </DropdownMenuContent>
-      </DropdownMenu>
-    </div>
+      {marketId ? (
+        <ProbabilityAlertDialog
+          open={isAlertDialogOpen}
+          onOpenChange={setIsAlertDialogOpen}
+          marketId={marketId}
+          option={option}
+        />
+      ) : null}
+    </>
   )
 }

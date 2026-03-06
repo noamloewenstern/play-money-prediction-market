@@ -1,3 +1,4 @@
+import React from 'react'
 import { formatDistanceToNowShort } from '../../ui/src/helpers'
 
 export function SiteActivityItem({

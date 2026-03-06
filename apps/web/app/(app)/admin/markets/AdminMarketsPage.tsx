@@ -1,6 +1,6 @@
 'use client'
 
-import { CircleDotIcon } from 'lucide-react'
+import { CircleDotIcon, StarIcon } from 'lucide-react'
 import Link from 'next/link'
 import React, { useState } from 'react'
 import useSWR from 'swr'
@@ -9,6 +9,7 @@ import {
   createMarketCancel,
   adminForceResolveMarket,
   adminBulkResolveMarkets,
+  adminToggleMarketFeatured,
 } from '@play-money/api-helpers/client'
 import type { AdminBulkOperation } from '@play-money/api-helpers/client'
 import { Badge } from '@play-money/ui/badge'
@@ -47,6 +48,8 @@ type AdminMarket = {
   liquidityCount: number | null
   createdAt: string
   updatedAt: string
+  isFeatured: boolean
+  featuredAt: string | null
   options: Array<{ id: string; name: string; color: string }>
   user: { id: string; username: string; displayName: string }
 }
@@ -127,6 +130,20 @@ export function AdminMarketsPage() {
     } catch (error) {
       toast({
         title: 'Failed to resolve market',
+        description: error instanceof Error ? error.message : undefined,
+        variant: 'destructive',
+      })
+    }
+  }
+
+  async function handleToggleFeatured(market: AdminMarket) {
+    try {
+      await adminToggleMarketFeatured({ marketId: market.id })
+      toast({ title: market.isFeatured ? 'Market unfeatured' : 'Market featured' })
+      void mutate()
+    } catch (error) {
+      toast({
+        title: 'Failed to toggle featured status',
         description: error instanceof Error ? error.message : undefined,
         variant: 'destructive',
       })
@@ -330,6 +347,7 @@ export function AdminMarketsPage() {
                 <TableHead className="min-w-[250px]">Question</TableHead>
                 <TableHead>Creator</TableHead>
                 <TableHead>Status</TableHead>
+                <TableHead>Featured</TableHead>
                 <TableHead>Traders</TableHead>
                 <TableHead>Comments</TableHead>
                 <TableHead>Created</TableHead>
@@ -343,6 +361,7 @@ export function AdminMarketsPage() {
                   <TableCell><Skeleton className="h-4 w-full" /></TableCell>
                   <TableCell><Skeleton className="h-4 w-16" /></TableCell>
                   <TableCell><Skeleton className="h-5 w-14 rounded-full" /></TableCell>
+                  <TableCell><Skeleton className="h-8 w-16 rounded-md" /></TableCell>
                   <TableCell><Skeleton className="h-4 w-8" /></TableCell>
                   <TableCell><Skeleton className="h-4 w-8" /></TableCell>
                   <TableCell><Skeleton className="h-4 w-20" /></TableCell>
@@ -374,6 +393,7 @@ export function AdminMarketsPage() {
                   <TableHead className="min-w-[250px]">Question</TableHead>
                   <TableHead>Creator</TableHead>
                   <TableHead>Status</TableHead>
+                  <TableHead>Featured</TableHead>
                   <TableHead>Traders</TableHead>
                   <TableHead>Comments</TableHead>
                   <TableHead>Created</TableHead>
@@ -383,7 +403,7 @@ export function AdminMarketsPage() {
               <TableBody>
                 {markets.length === 0 ? (
                   <TableRow>
-                    <TableCell className="h-32" colSpan={8}>
+                    <TableCell className="h-32" colSpan={9}>
                       <div className="flex flex-col items-center justify-center gap-2 text-center">
                         <div className="flex size-10 items-center justify-center rounded-full bg-muted">
                           <CircleDotIcon className="size-4 text-muted-foreground" />
@@ -430,6 +450,17 @@ export function AdminMarketsPage() {
                           >
                             {status}
                           </Badge>
+                        </TableCell>
+                        <TableCell>
+                          <Button
+                            onClick={() => { void handleToggleFeatured(market) }}
+                            size="sm"
+                            title={market.isFeatured ? 'Unfeature market' : 'Feature market'}
+                            variant={market.isFeatured ? 'default' : 'outline'}
+                          >
+                            <StarIcon className={`size-3.5 ${market.isFeatured ? 'fill-current' : ''}`} />
+                            {market.isFeatured ? 'Featured' : 'Feature'}
+                          </Button>
                         </TableCell>
                         <TableCell>{market.uniqueTradersCount ?? 0}</TableCell>
                         <TableCell>{market.commentCount ?? 0}</TableCell>

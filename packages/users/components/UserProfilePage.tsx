@@ -25,6 +25,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@play-money/ui/tabs'
 import { cn } from '@play-money/ui/utils'
 import { useSearchParam } from '../../ui/src/hooks/useSearchParam'
 import { ActivityMilestoneTimeline } from './ActivityMilestoneTimeline'
+import { PortfolioAnalyticsTab } from './PortfolioAnalyticsTab'
 import { PortfolioEmptyState } from './PortfolioEmptyState'
 import { PortfolioExposureHeatmap } from './PortfolioExposureHeatmap'
 import { UserGraph } from './UserGraph'
@@ -299,6 +300,7 @@ export async function UserProfilePage({
               <TabsTrigger value="lists">Lists</TabsTrigger>
               <TabsTrigger value="positions">Positions</TabsTrigger>
               <TabsTrigger value="exposure">Exposure</TabsTrigger>
+              <TabsTrigger value="analytics">Analytics</TabsTrigger>
             </TabsList>
           </div>
           <TabsContent value="overview">
@@ -434,6 +436,14 @@ export async function UserProfilePage({
             <Card>
               <CardContent className="pt-6">
                 <UserExposureTab userId={user.id} />
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          <TabsContent value="analytics">
+            <Card>
+              <CardContent className="pt-6">
+                <PortfolioAnalyticsTab userId={user.id} />
               </CardContent>
             </Card>
           </TabsContent>

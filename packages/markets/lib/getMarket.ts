@@ -32,6 +32,26 @@ export async function getMarket({
             list: true,
           },
         },
+        parentMarket: {
+          include: {
+            options: true,
+            marketResolution: {
+              include: {
+                resolution: true,
+              },
+            },
+          },
+        },
+        conditionalMarkets: {
+          include: {
+            options: true,
+            marketResolution: {
+              include: {
+                resolution: true,
+              },
+            },
+          },
+        },
       },
     })
   }

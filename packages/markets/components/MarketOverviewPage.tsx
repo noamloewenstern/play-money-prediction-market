@@ -3,7 +3,7 @@
 import { format, isPast } from 'date-fns'
 import orderBy from 'lodash/orderBy'
 import truncate from 'lodash/truncate'
-import { BarChart3Icon, CircleCheckBig, ChevronDown, Link2Icon, ListIcon } from 'lucide-react'
+import { BarChart3Icon, CircleCheckBig, ChevronDown, GitMergeIcon, Link2Icon, ListIcon, LockIcon, UnlockIcon } from 'lucide-react'
 import Link from 'next/link'
 import React, { useState } from 'react'
 import { mutate } from 'swr'
@@ -36,11 +36,13 @@ import { canModifyMarket, isMarketTradable } from '../rules'
 import { ExtendedMarket } from '../types'
 import { EditMarketDialog } from './EditMarketDialog'
 import { EditMarketOptionDialog } from './EditMarketOptionDialog'
+import { EvidencePanel } from './EvidencePanel'
 import { LiquidityBoostAlert } from './LiquidityBoostAlert'
+import { ResolutionDisputeButton } from './ResolutionDisputeButton'
 import { LiquidityBoostDialog } from './LiquidityBoostDialog'
 import { LowLiquidityBanner } from './LowLiquidityBanner'
 import { MarketComparisonView } from './MarketComparisonView'
-import { MarketGraph } from './MarketGraph'
+import { MarketChart } from './MarketChart'
 import { MarketOptionRow } from './MarketOptionRow'
 import { MarketListsChip } from './MarketListsChip'
 import { MarketStatusBanner } from './MarketStatusBanner'
@@ -128,6 +130,46 @@ export function MarketOverviewPage({
               {market.parentList.title}
             </Link>
           ) : null}
+          {market.parentMarket ? (
+            <div className="flex items-start gap-2 rounded-md border border-info/30 bg-info/10 p-3 text-sm">
+              <GitMergeIcon className="mt-0.5 size-4 shrink-0 text-info" />
+              <div className="flex flex-col gap-1">
+                <span className="font-medium text-info">Conditional Market</span>
+                <span className="text-muted-foreground">
+                  Only trades if:{' '}
+                  <Link
+                    href={`/questions/${market.parentMarket.id}/${(market.parentMarket as { slug?: string }).slug ?? ''}`}
+                    className="underline hover:text-foreground"
+                  >
+                    {market.parentMarket.question}
+                  </Link>{' '}
+                  resolves{' '}
+                  <span className="font-semibold">
+                    {(market as ExtendedMarket & { conditionResolution?: string | null }).conditionResolution ?? 'Yes'}
+                  </span>
+                </span>
+                {market.parentMarket.resolvedAt ? (
+                  <span className="flex items-center gap-1 text-success">
+                    {(market as ExtendedMarket & { activatedAt?: Date | null }).activatedAt ? (
+                      <>
+                        <UnlockIcon className="size-3" /> Activated — parent resolved{' '}
+                        {market.parentMarket.marketResolution?.resolution.name}
+                      </>
+                    ) : (
+                      <>
+                        <LockIcon className="size-3 text-destructive" /> Not activated — parent resolved{' '}
+                        {market.parentMarket.marketResolution?.resolution.name}
+                      </>
+                    )}
+                  </span>
+                ) : (
+                  <span className="flex items-center gap-1 text-warning">
+                    <LockIcon className="size-3" /> Pending — waiting for parent to resolve
+                  </span>
+                )}
+              </div>
+            </div>
+          ) : null}
           <CardTitle className="leading-relaxed">{market.question}</CardTitle>
           <div className="flex flex-row flex-wrap items-center gap-x-3 gap-y-2 text-sm text-muted-foreground md:flex-nowrap">
             {market.canceledAt ? (
@@ -163,7 +205,7 @@ export function MarketOverviewPage({
           </div>
         </CardHeader>
         <CardContent>
-          <MarketGraph market={market} activeOptionId={selected[0]} />
+          <MarketChart market={market} activeOptionId={selected[0]} />
         </CardContent>
 
         <CardContent>
@@ -199,6 +241,11 @@ export function MarketOverviewPage({
                   </AlertDescription>
                 ) : null}
               </Alert>
+              {user && market.resolvedAt && user.id !== market.marketResolution?.resolvedById ? (
+                <div className="mt-2 flex justify-end">
+                  <ResolutionDisputeButton marketId={market.id} resolvedAt={market.resolvedAt} />
+                </div>
+              ) : null}
               {orderedMarketOptions.length ? (
                 <Collapsible>
                   <CollapsibleTrigger asChild>
@@ -216,6 +263,7 @@ export function MarketOverviewPage({
                           probability={probabilities[option.id] || option.probability || 0}
                           className={i > 0 ? 'border-t' : ''}
                           canEdit={user ? canModifyMarket({ market, user }) : false}
+                          marketId={market.id}
                           onEdit={() => setIsEditOption(option.id)}
                           onSelect={() => {
                             setSelected([option.id])
@@ -281,6 +329,7 @@ export function MarketOverviewPage({
                       probability={probabilities[option.id] || option.probability || 0}
                       className={i > 0 ? 'border-t' : ''}
                       canEdit={user ? canModifyMarket({ market, user }) : false}
+                      marketId={market.id}
                       onEdit={() => setIsEditOption(option.id)}
                       onSelect={() => {
                         setSelected([option.id])
@@ -314,6 +363,55 @@ export function MarketOverviewPage({
             </div>
           ) : null}
         </CardContent>
+
+        <CardContent id="evidence">
+          <EvidencePanel marketId={market.id} />
+        </CardContent>
+
+        {market.conditionalMarkets && market.conditionalMarkets.length > 0 ? (
+          <CardContent id="conditional-markets">
+            <div className="flex flex-col gap-3">
+              <h3 className="flex items-center gap-2 font-semibold">
+                <GitMergeIcon className="size-4 text-info" />
+                Conditional Markets
+              </h3>
+              <p className="text-sm text-muted-foreground">
+                These markets will open for trading if this market resolves to the specified condition.
+              </p>
+              <div className="flex flex-col gap-2">
+                {market.conditionalMarkets.map((child) => {
+                  const isActivated = Boolean((child as { activatedAt?: Date | null }).activatedAt)
+                  const isCanceled = Boolean(child.canceledAt)
+                  const conditionResolution = (child as { conditionResolution?: string | null }).conditionResolution ?? 'Yes'
+                  return (
+                    <div key={child.id} className="flex items-start justify-between rounded-md border p-3">
+                      <div className="flex flex-col gap-1">
+                        <Link
+                          href={`/questions/${child.id}/${(child as { slug: string }).slug}`}
+                          className="text-sm font-medium hover:underline"
+                        >
+                          {child.question}
+                        </Link>
+                        <span className="text-xs text-muted-foreground">
+                          Activates if parent resolves: <span className="font-semibold">{conditionResolution}</span>
+                        </span>
+                      </div>
+                      <div className="flex shrink-0 items-center gap-1 text-xs">
+                        {isCanceled ? (
+                          <Badge variant="destructive">Canceled</Badge>
+                        ) : isActivated ? (
+                          <Badge variant="success">Active</Badge>
+                        ) : (
+                          <Badge variant="secondary">Pending</Badge>
+                        )}
+                      </div>
+                    </div>
+                  )
+                })}
+              </div>
+            </div>
+          </CardContent>
+        ) : null}
 
         {!market.resolvedAt && !market.canceledAt ? (
           <CardContent>

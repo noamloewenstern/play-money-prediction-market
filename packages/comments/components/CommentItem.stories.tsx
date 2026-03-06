@@ -17,6 +17,7 @@ export const Default: Story = {
       ...mockComment(),
       author: mockUser(),
       reactions: [],
+      poll: null,
     },
     isHighlighted: false,
     onEmojiSelect: console.log,

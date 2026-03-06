@@ -1,4 +1,4 @@
-# Local dev override — exposes web and api ports to the host.
+# Local dev override — exposes web, api, and jaeger ports to the host.
 #
 # Usage:
 #   docker compose -f docker-compose.prod.yml -f docker-compose.local.yml up -d
@@ -9,3 +9,7 @@ services:
   api:
     ports:
       - "${API_PORT:-3001}:3001"
+  jaeger:
+    ports:
+      - "16686:16686"  # Jaeger UI  →  http://localhost:16686
+      - "4318:4318"    # OTLP HTTP (useful for sending spans from local dev tools)

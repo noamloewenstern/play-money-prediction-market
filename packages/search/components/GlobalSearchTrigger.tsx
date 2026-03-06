@@ -15,8 +15,13 @@ export function GlobalSearchTrigger({ className }: { className?: string }) {
         setOpen((open) => !open)
       }
     }
+    const openSearch = () => setOpen(true)
     document.addEventListener('keydown', down)
-    return () => document.removeEventListener('keydown', down)
+    window.addEventListener('keyboard:search', openSearch)
+    return () => {
+      document.removeEventListener('keydown', down)
+      window.removeEventListener('keyboard:search', openSearch)
+    }
   }, [])
 
   return (

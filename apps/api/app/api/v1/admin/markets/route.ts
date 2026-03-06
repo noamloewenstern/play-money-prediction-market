@@ -56,6 +56,8 @@ export async function GET(req: Request) {
           liquidityCount: true,
           createdAt: true,
           updatedAt: true,
+          isFeatured: true,
+          featuredAt: true,
           options: {
             select: {
               id: true,

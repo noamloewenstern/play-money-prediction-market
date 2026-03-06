@@ -11,9 +11,19 @@ export const POST = createRouteHandler({
   rateLimit: 'write',
   handler: async (req, { userId }): Promise<SchemaResponse<typeof schema.post.responses>> => {
     const body = (await req.json()) as unknown
-    const data = schema.post.requestBody.parse(body)
+    const { poll, ...data } = schema.post.requestBody.parse(body)
 
-    const comment = await createComment({ ...data, authorId: userId })
+    const comment = await createComment({
+      ...data,
+      authorId: userId,
+      poll: poll
+        ? {
+            question: poll.question,
+            options: poll.options,
+            closesAt: poll.closesAt ? new Date(poll.closesAt) : null,
+          }
+        : undefined,
+    })
 
     return NextResponse.json({ data: comment })
   },

@@ -15,17 +15,21 @@ import { MarketClosedError } from './exceptions'
 import { createMarketLiquidityTransaction } from './createMarketLiquidityTransaction'
 import { createMarketTraderBonusTransactions } from './createMarketTraderBonusTransactions'
 import { getMarket } from './getMarket'
+import { createTradeNote } from './createTradeNote'
+import { createProbabilitySnapshot } from './createProbabilitySnapshot'
 
 export async function marketBuy({
   marketId,
   optionId,
   userId,
   amount,
+  note,
 }: {
   marketId: string
   optionId: string
   userId: string
   amount: Decimal
+  note?: string
 }) {
   const [market, userAccount] = await Promise.all([getMarket({ id: marketId }), getUserPrimaryAccount({ userId })])
 
@@ -36,12 +40,37 @@ export async function marketBuy({
     throw new MarketClosedError(reason)
   }
 
+  // Capture probability before the trade changes it
+  const optionBeforeTrade = await db.marketOption.findUnique({
+    where: { id: optionId },
+    select: { probability: true },
+  })
+  const probabilityAtTrade = optionBeforeTrade?.probability ?? undefined
+
   const transaction = await createMarketBuyTransaction({
     initiatorId: userId,
     accountId: userAccount.id,
     marketId,
     amount,
     optionId,
+  })
+
+  // Always create a trade note to capture probability; store user note if provided
+  void createTradeNote({
+    userId,
+    marketId,
+    optionId,
+    transactionId: transaction.id,
+    tradeType: 'BUY',
+    note,
+    probabilityAtTrade,
+  }).catch(() => {
+    // Non-critical: don't fail the trade if note creation fails
+  })
+
+  // Capture a probability snapshot after each trade for time-series charts
+  void createProbabilitySnapshot({ marketId, source: 'TRADE' }).catch(() => {
+    // Non-critical: don't fail the trade if snapshot creation fails
   })
 
   const existingTradeInMarket = await db.transaction.findFirst({

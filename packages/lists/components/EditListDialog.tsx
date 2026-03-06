@@ -9,12 +9,15 @@ import { List, ListSchema } from '@play-money/database'
 import { Button } from '@play-money/ui/button'
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@play-money/ui/dialog'
 import { Editor } from '@play-money/ui/editor'
-import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@play-money/ui/form'
+import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel, FormMessage } from '@play-money/ui/form'
 import { Input } from '@play-money/ui/input'
+import { Checkbox } from '@play-money/ui/checkbox'
 import { MultiSelect } from '@play-money/ui/multi-select'
 import { toast } from '@play-money/ui/use-toast'
 
-const FormSchema = ListSchema.pick({ title: true, description: true, tags: true })
+const FormSchema = ListSchema.pick({ title: true, description: true, tags: true }).extend({
+  isGroup: z.boolean().optional(),
+})
 
 type FormData = z.infer<typeof FormSchema>
 
@@ -55,6 +58,7 @@ export const EditListDialog = ({
       title: list.title,
       description: list.description ?? '<p></p>',
       tags: list.tags,
+      isGroup: list.isGroup ?? false,
     },
   })
 
@@ -139,6 +143,24 @@ export const EditListDialog = ({
                     />
                   </FormControl>
                   <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            <FormField
+              control={form.control}
+              name="isGroup"
+              render={({ field }) => (
+                <FormItem className="flex flex-row items-center justify-between rounded-lg border p-3">
+                  <div className="space-y-0.5">
+                    <FormLabel>Tournament / Group Mode</FormLabel>
+                    <FormDescription className="text-xs">
+                      Enable to add members, track a group leaderboard, and run private prediction contests.
+                    </FormDescription>
+                  </div>
+                  <FormControl>
+                    <Checkbox checked={field.value ?? false} onCheckedChange={field.onChange} />
+                  </FormControl>
                 </FormItem>
               )}
             />

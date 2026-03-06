@@ -20,6 +20,7 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '
 import { Input } from '@play-money/ui/input'
 import { RadioGroup, RadioGroupItem } from '@play-money/ui/radio-group'
 import { Slider } from '@play-money/ui/slider'
+import { Textarea } from '@play-money/ui/textarea'
 import { toast } from '@play-money/ui/use-toast'
 import { ToastAction } from '@play-money/ui/toast'
 import { QuoteItem, calculateReturnPercentage, formatCurrency, formatPercentage } from './MarketBuyForm'
@@ -27,6 +28,7 @@ import { QuoteItem, calculateReturnPercentage, formatCurrency, formatPercentage 
 const FormSchema = z.object({
   optionId: z.string(),
   amount: z.coerce.number().min(1, { message: 'Amount must be greater than zero' }),
+  note: z.string().max(2000).optional(),
 })
 
 type FormData = z.infer<typeof FormSchema>
@@ -47,6 +49,7 @@ export function MarketSellForm({
   const [quote, setQuote] = useState<{ newProbability: number; potentialReturn: number } | null>(null)
   const [tradeError, setTradeError] = useState<ActionableError | null>(null)
   const [showConfirmation, setShowConfirmation] = useState(false)
+  const [showNoteField, setShowNoteField] = useState(false)
   const { actionState: confirmActionState, setLoading: setConfirmLoading, setSuccess: setConfirmSuccess, setError: setConfirmError } = useStatefulAction()
   const form = useForm<FormData>({
     resolver: zodResolver(FormSchema),
@@ -86,7 +89,7 @@ export function MarketSellForm({
       const option = options.find((o) => o.id === data.optionId)
       const returnAmount = quote?.potentialReturn ?? 0
       const newProb = quote?.newProbability
-      await createMarketSell({ marketId: marketId, optionId: data.optionId, amount: data.amount })
+      await createMarketSell({ marketId: marketId, optionId: data.optionId, amount: data.amount, note: data.note })
 
       const optionId = data.optionId
       const roundedReturn = Math.round(returnAmount)
@@ -303,6 +306,43 @@ export function MarketSellForm({
             </FormItem>
           )}
         />
+
+        {showNoteField ? (
+          <FormField
+            control={form.control}
+            name="note"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel className="flex items-center justify-between text-xs text-muted-foreground">
+                  Reasoning note (optional)
+                  <button
+                    type="button"
+                    onClick={() => { setShowNoteField(false); field.onChange('') }}
+                    className="text-xs text-muted-foreground hover:text-foreground"
+                  >
+                    Remove
+                  </button>
+                </FormLabel>
+                <FormControl>
+                  <Textarea
+                    placeholder="Why are you selling this position?"
+                    className="h-20 resize-none text-sm"
+                    {...field}
+                  />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+        ) : (
+          <button
+            type="button"
+            onClick={() => setShowNoteField(true)}
+            className="w-full text-left text-xs text-muted-foreground hover:text-foreground"
+          >
+            + Add reasoning note to journal
+          </button>
+        )}
 
         {tradeError ? (
           <Alert variant="destructive" className="py-3">

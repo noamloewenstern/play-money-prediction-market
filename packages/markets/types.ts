@@ -27,6 +27,18 @@ export type ExtendedMarket = Market & {
   }
   parentList?: List
   lists?: Array<{ list: List }>
+  parentMarket?: (Market & {
+    options: Array<MarketOption>
+    marketResolution?: MarketResolution & {
+      resolution: MarketOption
+    }
+  }) | null
+  conditionalMarkets?: Array<Market & {
+    options: Array<MarketOption>
+    marketResolution?: MarketResolution & {
+      resolution: MarketOption
+    }
+  }>
 }
 
 export type ExtendedMarketPosition = MarketOptionPosition & {

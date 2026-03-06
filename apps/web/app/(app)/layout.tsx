@@ -11,6 +11,7 @@ import { Button } from '@play-money/ui/button'
 import { Sheet, SheetTrigger, SheetContent, SheetClose } from '@play-money/ui/sheet'
 import { cn } from '@play-money/ui/utils'
 import { UserNav } from '@play-money/users/components/UserNav'
+import { KeyboardShortcutsProvider } from '../components/KeyboardShortcutsProvider'
 
 function MainNav({
   className,
@@ -66,6 +67,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
 
   return (
     <div className="flex min-h-screen flex-col bg-background">
+      <KeyboardShortcutsProvider />
       <header className="sticky top-0 z-40 w-full border-b bg-background/80 backdrop-blur-lg">
         <div className="mx-auto flex h-14 max-w-screen-xl items-center justify-between gap-4 px-4 md:px-8">
           <Sheet>

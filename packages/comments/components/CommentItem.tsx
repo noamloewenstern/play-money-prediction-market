@@ -1,8 +1,9 @@
 'use client'
 
 import { formatDistance } from 'date-fns'
-import { Ellipsis, Pin, Reply } from 'lucide-react'
+import { Ellipsis, History, Pin, Reply } from 'lucide-react'
 import React, { useState } from 'react'
+import { CommentEditHistoryEntry, getCommentHistory } from '@play-money/api-helpers/client'
 import { CommentWithReactions } from '@play-money/comments/lib/getComment'
 import { UserAvatar } from '@play-money/ui/UserAvatar'
 import {
@@ -19,6 +20,12 @@ import {
 import { Button } from '@play-money/ui/button'
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@play-money/ui/collapsible'
 import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from '@play-money/ui/dialog'
+import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
@@ -31,6 +38,7 @@ import { toast } from '@play-money/ui/use-toast'
 import { cn } from '@play-money/ui/utils'
 import { UserLink } from '@play-money/users/components/UserLink'
 import { formatDistanceToNowShort } from '../../ui/src/helpers'
+import { CommentPollDisplay } from './CommentPollDisplay'
 import { CreateCommentForm } from './CreateCommentForm'
 
 export function CommentItem({
@@ -46,6 +54,7 @@ export function CommentItem({
   onDelete,
   onPin,
   onUnpin,
+  onVotePoll,
 }: {
   activeUserId: string
   comment: CommentWithReactions
@@ -59,10 +68,14 @@ export function CommentItem({
   onDelete: () => void
   onPin?: () => void
   onUnpin?: () => void
+  onVotePoll?: (pollId: string, optionId: string) => void
 }) {
   const [isReplyOpen, setIsReplyOpen] = useState(false)
   const [isPortalOpen, setIsPortalOpen] = useState(false)
   const [isEditing, setIsEditing] = useState(false)
+  const [isHistoryOpen, setIsHistoryOpen] = useState(false)
+  const [editHistory, setEditHistory] = useState<Array<CommentEditHistoryEntry> | null>(null)
+  const [isLoadingHistory, setIsLoadingHistory] = useState(false)
 
   const handleCreateReply = async (content: string) => {
     await onCreateReply(content)
@@ -76,6 +89,21 @@ export function CommentItem({
   const handleEdit = async (content: string) => {
     await onEdit(content)
     setIsEditing(false)
+  }
+
+  const handleViewHistory = async () => {
+    setIsHistoryOpen(true)
+    if (!editHistory) {
+      setIsLoadingHistory(true)
+      try {
+        const result = await getCommentHistory({ commentId: comment.id })
+        setEditHistory(result.data)
+      } catch {
+        toast({ title: 'Failed to load edit history', variant: 'destructive' })
+      } finally {
+        setIsLoadingHistory(false)
+      }
+    }
   }
 
   const handleCopyLink = () => {
@@ -150,6 +178,13 @@ export function CommentItem({
               >
                 <DropdownMenuItem onClick={handleCopyLink}>Copy Link</DropdownMenuItem>
 
+                {comment.edited ? (
+                  <DropdownMenuItem onClick={handleViewHistory}>
+                    <History className="mr-2 h-4 w-4" />
+                    View Edit History
+                  </DropdownMenuItem>
+                ) : null}
+
                 {canPin && !comment.parentId ? (
                   <>
                     <DropdownMenuSeparator />
@@ -217,6 +252,15 @@ export function CommentItem({
           ) : (
             <Editor className="min-h-6" inputClassName="text-sm md:text-base" value={comment.content} disabled />
           )}
+
+          {comment.poll && !isEditing ? (
+            <CommentPollDisplay
+              poll={comment.poll}
+              activeUserId={activeUserId}
+              onVote={onVotePoll}
+              isPending={isPending}
+            />
+          ) : null}
         </div>
 
         <EmojiReactionList
@@ -241,6 +285,37 @@ export function CommentItem({
           </div>
         </CollapsibleContent>
       </Collapsible>
+
+      <Dialog open={isHistoryOpen} onOpenChange={setIsHistoryOpen}>
+        <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto" data-testid="comment-edit-history-dialog">
+          <DialogHeader>
+            <DialogTitle>Edit History</DialogTitle>
+          </DialogHeader>
+
+          {isLoadingHistory ? (
+            <div className="py-8 text-center text-muted-foreground text-sm">Loading history...</div>
+          ) : editHistory && editHistory.length === 0 ? (
+            <div className="py-8 text-center text-muted-foreground text-sm">No edit history available.</div>
+          ) : (
+            <div className="space-y-4">
+              {editHistory?.map((entry, index) => (
+                <div key={entry.id} className="rounded-lg border p-4 space-y-2" data-testid="comment-edit-history-entry">
+                  <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                    <span className="font-medium text-foreground">
+                      {index === 0 ? 'Previous version' : `Version ${editHistory.length - index}`}
+                    </span>
+                    <span>·</span>
+                    <span>{formatDistanceToNowShort(new Date(entry.editedAt))} ago</span>
+                    <span>·</span>
+                    <span>edited by {entry.editedBy.displayName}</span>
+                  </div>
+                  <Editor className="min-h-6" inputClassName="text-sm" value={entry.content} disabled />
+                </div>
+              ))}
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }

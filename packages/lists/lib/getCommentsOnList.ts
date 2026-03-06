@@ -1,4 +1,4 @@
-import { CommentWithReactions } from '@play-money/comments/lib/getComment'
+import { CommentWithReactions, commentInclude } from '@play-money/comments/lib/getComment'
 import db from '@play-money/database'
 
 export async function getCommentsOnList({ listId }: { listId: string }): Promise<Array<CommentWithReactions>> {
@@ -7,14 +7,7 @@ export async function getCommentsOnList({ listId }: { listId: string }): Promise
       entityType: 'LIST',
       entityId: listId,
     },
-    include: {
-      author: true,
-      reactions: {
-        include: {
-          user: true,
-        },
-      },
-    },
+    include: commentInclude,
     orderBy: { createdAt: 'desc' },
     take: 100,
   })

@@ -52,7 +52,7 @@ export async function PATCH(
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
-    const updatedComment = await updateComment({ id, content })
+    const updatedComment = await updateComment({ id, content, editedById: userId })
 
     return NextResponse.json({ data: updatedComment })
   } catch (error) {

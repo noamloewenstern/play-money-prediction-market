@@ -4,7 +4,7 @@ import { getAuthUser } from '@play-money/auth/lib/getAuthUser'
 import { MarketNotFoundError } from '@play-money/markets/lib/exceptions'
 import { getMarket } from '@play-money/markets/lib/getMarket'
 import { updateMarket } from '@play-money/markets/lib/updateMarket'
-import { canModifyMarket } from '@play-money/markets/rules'
+import { canModifyMarket, canViewMarket } from '@play-money/markets/rules'
 import { getUserById } from '@play-money/users/lib/getUserById'
 import schema from './schema'
 
@@ -23,6 +23,19 @@ export async function GET(
     const { id, extended } = schema.get.parameters.parse({ ...params, ...idParams })
 
     const market = await getMarket({ id, extended })
+
+    // Check visibility access for private markets
+    if (market.visibility === 'PRIVATE') {
+      const userId = await getAuthUser(req).catch(() => null)
+      if (!userId) {
+        return NextResponse.json({ error: 'Market not found' }, { status: 404 })
+      }
+      const user = await getUserById({ id: userId })
+      if (!canViewMarket({ market, user })) {
+        return NextResponse.json({ error: 'Market not found' }, { status: 404 })
+      }
+    }
+
     return NextResponse.json({ data: market })
   } catch (error) {
     console.log(error) // eslint-disable-line no-console -- Log error for debugging
@@ -42,7 +55,7 @@ export async function PATCH(
 
     const { id } = schema.patch.parameters.parse(params)
     const body = (await req.json()) as unknown
-    const { question, description, resolutionCriteria, closeDate, tags, createdBy } = schema.patch.requestBody
+    const { question, description, resolutionCriteria, closeDate, tags, createdBy, visibility } = schema.patch.requestBody
       .transform(stripUndefined)
       .parse(body)
 
@@ -53,7 +66,7 @@ export async function PATCH(
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
-    const updatedMarket = await updateMarket({ id, question, description, resolutionCriteria, closeDate, tags, createdBy })
+    const updatedMarket = await updateMarket({ id, question, description, resolutionCriteria, closeDate, tags, createdBy, visibility })
 
     return NextResponse.json({ data: updatedMarket })
   } catch (error) {

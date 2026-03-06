@@ -8,6 +8,7 @@ import { createDailyCommentBonusTransaction } from '@play-money/quests/lib/creat
 import { hasCommentedToday } from '@play-money/quests/lib/helpers'
 import { getUserPrimaryAccount } from '@play-money/users/lib/getUserPrimaryAccount'
 import { triggerWebhook } from '@play-money/webhooks/lib/triggerWebhook'
+import { createCommentPoll, PollInput } from './createCommentPoll'
 
 function extractUniqueMentionIds(htmlString: string): Array<string> {
   const mentionRegex = /<mention[^>]*data-id="([^"]*)"[^>]*>/g
@@ -29,7 +30,8 @@ export async function createComment({
   parentId,
   entityType,
   entityId,
-}: Pick<Comment, 'content' | 'authorId' | 'parentId' | 'entityType' | 'entityId'>) {
+  poll,
+}: Pick<Comment, 'content' | 'authorId' | 'parentId' | 'entityType' | 'entityId'> & { poll?: PollInput }) {
   const sanitizedContent = DOMPurify.sanitize(content, {
     ADD_TAGS: ['mention'],
     ADD_ATTR: ['data-id'],
@@ -48,6 +50,10 @@ export async function createComment({
       parent: true,
     },
   })
+
+  if (poll && !parentId) {
+    await createCommentPoll({ commentId: comment.id, ...poll })
+  }
 
   const entity = entityType === 'MARKET' ? await getMarket({ id: entityId }) : await getList({ id: entityId })
 

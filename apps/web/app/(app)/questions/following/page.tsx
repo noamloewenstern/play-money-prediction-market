@@ -2,22 +2,17 @@
 
 import Link from 'next/link'
 import React from 'react'
-import useSWR from 'swr'
 import { unfollowTag } from '@play-money/api-helpers/client'
-import { MY_FOLLOWED_TAGS_PATH, useMyFollowedTags } from '@play-money/api-helpers/client/hooks'
-import { MarketList } from '@play-money/markets/components/MarketList'
-import { ExtendedMarket } from '@play-money/markets/types'
+import { useMyFollowedTags } from '@play-money/api-helpers/client/hooks'
+import { InfiniteFeedList } from '@play-money/markets/components/InfiniteFeedList'
 import { Badge } from '@play-money/ui/badge'
 import { Button } from '@play-money/ui/button'
 import { useUser } from '@play-money/users/context/UserContext'
-import { PaginatedResponse } from '@play-money/api-helpers'
 
 export default function FollowingPage() {
   const { user } = useUser()
   const { data: followedTagsData, mutate: mutateFollowedTags } = useMyFollowedTags({ skip: !user })
   const followedTags = followedTagsData?.data ?? []
-  const { data: feedData } = useSWR<PaginatedResponse<ExtendedMarket>>(user ? '/v1/users/me/feed?limit=50' : null)
-  const markets = feedData?.data ?? []
 
   const handleUnfollow = async (tag: string) => {
     await unfollowTag({ tag })
@@ -65,10 +60,10 @@ export default function FollowingPage() {
           </p>
         )}
 
-        {markets.length > 0 ? (
-          <MarketList markets={markets} />
-        ) : followedTags.length > 0 ? (
-          <p className="text-sm text-muted-foreground">No active markets found for your followed tags.</p>
+        {followedTags.length > 0 ? (
+          <InfiniteFeedList
+            emptyState={<p className="text-sm text-muted-foreground">No active markets found for your followed tags.</p>}
+          />
         ) : null}
       </div>
 

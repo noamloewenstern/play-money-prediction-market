@@ -1,10 +1,20 @@
 import useSWR from 'swr'
+import useSWRInfinite from 'swr/infinite'
 import { User } from '@play-money/database'
 import { MarketOptionPositionAsNumbers, NetBalanceAsNumbers } from '@play-money/finance/lib/getBalances'
-import { TransactionWithEntries } from '@play-money/finance/types'
+import { TransactionWithEntries, LeaderboardUser } from '@play-money/finance/types'
 import { ExtendedMarket, MarketActivity } from '@play-money/markets/types'
 import { NotificationGroupWithLastNotification } from '@play-money/notifications/lib/getNotifications'
 import { Quest } from '@play-money/quests/components/QuestCard'
+import { PaginatedResponse } from '../types'
+import {
+  MarketEvidenceResponse,
+  GroupMemberResponse,
+  ResolutionDisputeResponse,
+  UserPublicProfile,
+  UserBadge,
+  UserCalibrationScore,
+} from './index'
 
 // TODO: @casesandberg Generate this from OpenAPI schema
 
@@ -72,6 +82,8 @@ export function useMarketGraph({ marketId }: { marketId: string }) {
         id: string
         probability: number
       }>
+      volume?: number
+      tradeCount?: number
     }>
   }>(MARKET_GRAPH_PATH(marketId), { refreshInterval: FIVE_MINUTES })
 }
@@ -261,4 +273,265 @@ export function useMyWebhooks({ skip = false }: { skip?: boolean } = {}) {
       updatedAt: string
     }>
   }>(!skip ? MY_WEBHOOKS_PATH : null)
+}
+
+export const MARKET_EVIDENCE_PATH = (marketId: string) => `/v1/markets/${encodeURIComponent(marketId)}/evidence`
+export function useMarketEvidence({ marketId }: { marketId: string }) {
+  return useSWR<{ data: Array<MarketEvidenceResponse> }>(MARKET_EVIDENCE_PATH(marketId))
+}
+
+export type MarketsInfiniteParams = {
+  status?: string
+  sort?: string
+  tags?: Array<string>
+  marketType?: string
+  minTraders?: number
+  maxTraders?: number
+  minLiquidity?: number
+  maxLiquidity?: number
+  closeDateMin?: string
+  closeDateMax?: string
+  limit?: number
+}
+
+export function useMarketsInfinite(params: MarketsInfiniteParams = {}) {
+  const { sort, limit = 25, ...filterParams } = params
+  const sortField = sort ? sort.split('-')[0] : undefined
+  const sortDirection = sort ? sort.split('-')[1] : undefined
+
+  return useSWRInfinite<PaginatedResponse<ExtendedMarket>>(
+    (pageIndex, previousPageData) => {
+      if (previousPageData && !previousPageData.pageInfo.hasNextPage) return null
+      const cursor = previousPageData?.pageInfo.endCursor
+      const urlParams = new URLSearchParams(
+        JSON.parse(JSON.stringify({ ...filterParams, sortField, sortDirection, cursor, limit }))
+      )
+      return `/v1/markets?${urlParams.toString()}`
+    },
+    { revalidateFirstPage: false, revalidateOnFocus: false }
+  )
+}
+
+export function useFeedInfinite(params: { limit?: number } = {}) {
+  const { limit = 25 } = params
+
+  return useSWRInfinite<PaginatedResponse<ExtendedMarket>>(
+    (pageIndex, previousPageData) => {
+      if (previousPageData && !previousPageData.pageInfo.hasNextPage) return null
+      const cursor = previousPageData?.pageInfo.endCursor
+      const urlParams = new URLSearchParams(JSON.parse(JSON.stringify({ limit, cursor })))
+      return `/v1/users/me/feed?${urlParams.toString()}`
+    },
+    { revalidateFirstPage: false, revalidateOnFocus: false }
+  )
+}
+
+export type TradeJournalEntry = {
+  id: string
+  userId: string
+  marketId: string
+  optionId: string
+  transactionId: string
+  tradeType: string
+  note: string | null
+  probabilityAtTrade: number | null
+  createdAt: string
+  updatedAt: string
+  market: {
+    id: string
+    question: string
+    slug: string
+    resolvedAt: string | null
+    canceledAt: string | null
+    marketResolution: { resolutionId: string } | null
+  }
+  option: {
+    id: string
+    name: string
+    color: string
+  }
+}
+
+export const MY_TRADE_JOURNAL_PATH = '/v1/users/me/journal'
+export function useMyTradeJournal({ skip = false }: { skip?: boolean } = {}) {
+  return useSWRInfinite<{
+    data: Array<TradeJournalEntry>
+    pageInfo: { hasNextPage: boolean; endCursor: string | null; total: number }
+  }>(
+    (pageIndex, previousPageData) => {
+      if (skip) return null
+      if (previousPageData && !previousPageData.pageInfo.hasNextPage) return null
+      const cursor = previousPageData?.pageInfo.endCursor
+      const urlParams = new URLSearchParams(JSON.parse(JSON.stringify({ limit: 20, cursor })))
+      return `${MY_TRADE_JOURNAL_PATH}?${urlParams.toString()}`
+    },
+    { revalidateFirstPage: false, revalidateOnFocus: false }
+  )
+}
+
+// Group/Tournament Hooks
+
+export function GROUP_LEADERBOARD_PATH(listId: string) {
+  return `/v1/lists/${listId}/leaderboard`
+}
+export function useGroupLeaderboard({ listId, skip = false }: { listId: string; skip?: boolean }) {
+  return useSWR<{ data: { traders: Array<LeaderboardUser> } }>(
+    skip ? null : GROUP_LEADERBOARD_PATH(listId),
+    { refreshInterval: FIVE_MINUTES }
+  )
+}
+
+export function GROUP_MEMBERS_PATH(listId: string) {
+  return `/v1/lists/${listId}/members`
+}
+export function useGroupMembers({ listId, skip = false }: { listId: string; skip?: boolean }) {
+  return useSWR<{ data: Array<GroupMemberResponse> }>(
+    skip ? null : GROUP_MEMBERS_PATH(listId),
+    { refreshInterval: FIVE_MINUTES }
+  )
+}
+
+// Probability Alerts Hooks
+
+export type ProbabilityAlertResponse = {
+  id: string
+  userId: string
+  marketId: string
+  optionId: string
+  threshold: number
+  direction: 'ABOVE' | 'BELOW'
+  isActive: boolean
+  triggeredAt: string | null
+  createdAt: string
+  updatedAt: string
+  option: {
+    id: string
+    name: string
+    color: string
+    probability: number | null
+  }
+}
+
+export function MARKET_ALERTS_PATH(marketId: string) {
+  return `/v1/markets/${encodeURIComponent(marketId)}/alerts`
+}
+export function useMarketAlerts({ marketId, skip = false }: { marketId: string; skip?: boolean }) {
+  return useSWR<{ data: Array<ProbabilityAlertResponse> }>(
+    skip ? null : MARKET_ALERTS_PATH(marketId),
+    { refreshInterval: FIVE_MINUTES }
+  )
+}
+
+// Resolution Dispute Hooks
+
+export function MARKET_RESOLUTION_DISPUTES_PATH(marketId: string) {
+  return `/v1/markets/${encodeURIComponent(marketId)}/resolution-dispute`
+}
+export function useMarketResolutionDisputes({ marketId, skip = false }: { marketId: string; skip?: boolean }) {
+  return useSWR<{ data: Array<ResolutionDisputeResponse> }>(
+    skip ? null : MARKET_RESOLUTION_DISPUTES_PATH(marketId),
+    { refreshInterval: FIVE_MINUTES }
+  )
+}
+
+// Tag Leaderboard & Stats Hooks
+
+export function TAG_LEADERBOARD_PATH(tag: string) {
+  return `/v1/tags/${encodeURIComponent(tag)}/leaderboard`
+}
+export function useTagLeaderboard({ tag, skip = false }: { tag: string; skip?: boolean }) {
+  return useSWR<{ data: { traders: Array<LeaderboardUser> } }>(
+    skip ? null : TAG_LEADERBOARD_PATH(tag),
+    { refreshInterval: FIVE_MINUTES }
+  )
+}
+
+export type TagStatistics = {
+  totalMarkets: number
+  activeMarkets: number
+  resolvedMarkets: number
+  totalVolume: number
+  totalTraders: number
+  avgResolutionDays: number | null
+  mostActiveMarket: {
+    id: string
+    question: string
+    slug: string
+    uniqueTradersCount: number
+  } | null
+}
+
+export function TAG_STATS_PATH(tag: string) {
+  return `/v1/tags/${encodeURIComponent(tag)}/stats`
+}
+export function useTagStatistics({ tag, skip = false }: { tag: string; skip?: boolean }) {
+  return useSWR<{ data: TagStatistics }>(
+    skip ? null : TAG_STATS_PATH(tag),
+    { refreshInterval: FIVE_MINUTES }
+  )
+}
+
+// User Following Hooks
+
+export type FollowUser = {
+  id: string
+  username: string
+  displayName: string
+  avatarUrl: string | null
+  createdAt: string
+}
+
+export const USER_FOLLOW_PATH = (userId: string) => `/v1/users/${encodeURIComponent(userId)}/follow`
+export function useUserFollow({ userId, skip = false }: { userId: string; skip?: boolean }) {
+  return useSWR<{ data: { isFollowing: boolean } }>(!skip ? USER_FOLLOW_PATH(userId) : null)
+}
+
+export const MY_FOLLOWING_PATH = '/v1/users/me/following'
+export function useMyFollowing({ skip = false }: { skip?: boolean } = {}) {
+  return useSWR<{ data: Array<FollowUser> }>(!skip ? MY_FOLLOWING_PATH : null)
+}
+
+export const MY_FOLLOWERS_PATH = '/v1/users/me/followers'
+export function useMyFollowers({ skip = false }: { skip?: boolean } = {}) {
+  return useSWR<{ data: Array<FollowUser> }>(!skip ? MY_FOLLOWERS_PATH : null)
+}
+
+// User Public Profile Hooks
+
+export const USER_PUBLIC_PROFILE_PATH = (userId: string) =>
+  `/v1/users/${encodeURIComponent(userId)}/public-profile`
+
+export function useUserPublicProfile({ userId, skip = false }: { userId: string; skip?: boolean }) {
+  return useSWR<{ data: UserPublicProfile }>(
+    !skip ? USER_PUBLIC_PROFILE_PATH(userId) : null,
+    { refreshInterval: FIVE_MINUTES }
+  )
+}
+
+export const USER_BADGES_PATH = (userId: string) => `/v1/users/${encodeURIComponent(userId)}/badges`
+export function useUserBadges({ userId, skip = false }: { userId: string; skip?: boolean }) {
+  return useSWR<{ data: Array<UserBadge> }>(
+    !skip ? USER_BADGES_PATH(userId) : null,
+    { refreshInterval: FIVE_MINUTES }
+  )
+}
+
+export const USER_CALIBRATION_PATH = (userId: string) => `/v1/users/${encodeURIComponent(userId)}/calibration`
+export function useUserCalibration({ userId, skip = false }: { userId: string; skip?: boolean }) {
+  return useSWR<{ data: UserCalibrationScore }>(
+    !skip ? USER_CALIBRATION_PATH(userId) : null,
+    { refreshInterval: FIVE_MINUTES }
+  )
+}
+
+// Conditional Markets Hooks
+
+export const CONDITIONAL_MARKETS_PATH = (parentMarketId: string) =>
+  `/v1/markets?parentMarketId=${encodeURIComponent(parentMarketId)}&status=all`
+
+export function useConditionalMarkets({ parentMarketId, skip = false }: { parentMarketId: string; skip?: boolean }) {
+  return useSWR<{ data: Array<ExtendedMarket>; pageInfo: unknown }>(
+    !skip ? CONDITIONAL_MARKETS_PATH(parentMarketId) : null,
+    { refreshInterval: FIVE_MINUTES }
+  )
 }

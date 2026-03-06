@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
 import { stripUndefined, type SchemaResponse } from '@play-money/api-helpers'
 import { getAuthUser } from '@play-money/auth/lib/getAuthUser'
+import db from '@play-money/database'
 import { getList } from '@play-money/lists/lib/getList'
 import { updateList } from '@play-money/lists/lib/updateList'
 import { canModifyList } from '@play-money/lists/rules'
@@ -42,16 +43,21 @@ export async function PATCH(
 
     const { id } = schema.patch.parameters.parse(params)
     const body = (await req.json()) as unknown
-    const { title, description, tags, ownerId } = schema.patch.requestBody.transform(stripUndefined).parse(body)
+    const { title, description, tags, ownerId, isGroup } = schema.patch.requestBody.transform(stripUndefined).parse(body)
 
     const list = await getList({ id })
     const user = await getUserById({ id: userId })
 
-    if (!canModifyList({ list, user })) {
+    const memberRecord = await db.groupMember.findUnique({
+      where: { listId_userId: { listId: id, userId } },
+      select: { role: true },
+    })
+
+    if (!canModifyList({ list, user, memberRole: memberRecord?.role })) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
-    const updatedList = await updateList({ id, title, description, tags, ownerId })
+    const updatedList = await updateList({ id, title, description, tags, ownerId, isGroup })
 
     return NextResponse.json({ data: updatedList })
   } catch (error) {

@@ -121,14 +121,22 @@ export async function createCommentReaction({ commentId, emoji }: { commentId: s
   })
 }
 
+export type PollInput = {
+  question: string
+  options: Array<string>
+  closesAt?: string | null
+}
+
 export async function createComment({
   content,
   parentId,
   entity,
+  poll,
 }: {
   content: string
   parentId?: string
   entity: { type: CommentEntityType; id: string }
+  poll?: PollInput
 }) {
   return apiHandler<unknown>(`${process.env.NEXT_PUBLIC_API_URL}/v1/comments`, {
     method: 'POST',
@@ -137,7 +145,15 @@ export async function createComment({
       parentId: parentId ?? null,
       entityType: entity.type,
       entityId: entity.id,
+      poll: poll ?? undefined,
     },
+  })
+}
+
+export async function voteOnCommentPoll({ commentId, pollId, optionId }: { commentId: string; pollId: string; optionId: string }) {
+  return apiHandler<unknown>(`${process.env.NEXT_PUBLIC_API_URL}/v1/comments/${commentId}/poll/vote`, {
+    method: 'POST',
+    body: { pollId, optionId },
   })
 }
 
@@ -168,6 +184,24 @@ export async function unpinComment({ commentId }: { commentId: string }) {
   })
 }
 
+export type CommentEditHistoryEntry = {
+  id: string
+  content: string
+  editedAt: string
+  editedBy: {
+    id: string
+    username: string
+    displayName: string
+    avatarUrl: string | null
+  }
+}
+
+export async function getCommentHistory({ commentId }: { commentId: string }) {
+  return apiHandler<{ data: Array<CommentEditHistoryEntry> }>(
+    `${process.env.NEXT_PUBLIC_API_URL}/v1/comments/${commentId}/history`
+  )
+}
+
 export async function getMyBalance() {
   return apiHandler<{ data: { balance: number } }>(`${process.env.NEXT_PUBLIC_API_URL}/v1/users/me/balance`)
 }
@@ -187,6 +221,7 @@ export async function getMarkets({
   maxLiquidity,
   closeDateMin,
   closeDateMax,
+  featured,
   ...paginationParams
 }: {
   status?: string
@@ -199,6 +234,7 @@ export async function getMarkets({
   maxLiquidity?: number
   closeDateMin?: string
   closeDateMax?: string
+  featured?: boolean
 } & PaginationRequest = {}) {
   const currentParams = new URLSearchParams(
     JSON.parse(
@@ -213,6 +249,7 @@ export async function getMarkets({
         maxLiquidity,
         closeDateMin,
         closeDateMax,
+        featured,
         ...paginationParams,
       })
     )
@@ -224,6 +261,18 @@ export async function getMarkets({
     `${process.env.NEXT_PUBLIC_API_URL}/v1/markets${search ? `?${search}` : ''}`,
     {
       next: { tags: ['markets'] },
+    }
+  )
+}
+
+export async function getConditionalMarkets({ parentMarketId }: { parentMarketId: string }) {
+  const search = new URLSearchParams(
+    JSON.parse(JSON.stringify({ parentMarketId, status: 'all' }))
+  ).toString()
+  return apiHandler<PaginatedResponse<ExtendedMarket>>(
+    `${process.env.NEXT_PUBLIC_API_URL}/v1/markets${search ? `?${search}` : ''}`,
+    {
+      next: { tags: [`${parentMarketId}:conditional-markets`] },
     }
   )
 }
@@ -348,17 +397,16 @@ export async function createMarketBuy({
   marketId,
   optionId,
   amount,
+  note,
 }: {
   marketId: string
   optionId: string
   amount: number
+  note?: string
 }) {
   return apiHandler<unknown>(`${process.env.NEXT_PUBLIC_API_URL}/v1/markets/${marketId}/buy`, {
     method: 'POST',
-    body: {
-      optionId,
-      amount,
-    },
+    body: JSON.parse(JSON.stringify({ optionId, amount, note })),
   })
 }
 
@@ -366,17 +414,16 @@ export async function createMarketSell({
   marketId,
   optionId,
   amount,
+  note,
 }: {
   marketId: string
   optionId: string
   amount: number
+  note?: string
 }) {
   return apiHandler<unknown>(`${process.env.NEXT_PUBLIC_API_URL}/v1/markets/${marketId}/sell`, {
     method: 'POST',
-    body: {
-      optionId,
-      amount,
-    },
+    body: JSON.parse(JSON.stringify({ optionId, amount, note })),
   })
 }
 
@@ -448,6 +495,24 @@ export async function createMarketResolve({
     method: 'POST',
     body: {
       optionId,
+      supportingLink,
+    },
+  })
+}
+
+export async function createNumericMarketResolve({
+  marketId,
+  numericValue,
+  supportingLink,
+}: {
+  marketId: string
+  numericValue: number
+  supportingLink?: string
+}) {
+  return apiHandler<unknown>(`${process.env.NEXT_PUBLIC_API_URL}/v1/markets/${marketId}/resolve-numeric`, {
+    method: 'POST',
+    body: {
+      numericValue,
       supportingLink,
     },
   })
@@ -634,6 +699,54 @@ export async function getUserPortfolioExposure({ userId }: { userId: string }) {
       } | null
     }
   }>(`${process.env.NEXT_PUBLIC_API_URL}/v1/users/${userId}/portfolio-exposure`)
+}
+
+type PortfolioAnalyticsMarketResult = {
+  marketId: string
+  marketQuestion: string
+  marketSlug: string
+  pnl: number
+  amountInvested: number
+  returnPercent: number
+  isWin: boolean
+  resolvedAt: string | null
+}
+
+type PortfolioAnalyticsCategoryPnl = {
+  tag: string
+  realizedPnl: number
+  unrealizedPnl: number
+  totalPnl: number
+  tradingVolume: number
+  marketCount: number
+}
+
+export type PortfolioAnalytics = {
+  summary: {
+    totalRealizedPnl: number
+    totalUnrealizedPnl: number
+    totalPnl: number
+    winRate: number
+    avgReturn: number
+    marketsTraded: number
+    marketsResolved: number
+  }
+  categoryBreakdown: Array<PortfolioAnalyticsCategoryPnl>
+  largestWins: Array<PortfolioAnalyticsMarketResult>
+  largestLosses: Array<PortfolioAnalyticsMarketResult>
+  recentResults: Array<PortfolioAnalyticsMarketResult>
+  platformComparison: {
+    userWinRate: number
+    platformAvgWinRate: number
+    userAvgReturn: number
+    platformAvgReturn: number
+    userTradingVolume: number
+    platformAvgTradingVolume: number
+  }
+}
+
+export async function getUserPortfolioAnalytics({ userId }: { userId: string }) {
+  return apiHandler<{ data: PortfolioAnalytics }>(`${process.env.NEXT_PUBLIC_API_URL}/v1/users/${userId}/analytics`)
 }
 
 export async function getCreatorReputation({ userId }: { userId: string }) {
@@ -889,6 +1002,8 @@ export async function getAdminMarkets({
       liquidityCount: number | null
       createdAt: string
       updatedAt: string
+      isFeatured: boolean
+      featuredAt: string | null
       options: Array<{ id: string; name: string; color: string }>
       user: { id: string; username: string; displayName: string }
     }>
@@ -897,6 +1012,13 @@ export async function getAdminMarkets({
     total: number
     totalPages: number
   }>(`${process.env.NEXT_PUBLIC_API_URL}/v1/admin/markets${qs ? `?${qs}` : ''}`)
+}
+
+export async function adminToggleMarketFeatured({ marketId }: { marketId: string }) {
+  return apiHandler<{ data: { id: string; isFeatured: boolean; featuredAt: string | null } }>(
+    `${process.env.NEXT_PUBLIC_API_URL}/v1/admin/markets/${marketId}/featured`,
+    { method: 'POST' }
+  )
 }
 
 export async function getAdminComments({
@@ -1126,4 +1248,515 @@ export async function getWebhookDeliveries({
     }>
     pageInfo: { hasNextPage: boolean; endCursor?: string }
   }>(`${process.env.NEXT_PUBLIC_API_URL}/v1/webhooks/${webhookId}/deliveries${qs ? `?${qs}` : ''}`)
+}
+
+// Evidence types
+
+export type EvidenceType = 'FOR' | 'AGAINST' | 'NEUTRAL'
+
+export type MarketEvidenceResponse = {
+  id: string
+  marketId: string
+  authorId: string
+  title: string
+  content: string
+  url: string | null
+  evidenceType: EvidenceType
+  upvoteCount: number
+  downvoteCount: number
+  userVote: boolean | null | undefined
+  createdAt: string
+  updatedAt: string
+  author: {
+    id: string
+    username: string
+    displayName: string
+    avatarUrl: string | null
+  }
+}
+
+export async function getMarketEvidence({ marketId }: { marketId: string }): Promise<{ data: Array<MarketEvidenceResponse> }> {
+  return apiHandler<{ data: Array<MarketEvidenceResponse> }>(`${process.env.NEXT_PUBLIC_API_URL}/v1/markets/${marketId}/evidence`)
+}
+
+export async function createMarketEvidence({
+  marketId,
+  title,
+  content,
+  url,
+  evidenceType,
+}: {
+  marketId: string
+  title: string
+  content: string
+  url?: string
+  evidenceType?: EvidenceType
+}): Promise<{ data: MarketEvidenceResponse }> {
+  return apiHandler<{ data: MarketEvidenceResponse }>(`${process.env.NEXT_PUBLIC_API_URL}/v1/markets/${marketId}/evidence`, {
+    method: 'POST',
+    body: JSON.parse(JSON.stringify({ title, content, url, evidenceType })),
+  })
+}
+
+export async function voteOnMarketEvidence({
+  marketId,
+  evidenceId,
+  isUpvote,
+}: {
+  marketId: string
+  evidenceId: string
+  isUpvote: boolean
+}): Promise<{ data: { success: boolean } }> {
+  return apiHandler<{ data: { success: boolean } }>(
+    `${process.env.NEXT_PUBLIC_API_URL}/v1/markets/${marketId}/evidence/${evidenceId}/votes`,
+    { method: 'POST', body: { isUpvote } }
+  )
+}
+
+export async function deleteMarketEvidence({
+  marketId,
+  evidenceId,
+}: {
+  marketId: string
+  evidenceId: string
+}): Promise<void> {
+  return apiHandler<void>(`${process.env.NEXT_PUBLIC_API_URL}/v1/markets/${marketId}/evidence/${evidenceId}`, {
+    method: 'DELETE',
+  })
+}
+
+// Trade Journal
+
+export type TradeJournalEntry = {
+  id: string
+  userId: string
+  marketId: string
+  optionId: string
+  transactionId: string
+  tradeType: string
+  note: string | null
+  probabilityAtTrade: number | null
+  createdAt: string
+  updatedAt: string
+  market: {
+    id: string
+    question: string
+    slug: string
+    resolvedAt: string | null
+    canceledAt: string | null
+    marketResolution: { resolutionId: string } | null
+  }
+  option: {
+    id: string
+    name: string
+    color: string
+  }
+}
+
+export async function getMyTradeJournal({
+  limit,
+  cursor,
+}: { limit?: number; cursor?: string } = {}): Promise<{
+  data: Array<TradeJournalEntry>
+  pageInfo: { hasNextPage: boolean; endCursor: string | null; total: number }
+}> {
+  const params = new URLSearchParams(JSON.parse(JSON.stringify({ limit, cursor })))
+  const qs = params.toString()
+  return apiHandler<{
+    data: Array<TradeJournalEntry>
+    pageInfo: { hasNextPage: boolean; endCursor: string | null; total: number }
+  }>(`${process.env.NEXT_PUBLIC_API_URL}/v1/users/me/journal${qs ? `?${qs}` : ''}`)
+}
+
+export async function updateTradeJournalNote({
+  id,
+  note,
+}: {
+  id: string
+  note: string
+}): Promise<{ data: { success: boolean } }> {
+  return apiHandler<{ data: { success: boolean } }>(`${process.env.NEXT_PUBLIC_API_URL}/v1/journal/${id}`, {
+    method: 'PATCH',
+    body: { note },
+  })
+}
+
+// Group/Tournament API
+
+export type GroupMemberUser = {
+  id: string
+  username: string
+  displayName: string
+  avatarUrl: string | null | undefined
+}
+
+export type GroupMemberResponse = {
+  id: string
+  listId: string
+  userId: string
+  role: string
+  createdAt: string
+  user: GroupMemberUser
+}
+
+export async function getGroupMembers({ listId }: { listId: string }): Promise<{ data: Array<GroupMemberResponse> }> {
+  return apiHandler<{ data: Array<GroupMemberResponse> }>(
+    `${process.env.NEXT_PUBLIC_API_URL}/v1/lists/${listId}/members`
+  )
+}
+
+export async function addGroupMember({
+  listId,
+  userId,
+  username,
+  role,
+}: {
+  listId: string
+  userId?: string
+  username?: string
+  role?: string
+}): Promise<{ data: GroupMemberResponse }> {
+  return apiHandler<{ data: GroupMemberResponse }>(`${process.env.NEXT_PUBLIC_API_URL}/v1/lists/${listId}/members`, {
+    method: 'POST',
+    body: { userId, username, role },
+  })
+}
+
+export async function updateGroupMemberRole({
+  listId,
+  userId,
+  role,
+}: {
+  listId: string
+  userId: string
+  role: string
+}): Promise<{ data: GroupMemberResponse }> {
+  return apiHandler<{ data: GroupMemberResponse }>(
+    `${process.env.NEXT_PUBLIC_API_URL}/v1/lists/${listId}/members/${userId}`,
+    {
+      method: 'PATCH',
+      body: { role },
+    }
+  )
+}
+
+export async function removeGroupMember({ listId, userId }: { listId: string; userId: string }): Promise<void> {
+  return apiHandler<void>(`${process.env.NEXT_PUBLIC_API_URL}/v1/lists/${listId}/members/${userId}`, {
+    method: 'DELETE',
+  })
+}
+
+export async function getGroupLeaderboard({
+  listId,
+}: {
+  listId: string
+}): Promise<{ data: { traders: Array<LeaderboardUser> } }> {
+  return apiHandler<{ data: { traders: Array<LeaderboardUser> } }>(
+    `${process.env.NEXT_PUBLIC_API_URL}/v1/lists/${listId}/leaderboard`
+  )
+}
+
+// Probability Alerts
+
+export type AlertDirection = 'ABOVE' | 'BELOW'
+
+export type ProbabilityAlertResponse = {
+  id: string
+  userId: string
+  marketId: string
+  optionId: string
+  threshold: number
+  direction: AlertDirection
+  isActive: boolean
+  triggeredAt: string | null
+  createdAt: string
+  updatedAt: string
+  option: {
+    id: string
+    name: string
+    color: string
+    probability: number | null
+  }
+}
+
+export async function getMarketAlerts({
+  marketId,
+}: {
+  marketId: string
+}): Promise<{ data: Array<ProbabilityAlertResponse> }> {
+  return apiHandler<{ data: Array<ProbabilityAlertResponse> }>(
+    `${process.env.NEXT_PUBLIC_API_URL}/v1/markets/${marketId}/alerts`
+  )
+}
+
+export async function createMarketAlert({
+  marketId,
+  optionId,
+  threshold,
+  direction,
+}: {
+  marketId: string
+  optionId: string
+  threshold: number
+  direction: AlertDirection
+}): Promise<{ data: ProbabilityAlertResponse }> {
+  return apiHandler<{ data: ProbabilityAlertResponse }>(
+    `${process.env.NEXT_PUBLIC_API_URL}/v1/markets/${marketId}/alerts`,
+    { method: 'POST', body: { optionId, threshold, direction } }
+  )
+}
+
+export async function deleteMarketAlert({
+  marketId,
+  alertId,
+}: {
+  marketId: string
+  alertId: string
+}): Promise<void> {
+  return apiHandler<void>(`${process.env.NEXT_PUBLIC_API_URL}/v1/markets/${marketId}/alerts/${alertId}`, {
+    method: 'DELETE',
+  })
+}
+
+// Resolution Disputes
+
+export type ResolutionDisputeStatus = 'PENDING' | 'UNDER_REVIEW' | 'OVERRIDDEN' | 'REJECTED'
+
+export type ResolutionDisputeResponse = {
+  id: string
+  marketId: string
+  marketResolutionId: string
+  flaggedById: string
+  reason: string
+  status: ResolutionDisputeStatus
+  reviewedById: string | null
+  reviewNote: string | null
+  createdAt: string
+  updatedAt: string
+  flaggedBy: {
+    id: string
+    username: string
+    displayName: string
+    avatarUrl: string | null
+  }
+  reviewedBy?: {
+    id: string
+    username: string
+    displayName: string
+    avatarUrl: string | null
+  } | null
+}
+
+export async function getMarketResolutionDisputes({
+  marketId,
+}: {
+  marketId: string
+}): Promise<{ data: Array<ResolutionDisputeResponse> }> {
+  return apiHandler<{ data: Array<ResolutionDisputeResponse> }>(
+    `${process.env.NEXT_PUBLIC_API_URL}/v1/markets/${marketId}/resolution-dispute`
+  )
+}
+
+export async function flagMarketResolutionDispute({
+  marketId,
+  reason,
+}: {
+  marketId: string
+  reason: string
+}): Promise<{ data: ResolutionDisputeResponse }> {
+  return apiHandler<{ data: ResolutionDisputeResponse }>(
+    `${process.env.NEXT_PUBLIC_API_URL}/v1/markets/${marketId}/resolution-dispute`,
+    { method: 'POST', body: { reason } }
+  )
+}
+
+export async function getAdminResolutionDisputes({
+  status,
+  page,
+  limit,
+}: {
+  status?: ResolutionDisputeStatus
+  page?: number
+  limit?: number
+} = {}): Promise<{
+  disputes: Array<ResolutionDisputeResponse & {
+    market: {
+      id: string
+      question: string
+      slug: string
+      resolvedAt: string | null
+      marketResolution: {
+        id: string
+        resolutionId: string
+        supportingLink: string | null
+        resolution: { id: string; name: string; color: string }
+        resolvedBy: { id: string; username: string; displayName: string }
+      } | null
+    }
+  }>
+  total: number
+  page: number
+  limit: number
+  totalPages: number
+}> {
+  const params = new URLSearchParams(JSON.parse(JSON.stringify({ status, page, limit })))
+  const qs = params.toString()
+  return apiHandler(`${process.env.NEXT_PUBLIC_API_URL}/v1/admin/markets/disputes${qs ? `?${qs}` : ''}`)
+}
+
+export async function adminReviewResolutionDispute({
+  marketId,
+  disputeId,
+  action,
+  reviewNote,
+  newOptionId,
+  newSupportingLink,
+}: {
+  marketId: string
+  disputeId: string
+  action: 'reject' | 'override'
+  reviewNote?: string
+  newOptionId?: string
+  newSupportingLink?: string
+}): Promise<{ data: { action: string; disputeId: string } }> {
+  return apiHandler<{ data: { action: string; disputeId: string } }>(
+    `${process.env.NEXT_PUBLIC_API_URL}/v1/admin/markets/${marketId}/disputes/${disputeId}`,
+    {
+      method: 'PATCH',
+      body: JSON.parse(JSON.stringify({ action, reviewNote, newOptionId, newSupportingLink })),
+    }
+  )
+}
+
+export async function getTagLeaderboard({ tag }: { tag: string }): Promise<{
+  data: {
+    traders: Array<{
+      userId: string
+      displayName: string
+      username: string
+      avatarUrl?: string | null
+      total: number
+      rank: number
+    }>
+  }
+}> {
+  return apiHandler(`${process.env.NEXT_PUBLIC_API_URL}/v1/tags/${encodeURIComponent(tag)}/leaderboard`)
+}
+
+export type TagStatisticsData = {
+  totalMarkets: number
+  activeMarkets: number
+  resolvedMarkets: number
+  totalVolume: number
+  totalTraders: number
+  avgResolutionDays: number | null
+  mostActiveMarket: {
+    id: string
+    question: string
+    slug: string
+    uniqueTradersCount: number
+  } | null
+}
+
+export async function getTagStatistics({ tag }: { tag: string }): Promise<{ data: TagStatisticsData }> {
+  return apiHandler(`${process.env.NEXT_PUBLIC_API_URL}/v1/tags/${encodeURIComponent(tag)}/stats`)
+}
+
+// User Following
+
+export type FollowUser = {
+  id: string
+  username: string
+  displayName: string
+  avatarUrl: string | null
+  createdAt: string
+}
+
+export async function followUser({ userId }: { userId: string }): Promise<{ data: { success: boolean } }> {
+  return apiHandler<{ data: { success: boolean } }>(
+    `${process.env.NEXT_PUBLIC_API_URL}/v1/users/${encodeURIComponent(userId)}/follow`,
+    { method: 'POST' }
+  )
+}
+
+export async function unfollowUser({ userId }: { userId: string }): Promise<{ data: { success: boolean } }> {
+  return apiHandler<{ data: { success: boolean } }>(
+    `${process.env.NEXT_PUBLIC_API_URL}/v1/users/${encodeURIComponent(userId)}/follow`,
+    { method: 'DELETE' }
+  )
+}
+
+export async function getMyFollowing(): Promise<{ data: Array<FollowUser> }> {
+  return apiHandler<{ data: Array<FollowUser> }>(`${process.env.NEXT_PUBLIC_API_URL}/v1/users/me/following`)
+}
+
+export async function getMyFollowers(): Promise<{ data: Array<FollowUser> }> {
+  return apiHandler<{ data: Array<FollowUser> }>(`${process.env.NEXT_PUBLIC_API_URL}/v1/users/me/followers`)
+}
+
+// User Public Profile
+
+export type UserBadge = {
+  id: string
+  name: string
+  description: string
+  earned: boolean
+  earnedAt: string | null
+}
+
+export type CalibrationBucket = {
+  range: string
+  minProbability: number
+  maxProbability: number
+  predictedAvg: number
+  actualWinRate: number
+  count: number
+}
+
+export type UserCalibrationScore = {
+  brierScore: number
+  calibrationScore: number
+  totalPredictions: number
+  resolvedPredictions: number
+  buckets: Array<CalibrationBucket>
+}
+
+export type PortfolioHistoryPoint = {
+  startAt: string
+  endAt: string
+  balance: number
+  liquidity: number
+  markets: number
+}
+
+export type UserPublicProfile = {
+  stats: {
+    marketsCreated: number
+    totalTradeCount: number
+    netWorth: number
+    tradingVolume: number
+    activeDayCount: number
+    winRate: number
+  }
+  calibration: UserCalibrationScore
+  badges: Array<UserBadge>
+  portfolioHistory: Array<PortfolioHistoryPoint>
+}
+
+export async function getUserPublicProfile({ userId }: { userId: string }): Promise<{ data: UserPublicProfile }> {
+  return apiHandler<{ data: UserPublicProfile }>(
+    `${process.env.NEXT_PUBLIC_API_URL}/v1/users/${encodeURIComponent(userId)}/public-profile`
+  )
+}
+
+export async function getUserCalibration({ userId }: { userId: string }): Promise<{ data: UserCalibrationScore }> {
+  return apiHandler<{ data: UserCalibrationScore }>(
+    `${process.env.NEXT_PUBLIC_API_URL}/v1/users/${encodeURIComponent(userId)}/calibration`
+  )
+}
+
+export async function getUserBadges({ userId }: { userId: string }): Promise<{ data: Array<UserBadge> }> {
+  return apiHandler<{ data: Array<UserBadge> }>(
+    `${process.env.NEXT_PUBLIC_API_URL}/v1/users/${encodeURIComponent(userId)}/badges`
+  )
 }

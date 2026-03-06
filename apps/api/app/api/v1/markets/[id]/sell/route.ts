@@ -33,13 +33,14 @@ export async function POST(
     const { id } = schema.post.parameters.parse(params)
 
     const body = (await req.json()) as unknown
-    const { optionId, amount } = schema.post.requestBody.parse(body)
+    const { optionId, amount, note } = schema.post.requestBody.parse(body)
 
     await marketSell({
       marketId: id,
       optionId,
       userId,
       amount: new Decimal(amount),
+      note,
     })
 
     return NextResponse.json({ data: { success: true } })

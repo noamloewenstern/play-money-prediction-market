@@ -6,7 +6,7 @@ export default {
     summary: 'Sell an option in a market',
     security: true,
     parameters: z.object({ id: z.string() }),
-    requestBody: z.object({ optionId: z.string(), amount: z.number() }),
+    requestBody: z.object({ optionId: z.string(), amount: z.number(), note: z.string().max(2000).optional() }),
     responses: {
       200: z.object({ data: z.object({ success: z.boolean() }) }),
       404: ServerErrorSchema,

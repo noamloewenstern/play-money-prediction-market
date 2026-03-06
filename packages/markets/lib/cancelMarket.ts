@@ -167,4 +167,21 @@ export async function cancelMarket({
       reason,
     },
   })
+
+  // Cascade cancel any conditional markets that depended on this market
+  const conditionalChildren = await db.market.findMany({
+    where: {
+      parentMarketId: marketId,
+      resolvedAt: null,
+      canceledAt: null,
+    },
+  })
+
+  for (const child of conditionalChildren) {
+    await cancelMarket({
+      canceledById,
+      marketId: child.id,
+      reason: `Parent market was canceled: ${reason}`,
+    })
+  }
 }

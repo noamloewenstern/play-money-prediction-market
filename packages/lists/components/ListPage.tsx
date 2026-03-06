@@ -25,6 +25,7 @@ import { canAddToList, canModifyList } from '../rules'
 import { ExtendedList } from '../types'
 import { AddMoreListDialog } from './AddMoreListDialog'
 import { EditListDialog } from './EditListDialog'
+import { GroupLeaderboard } from './GroupLeaderboard'
 import { ListGraph } from './ListGraph'
 import { ListMarketRow } from './ListMarketRow'
 import { ListToolbar } from './ListToolbar'
@@ -122,6 +123,12 @@ export function ListPage({
           </div>
         ) : null}
       </CardContent>
+
+      {list.isGroup ? (
+        <CardContent>
+          <GroupLeaderboard listId={list.id} currentUserId={user?.id} />
+        </CardContent>
+      ) : null}
 
       <CardContent>
         <ReadMoreEditor value={list.description ?? ''} maxLines={6} />

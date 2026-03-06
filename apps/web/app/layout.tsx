@@ -13,6 +13,7 @@ import { TooltipProvider } from '@play-money/ui/tooltip'
 import { ConnectionStatusProvider, NavigationHistoryProvider } from '@play-money/ui'
 import { UserProvider } from '@play-money/users/context/UserContext'
 import { getUserById } from '@play-money/users/lib/getUserById'
+import { ServiceWorkerRegistration } from './components/ServiceWorkerRegistration'
 import './globals.css'
 
 const inter = Inter({ subsets: ['latin'] })
@@ -20,6 +21,20 @@ const inter = Inter({ subsets: ['latin'] })
 export const metadata: Metadata = {
   title: 'Play Money',
   description: 'Prediction market platform',
+  manifest: '/manifest.json',
+  appleWebApp: {
+    capable: true,
+    title: 'Play Money',
+    statusBarStyle: 'default',
+  },
+  icons: {
+    icon: [
+      { url: '/icons/icon-192.png', sizes: '192x192', type: 'image/png' },
+      { url: '/icons/icon-512.png', sizes: '512x512', type: 'image/png' },
+      { url: '/icons/icon.svg', type: 'image/svg+xml' },
+    ],
+    apple: [{ url: '/icons/apple-touch-icon.png', sizes: '180x180', type: 'image/png' }],
+  },
 }
 
 export const viewport: Viewport = {
@@ -27,6 +42,10 @@ export const viewport: Viewport = {
   initialScale: 1,
   maximumScale: 1,
   userScalable: false,
+  themeColor: [
+    { media: '(prefers-color-scheme: light)', color: '#7c3aed' },
+    { media: '(prefers-color-scheme: dark)', color: '#7c3aed' },
+  ],
 }
 
 export default async function RootLayout({ children }: { children: React.ReactNode }) {
@@ -54,6 +73,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
             <Toaster />
           </SWRProvider>
         </ThemeProvider>
+        <ServiceWorkerRegistration />
       </body>
     </html>
   )

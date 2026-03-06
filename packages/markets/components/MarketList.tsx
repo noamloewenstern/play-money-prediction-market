@@ -36,6 +36,7 @@ export function MarketList({
             <Link
               className="line-clamp-2 text-lg font-medium leading-relaxed visited:text-muted-foreground"
               href={`/questions/${market.id}/${market.slug}${refParam}`}
+              data-market-link
             >
               {market.question}
             </Link>

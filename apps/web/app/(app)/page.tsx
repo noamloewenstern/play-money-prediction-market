@@ -1,4 +1,4 @@
-import { ArrowRightIcon, ClockIcon, ListIcon, TrendingUpIcon, MinusIcon } from 'lucide-react'
+import { ArrowRightIcon, ClockIcon, ListIcon, TrendingUpIcon, MinusIcon, StarIcon } from 'lucide-react'
 import Link from 'next/link'
 import React from 'react'
 import { getLists, getMarkets } from '@play-money/api-helpers/client'
@@ -16,11 +16,70 @@ export default async function AppPage() {
   const { data: closingMarkets } = await getMarkets({ sortField: 'closeDate', sortDirection: 'asc', limit: 5 })
   const { data: newMarkets } = await getMarkets({ limit: 10 })
   const { data: newLists } = await getLists({ limit: 5 })
+  const { data: featuredMarkets } = await getMarkets({ featured: true, status: 'active', limit: 5 })
 
   return (
     <div className="mx-auto flex max-w-screen-lg flex-1 flex-col gap-8 md:flex-row">
       <div className="flex flex-1 flex-col gap-6">
         <PersonalizedFeed />
+
+        {featuredMarkets.length > 0 ? (
+          <Card className="overflow-hidden">
+            <div className="flex items-center justify-between border-b bg-muted/40 px-5 py-3">
+              <div className="flex items-center gap-2">
+                <StarIcon className="size-4 text-warning" />
+                <h4 className="text-sm font-semibold text-muted-foreground">Featured Questions</h4>
+              </div>
+
+              <Link
+                className="flex items-center gap-1 text-xs font-medium text-muted-foreground transition-colors hover:text-foreground"
+                href="/questions?featured=true"
+              >
+                View all
+                <ArrowRightIcon className="size-3" />
+              </Link>
+            </div>
+
+            <div className="divide-y text-sm">
+              {featuredMarkets.map((market) => {
+                return (
+                  <div
+                    className="flex flex-col transition-colors hover:bg-muted/30 sm:flex-row"
+                    key={market.id}
+                  >
+                    <Link
+                      className="flex-[3] px-5 pb-1 pt-3 leading-relaxed visited:text-muted-foreground sm:py-3.5"
+                      href={`/questions/${market.id}/${market.slug}`}
+                    >
+                      <span className="line-clamp-2">{market.question}</span>
+                    </Link>
+
+                    <div className="flex flex-[2] items-center">
+                      <Link className="flex-1 px-4 py-2 sm:py-3.5" href={`/questions/${market.id}/${market.slug}`}>
+                        {market.canceledAt ? (
+                          <div className="text-muted-foreground">
+                            <span className="font-semibold">Canceled</span>
+                          </div>
+                        ) : market.marketResolution ? (
+                          <div className="text-muted-foreground">
+                            <span className="font-semibold">Resolved</span> {market.marketResolution.resolution.name}
+                          </div>
+                        ) : (
+                          <MarketProbabilityDetail options={market.options} />
+                        )}
+                      </Link>
+                      <div className="px-4 py-2 sm:py-3.5">
+                        <Link href={`/${market.user.username}`}>
+                          <UserAvatar size="sm" user={market.user} />
+                        </Link>
+                      </div>
+                    </div>
+                  </div>
+                )
+              })}
+            </div>
+          </Card>
+        ) : null}
 
         <Card className="overflow-hidden">
           <div className="flex items-center justify-between border-b bg-muted/40 px-5 py-3">

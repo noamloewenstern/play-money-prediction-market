@@ -7,6 +7,7 @@ export async function updateList({
   marketIds,
   tags,
   ownerId,
+  isGroup,
 }: {
   id: string
   title?: string
@@ -14,6 +15,7 @@ export async function updateList({
   marketIds?: Array<string>
   tags?: Array<string>
   ownerId?: string
+  isGroup?: boolean
 }) {
   const updatedData: Partial<List> = {}
 
@@ -31,6 +33,10 @@ export async function updateList({
 
   if (tags) {
     updatedData.tags = tags
+  }
+
+  if (isGroup !== undefined) {
+    updatedData.isGroup = isGroup
   }
 
   const updatedList = await db.list.update({

@@ -5,8 +5,11 @@ import { SidebarProvider } from '@play-money/markets/components/SidebarContext'
 import { useTrackResourceViewed } from '@play-money/notifications/hooks/useTrackResourceViewed'
 import { SidebarReferralAlert } from '@play-money/referrals/components/SidebarReferralAlert'
 import { FloatingBackButton } from '@play-money/ui/FloatingBackButton'
+import { useUser } from '@play-money/users/context/UserContext'
 import { SelectedItemsProvider } from '../../ui/src/contexts/SelectedItemContext'
+import { canModifyList } from '../rules'
 import { ExtendedList } from '../types'
+import { GroupMembersPanel } from './GroupMembersPanel'
 import { ListTradePanel } from './ListTradePanel'
 
 export function ListPageLayout({
@@ -19,6 +22,8 @@ export function ListPageLayout({
   onRevalidate: () => Promise<void>
 }) {
   useTrackResourceViewed({ resourceId: list.id, resourceType: 'LIST' })
+  const { user } = useUser()
+  const canManageGroup = user ? canModifyList({ list, user }) : false
 
   return (
     <SelectedItemsProvider initialValue={[list.markets[0].market.id]}>
@@ -30,6 +35,10 @@ export function ListPageLayout({
             <SidebarReferralAlert />
 
             <ListTradePanel list={list} onTradeComplete={onRevalidate} />
+
+            {list.isGroup ? (
+              <GroupMembersPanel listId={list.id} canManage={canManageGroup} currentUserId={user?.id} />
+            ) : null}
 
             {/* <RelatedMarkets listId={list.id} /> */}
           </div>

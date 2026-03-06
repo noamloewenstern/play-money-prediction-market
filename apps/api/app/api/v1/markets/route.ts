@@ -31,11 +31,15 @@ export async function GET(req: Request): Promise<SchemaResponse<typeof schema.ge
       maxLiquidity,
       closeDateMin,
       closeDateMax,
+      featured,
+      parentMarketId,
       ...paginationParams
     } = schema.get.parameters.parse(params) ?? {}
 
+    const requestingUserId = await getAuthUser(req).catch(() => null)
+
     const results = await getMarkets(
-      { createdBy, tags, status, marketType, minTraders, maxTraders, minLiquidity, maxLiquidity, closeDateMin, closeDateMax },
+      { createdBy, tags, status, marketType, minTraders, maxTraders, minLiquidity, maxLiquidity, closeDateMin, closeDateMax, featured, parentMarketId, requestingUserId: requestingUserId ?? undefined },
       paginationParams
     )
 
@@ -71,6 +75,26 @@ export async function POST(req: Request): Promise<SchemaResponse<typeof schema.p
         const newMarket = await createMarket({
           ...basicMarket,
           createdBy: userId,
+          visibility: basicMarket.visibility,
+          parentMarketId: basicMarket.parentMarketId,
+          conditionResolution: basicMarket.conditionResolution,
+        })
+        return NextResponse.json({ data: { market: newMarket } })
+      }
+      case 'numeric': {
+        if (basicMarket.numericMin == null || basicMarket.numericMax == null) {
+          return NextResponse.json({ error: 'numericMin and numericMax are required for numeric markets' }, { status: 400 })
+        }
+        if (basicMarket.numericMin >= basicMarket.numericMax) {
+          return NextResponse.json({ error: 'numericMin must be less than numericMax' }, { status: 400 })
+        }
+        const newMarket = await createMarket({
+          ...basicMarket,
+          createdBy: userId,
+          visibility: basicMarket.visibility,
+          numericMin: basicMarket.numericMin,
+          numericMax: basicMarket.numericMax,
+          numericUnit: basicMarket.numericUnit,
         })
         return NextResponse.json({ data: { market: newMarket } })
       }
@@ -83,6 +107,17 @@ export async function POST(req: Request): Promise<SchemaResponse<typeof schema.p
           contributionPolicy: basicMarket.contributionPolicy || 'OWNERS_ONLY',
         })
         return NextResponse.json({ data: { list: newList } })
+      }
+      case 'group': {
+        const newGroup = await createList({
+          ...basicMarket,
+          ownerId: userId,
+          title: basicMarket.question,
+          markets: basicMarket.options,
+          contributionPolicy: basicMarket.contributionPolicy || 'OWNERS_ONLY',
+          isGroup: true,
+        })
+        return NextResponse.json({ data: { list: newGroup } })
       }
     }
   } catch (error: unknown) {

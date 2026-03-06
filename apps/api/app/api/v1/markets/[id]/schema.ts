@@ -27,6 +27,7 @@ export default {
       closeDate: true,
       tags: true,
       createdBy: true,
+      visibility: true,
     }).partial(),
     responses: {
       200: z.object({ data: MarketSchema }),

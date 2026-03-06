@@ -9,6 +9,7 @@
   },
   "dependencies": {
     "@play-money/audit-log": "*",
+    "@play-money/telemetry": "*",
     "@play-money/database": "*",
     "@play-money/finance": "*",
     "@play-money/notifications": "*",

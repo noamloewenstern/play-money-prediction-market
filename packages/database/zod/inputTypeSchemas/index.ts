@@ -34,6 +34,7 @@ export { AssetTypeSchema } from './AssetTypeSchema';
 export { AccountTypeSchema } from './AccountTypeSchema';
 export { NotificationTypeSchema } from './NotificationTypeSchema';
 export { QuestionContributionPolicySchema } from './QuestionContributionPolicySchema';
+export { MarketVisibilitySchema } from './MarketVisibilitySchema';
 export { AuditLogActionSchema } from './AuditLogActionSchema';
 export { WebhookEventTypeSchema } from './WebhookEventTypeSchema';
 export { InputJsonValueSchema } from './InputJsonValueSchema';

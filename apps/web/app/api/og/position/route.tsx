@@ -15,18 +15,23 @@ export async function GET(req: NextRequest) {
     return new Response('Missing required params: marketId, optionId, userId', { status: 400 })
   }
 
-  const [market, option, user, position] = await Promise.all([
-    db.market.findUnique({ where: { id: marketId } }),
-    db.marketOption.findUnique({ where: { id: optionId } }),
-    db.user.findUnique({ where: { id: userId } }),
-    db.marketOptionPosition.findFirst({
-      where: {
-        marketId,
-        optionId,
-        account: { userPrimary: { id: userId } },
-      },
-    }),
-  ])
+  let market, option, user, position
+  try {
+    ;[market, option, user, position] = await Promise.all([
+      db.market.findUnique({ where: { id: marketId } }),
+      db.marketOption.findUnique({ where: { id: optionId } }),
+      db.user.findUnique({ where: { id: userId } }),
+      db.marketOptionPosition.findFirst({
+        where: {
+          marketId,
+          optionId,
+          account: { userPrimary: { id: userId } },
+        },
+      }),
+    ])
+  } catch {
+    return new Response('Market, option, or user not found', { status: 404 })
+  }
 
   if (!market || !option || !user) {
     return new Response('Market, option, or user not found', { status: 404 })

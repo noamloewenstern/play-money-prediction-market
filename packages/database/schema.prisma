@@ -41,6 +41,7 @@ model User {
   sessions         Session[]
   comments         Comment[]
   commentReactions CommentReaction[]
+  commentEdits     CommentEdit[]
   resolvedMarkets  MarketResolution[]
   markets          Market[]
   cancelledMarkets Market[]           @relation("MarketCanceledBy")
@@ -76,6 +77,15 @@ model User {
   queuedNotifications   QueuedNotification[]
   evidences        MarketEvidence[]     @relation("EvidenceAuthor")
   evidenceVotes    MarketEvidenceVote[] @relation("EvidenceVoter")
+  tradeNotes       TradeNote[]
+  groupMemberships GroupMember[]
+  probabilityAlerts ProbabilityAlert[]
+  flaggedDisputes  ResolutionDispute[] @relation("DisputeFlagger")
+  reviewedDisputes ResolutionDispute[] @relation("DisputeReviewer")
+  pushSubscriptions PushSubscription[]
+  followers         UserFollow[]         @relation("UserFollowing")
+  following         UserFollow[]         @relation("UserFollower")
+  pollVotes         CommentPollVote[]
 
   @@index([referredBy])
 }
@@ -148,15 +158,38 @@ model Market {
   lists MarketList[]
   bookmarks MarketBookmark[]
   evidence MarketEvidence[]
+  tradeNotes TradeNote[]
+  probabilityAlerts    ProbabilityAlert[]
+  probabilitySnapshots MarketProbabilitySnapshot[]
 
   parentListId String?
   parentList   List?   @relation("ParentListMarkets", fields: [parentListId], references: [id])
+
+  isFeatured  Boolean          @default(false)
+  featuredAt  DateTime?
+  visibility  MarketVisibility @default(PUBLIC)
+  resolutionDisputes ResolutionDispute[]
+
+  // Conditional market fields
+  parentMarketId      String?
+  parentMarket        Market?  @relation("ConditionalMarkets", fields: [parentMarketId], references: [id])
+  conditionalMarkets  Market[] @relation("ConditionalMarkets")
+  conditionResolution String?  // The option name that triggers activation (defaults to "Yes")
+  activatedAt         DateTime? // Set when the parent condition is met and market becomes active
+
+  // Numeric range market fields
+  numericMin        Float?
+  numericMax        Float?
+  numericUnit       String?   // e.g. "$", "°F", "points"
+  numericResolution Float?    // The actual resolved value (set on resolution)
 
   @@index([resolvedAt])
   @@index([canceledAt])
   @@index([closeDate])
   @@index([createdBy])
   @@index([parentListId])
+  @@index([isFeatured])
+  @@index([parentMarketId])
 }
 
 model MarketResolution {
@@ -173,6 +206,7 @@ model MarketResolution {
 
   // Unnecessary reverse relations
   notifications Notification[] @relation()
+  disputes      ResolutionDispute[]
 
   @@index([createdAt])
 }
@@ -193,10 +227,24 @@ model MarketOption {
   // Cached values
   probability Int?
 
+  tradeNotes TradeNote[]
+  probabilityAlerts ProbabilityAlert[]
+
   // Unnecessary reverse relations
   notifications Notification[] @relation()
 
   @@index([marketId])
+}
+
+model MarketProbabilitySnapshot {
+  id        String   @id @default(cuid())
+  marketId  String
+  market    Market   @relation(fields: [marketId], references: [id], onDelete: Cascade)
+  snapshots Json     // Array of { optionId: string, probability: number }
+  source    String   // 'TRADE' | 'CRON'
+  createdAt DateTime @default(now())
+
+  @@index([marketId, createdAt])
 }
 
 model VerificationToken {
@@ -224,16 +272,31 @@ model Comment {
   parent     Comment?          @relation("CommentReplies", fields: [parentId], references: [id])
   replies    Comment[]         @relation("CommentReplies")
   reactions  CommentReaction[]
+  editHistory CommentEdit[]
   hidden     Boolean           @default(false)
   pinnedAt   DateTime?
   entityType CommentEntityType
   entityId   String
+
+  poll               CommentPoll?
 
   // Unnecessary reverse relations
   notifications       Notification[] @relation("NotificationComment")
   notificationParents Notification[] @relation("NotificationParentComment")
 
   @@index([entityType, entityId])
+}
+
+model CommentEdit {
+  id        String   @id @default(cuid())
+  comment   Comment  @relation(fields: [commentId], references: [id], onDelete: Cascade)
+  commentId String
+  content   String
+  editedAt  DateTime @default(now())
+  editedBy  User     @relation(fields: [editedById], references: [id])
+  editedById String
+
+  @@index([commentId, editedAt])
 }
 
 model CommentReaction {
@@ -246,6 +309,39 @@ model CommentReaction {
 
   // Unnecessary reverse relations
   notifications Notification[] @relation()
+}
+
+model CommentPoll {
+  id        String              @id @default(cuid())
+  commentId String              @unique
+  comment   Comment             @relation(fields: [commentId], references: [id], onDelete: Cascade)
+  question  String /// @zod.string.trim().min(1).max(200)
+  closesAt  DateTime?
+  createdAt DateTime            @default(now())
+  options   CommentPollOption[]
+  votes     CommentPollVote[]
+}
+
+model CommentPollOption {
+  id        String            @id @default(cuid())
+  pollId    String
+  poll      CommentPoll       @relation(fields: [pollId], references: [id], onDelete: Cascade)
+  text      String /// @zod.string.trim().min(1).max(100)
+  order     Int
+  votes     CommentPollVote[]
+}
+
+model CommentPollVote {
+  id        String            @id @default(cuid())
+  pollId    String
+  poll      CommentPoll       @relation(fields: [pollId], references: [id], onDelete: Cascade)
+  optionId  String
+  option    CommentPollOption @relation(fields: [optionId], references: [id], onDelete: Cascade)
+  userId    String
+  user      User              @relation(fields: [userId], references: [id])
+  createdAt DateTime          @default(now())
+
+  @@unique([userId, pollId])
 }
 
 enum TransactionType {
@@ -289,6 +385,8 @@ model Transaction {
   marketId    String?
   market      Market?            @relation(fields: [marketId], references: [id])
   options     MarketOption[]
+
+  tradeNote TradeNote?
 
   // Unnecessary reverse relations
   notifications Notification[] @relation()
@@ -399,12 +497,63 @@ enum NotificationType {
   TAG_NEW_MARKET
   MARKET_BOOKMARK_RESOLVED
   MARKET_EVIDENCE_ADDED
+  MARKET_PROBABILITY_ALERT
+  RESOLUTION_DISPUTE_FLAGGED
+  RESOLUTION_DISPUTE_REVIEWED
+  USER_FOLLOWED
+  CONDITIONAL_MARKET_ACTIVATED
+}
+
+enum AlertDirection {
+  ABOVE
+  BELOW
 }
 
 enum EvidenceType {
   FOR
   AGAINST
   NEUTRAL
+}
+
+model TradeNote {
+  id              String      @id @default(cuid())
+  userId          String
+  user            User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  marketId        String
+  market          Market      @relation(fields: [marketId], references: [id], onDelete: Cascade)
+  optionId        String
+  option          MarketOption @relation(fields: [optionId], references: [id], onDelete: Cascade)
+  transactionId   String      @unique
+  transaction     Transaction @relation(fields: [transactionId], references: [id], onDelete: Cascade)
+  tradeType       String      // 'BUY' | 'SELL'
+  note            String?     /// @zod.string.max(2000).optional()
+  probabilityAtTrade Int?     // probability * 100 at time of trade (0-100)
+  createdAt       DateTime    @default(now())
+  updatedAt       DateTime    @updatedAt
+
+  @@index([userId, createdAt])
+  @@index([marketId])
+  @@index([transactionId])
+}
+
+model ProbabilityAlert {
+  id          String         @id @default(cuid())
+  userId      String
+  user        User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  marketId    String
+  market      Market         @relation(fields: [marketId], references: [id], onDelete: Cascade)
+  optionId    String
+  option      MarketOption   @relation(fields: [optionId], references: [id], onDelete: Cascade)
+  threshold   Int            // 0-100 percentage
+  direction   AlertDirection // ABOVE or BELOW
+  isActive    Boolean        @default(true)
+  triggeredAt DateTime?
+  createdAt   DateTime       @default(now())
+  updatedAt   DateTime       @updatedAt
+
+  @@unique([userId, marketId, optionId, threshold, direction])
+  @@index([marketId, isActive])
+  @@index([userId])
 }
 
 model MarketEvidence {
@@ -449,6 +598,19 @@ model TagFollow {
   @@unique([userId, tag])
   @@index([tag])
   @@index([userId])
+}
+
+model UserFollow {
+  id          String   @id @default(cuid())
+  followerId  String
+  follower    User     @relation("UserFollower", fields: [followerId], references: [id], onDelete: Cascade)
+  followingId String
+  following   User     @relation("UserFollowing", fields: [followingId], references: [id], onDelete: Cascade)
+  createdAt   DateTime @default(now())
+
+  @@unique([followerId, followingId])
+  @@index([followerId])
+  @@index([followingId])
 }
 
 model MarketBookmark {
@@ -521,6 +683,18 @@ enum QuestionContributionPolicy {
   PUBLIC
 }
 
+enum MarketVisibility {
+  PUBLIC
+  PRIVATE
+}
+
+enum GroupMemberRole {
+  OWNER
+  MODERATOR
+  CONTRIBUTOR
+  MEMBER
+}
+
 model List {
   id                 String                     @id @default(cuid())
   title              String /// @zod.string.trim().min(1, { message: "Title is required" })
@@ -532,16 +706,34 @@ model List {
   contributionReview Boolean?                   @default(false)
   tags               String[]                   @default([]) /// @zod.string.trim().array(.max(5))
   markets            MarketList[]
+  isGroup            Boolean                    @default(false)
   createdAt          DateTime                   @default(now())
   updatedAt          DateTime                   @updatedAt
 
   // New relation for parent markets
   childrenMarkets Market[] @relation("ParentListMarkets")
 
+  // Group members
+  members GroupMember[]
+
   // Unnecessary reverse relations
   notifications Notification[] @relation()
 
   @@index([ownerId])
+}
+
+model GroupMember {
+  id        String          @id @default(cuid())
+  listId    String
+  list      List            @relation(fields: [listId], references: [id], onDelete: Cascade)
+  userId    String
+  user      User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+  role      GroupMemberRole @default(MEMBER)
+  createdAt DateTime        @default(now())
+
+  @@unique([listId, userId])
+  @@index([listId])
+  @@index([userId])
 }
 
 model MarketList {
@@ -586,6 +778,9 @@ enum AuditLogAction {
   RESOLUTION_OVERRIDE
   USER_IMPERSONATE
   COMMENT_PIN
+  RESOLUTION_DISPUTE_CREATE
+  RESOLUTION_DISPUTE_REJECT
+  RESOLUTION_DISPUTE_OVERRIDE
 }
 
 model AuditLog {
@@ -666,4 +861,46 @@ model QueuedNotification {
   createdAt         DateTime         @default(now())
 
   @@index([recipientId, deliveredAt])
+}
+
+enum ResolutionDisputeStatus {
+  PENDING
+  UNDER_REVIEW
+  OVERRIDDEN
+  REJECTED
+}
+
+model ResolutionDispute {
+  id                  String                  @id @default(cuid())
+  marketId            String
+  market              Market                  @relation(fields: [marketId], references: [id], onDelete: Cascade)
+  marketResolutionId  String
+  marketResolution    MarketResolution        @relation(fields: [marketResolutionId], references: [id], onDelete: Cascade)
+  flaggedById         String
+  flaggedBy           User                    @relation("DisputeFlagger", fields: [flaggedById], references: [id])
+  reason              String
+  status              ResolutionDisputeStatus @default(PENDING)
+  reviewedById        String?
+  reviewedBy          User?                   @relation("DisputeReviewer", fields: [reviewedById], references: [id])
+  reviewNote          String?
+  createdAt           DateTime                @default(now())
+  updatedAt           DateTime                @updatedAt
+
+  @@index([marketId])
+  @@index([flaggedById])
+  @@index([status, createdAt])
+}
+
+model PushSubscription {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  endpoint  String   @unique
+  p256dh    String
+  auth      String
+  userAgent String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([userId])
 }

@@ -1,5 +1,6 @@
 import { getPaginatedItems, PaginationRequest } from '@play-money/api-helpers'
 import db, { Market } from '@play-money/database'
+import { isAdmin } from '@play-money/users/rules'
 import { ExtendedMarket } from '../types'
 
 type MarketFilterOptions = {
@@ -13,6 +14,9 @@ type MarketFilterOptions = {
   maxLiquidity?: number
   closeDateMin?: Date
   closeDateMax?: Date
+  featured?: boolean
+  requestingUserId?: string
+  parentMarketId?: string
 }
 
 function getStatusFilters(status: MarketFilterOptions['status']) {
@@ -60,6 +64,25 @@ export async function getMarkets(filters: MarketFilterOptions = {}, pagination?:
   if (filters.minTraders != null) tradersFilter.gte = filters.minTraders
   if (filters.maxTraders != null) tradersFilter.lte = filters.maxTraders
 
+  // Determine visibility filter: admins see all, authenticated users see public + their own private, others see only public
+  let visibilityFilter: Record<string, unknown> | undefined
+  if (filters.requestingUserId) {
+    const requestingUser = await db.user.findUnique({ where: { id: filters.requestingUserId } })
+    if (!requestingUser || !isAdmin({ user: requestingUser })) {
+      // Non-admin: show public markets OR markets created by this user
+      visibilityFilter = {
+        OR: [
+          { visibility: 'PUBLIC' },
+          { createdBy: filters.requestingUserId },
+        ],
+      }
+    }
+    // Admins: no visibility filter (see everything)
+  } else {
+    // Unauthenticated: only public markets
+    visibilityFilter = { visibility: 'PUBLIC' }
+  }
+
   const results = await getPaginatedItems<Market | ExtendedMarket>({
     model: db.market,
     pagination: pagination ?? {},
@@ -68,9 +91,14 @@ export async function getMarkets(filters: MarketFilterOptions = {}, pagination?:
       ...(Object.keys(closeDateFilter).length > 0 ? { closeDate: closeDateFilter } : {}),
       createdBy: filters.createdBy,
       tags: filters.tags ? { hasSome: filters.tags } : undefined,
-      parentListId: null,
+      // When filtering by parentMarketId, show those conditional markets; otherwise exclude list-scoped markets
+      ...(filters.parentMarketId !== undefined
+        ? { parentMarketId: filters.parentMarketId }
+        : { parentListId: null }),
       ...(Object.keys(liquidityFilter).length > 0 ? { liquidityCount: liquidityFilter } : {}),
       ...(Object.keys(tradersFilter).length > 0 ? { uniqueTradersCount: tradersFilter } : {}),
+      ...(filters.featured !== undefined ? { isFeatured: filters.featured } : {}),
+      ...visibilityFilter,
     },
     include: {
       user: true,

@@ -1,27 +1,9 @@
 'use client'
 
-import {
-  Laptop,
-  Sun,
-  Moon,
-  Home,
-  HelpCircle,
-  User,
-  List,
-  Tag,
-  Trophy,
-  Settings,
-  Shield,
-  PlusCircle,
-  Clock,
-  FileText,
-  Bookmark,
-  LogOut,
-} from 'lucide-react'
+import { Laptop, Sun, Moon, User, Settings, Shield, Bookmark, BookOpen, LogOut } from 'lucide-react'
 import { signOut, signIn } from 'next-auth/react'
 import Link from 'next/link'
 import React from 'react'
-import { useNavigationHistory } from '@play-money/ui'
 import { useTheme } from '@play-money/ui/ThemeProvider'
 import { UserAvatar } from '@play-money/ui/UserAvatar'
 import { Button } from '@play-money/ui/button'
@@ -38,23 +20,9 @@ import { Tabs, TabsList, TabsTrigger } from '@play-money/ui/tabs'
 import { useUser } from '@play-money/users/context/UserContext'
 import { ActiveUserBalance } from './ActiveUserBalance'
 
-const PAGE_TYPE_ICONS = {
-  home: Home,
-  question: HelpCircle,
-  profile: User,
-  list: List,
-  tag: Tag,
-  leaderboard: Trophy,
-  settings: Settings,
-  admin: Shield,
-  create: PlusCircle,
-  other: FileText,
-} as const
-
 export function UserNav({ initialBalance }: { initialBalance?: number }) {
   const { user } = useUser()
   const { theme = 'system', setTheme } = useTheme()
-  const { recentPages } = useNavigationHistory()
 
   return user ? (
     <DropdownMenu>
@@ -64,7 +32,7 @@ export function UserNav({ initialBalance }: { initialBalance?: number }) {
           <ActiveUserBalance initialBalance={initialBalance} />
         </Button>
       </DropdownMenuTrigger>
-      <DropdownMenuContent className="w-60" align="end" forceMount>
+      <DropdownMenuContent className="w-56" align="end" forceMount>
         <DropdownMenuLabel className="font-normal">
           <div className="flex flex-col space-y-1 py-0.5">
             <p className="text-sm font-semibold leading-none">{user.displayName}</p>
@@ -88,6 +56,12 @@ export function UserNav({ initialBalance }: { initialBalance?: number }) {
             </Link>
           </DropdownMenuItem>
           <DropdownMenuItem asChild>
+            <Link href="/journal" className="flex items-center gap-2">
+              <BookOpen className="size-4 text-muted-foreground" />
+              Decision Journal
+            </Link>
+          </DropdownMenuItem>
+          <DropdownMenuItem asChild>
             <Link href="/settings" className="flex items-center gap-2">
               <Settings className="size-4 text-muted-foreground" />
               Settings
@@ -103,34 +77,11 @@ export function UserNav({ initialBalance }: { initialBalance?: number }) {
           ) : null}
         </DropdownMenuGroup>
 
-        {recentPages.length > 0 ? (
-          <>
-            <DropdownMenuSeparator />
-            <DropdownMenuLabel className="flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
-              <Clock className="size-3" />
-              Recent
-            </DropdownMenuLabel>
-            <DropdownMenuGroup>
-              {recentPages.map((page) => {
-                const Icon = PAGE_TYPE_ICONS[page.type]
-                return (
-                  <DropdownMenuItem key={page.path} asChild>
-                    <Link href={page.path} className="flex items-center gap-2">
-                      <Icon className="size-3.5 shrink-0 text-muted-foreground" />
-                      <span className="truncate">{page.name}</span>
-                    </Link>
-                  </DropdownMenuItem>
-                )
-              })}
-            </DropdownMenuGroup>
-          </>
-        ) : null}
-
         <DropdownMenuSeparator />
 
         <DropdownMenuGroup>
           <DropdownMenuItem className="flex justify-between" onSelect={(e) => e.preventDefault()}>
-            <span className="text-muted-foreground">Theme</span>
+            <span className="text-sm text-muted-foreground">Theme</span>
             <Tabs defaultValue={theme} onValueChange={setTheme}>
               <TabsList className="h-auto p-0.5">
                 <TabsTrigger value="system" className="px-1.5 py-1">
@@ -149,7 +100,7 @@ export function UserNav({ initialBalance }: { initialBalance?: number }) {
 
         <DropdownMenuSeparator />
 
-        <DropdownMenuItem onClick={() => signOut()} className="flex items-center gap-2 text-muted-foreground">
+        <DropdownMenuItem onClick={() => signOut()} className="flex items-center gap-2 text-destructive/80 focus:text-destructive">
           <LogOut className="size-4" />
           Log out
         </DropdownMenuItem>

@@ -8,12 +8,14 @@ import {
   pinComment,
   unpinComment,
   updateComment,
+  voteOnCommentPoll,
 } from '@play-money/api-helpers/client'
 import { CommentWithReactions } from '@play-money/comments/lib/getComment'
 import { CommentEntityType } from '@play-money/database'
 import { toast } from '@play-money/ui/use-toast'
 import { useUser } from '@play-money/users/context/UserContext'
 import { flattenReplies } from '../lib/flattenReplies'
+import { PollDraft } from './CommentPollCreator'
 import { CommentItem } from './CommentItem'
 import { CreateCommentForm } from './CreateCommentForm'
 import { DiscussionStarters } from './DiscussionStarters'
@@ -114,7 +116,7 @@ export function CommentsList({
   )
 
   const handleCreateReply = useCallback(
-    (parentId?: string) => async (content: string) => {
+    (parentId?: string) => async (content: string, poll?: PollDraft) => {
       if (!user) return
 
       const tempId = `optimistic-${Date.now()}-${optimisticIdCounter.current++}`
@@ -132,13 +134,19 @@ export function CommentsList({
         entityType: entity.type,
         entityId: entity.id,
         reactions: [],
+        poll: null,
         _isPending: true,
       }
 
       setOptimisticComments((prev) => [...prev, optimisticComment])
 
       // Fire-and-forget: don't await so the form resets immediately
-      void createComment({ content, parentId, entity })
+      void createComment({
+        content,
+        parentId,
+        entity,
+        poll: poll ? { question: poll.question, options: poll.options.filter((o) => o.trim()) } : undefined,
+      })
         .then(() => {
           onRevalidate()
         })
@@ -152,6 +160,23 @@ export function CommentsList({
         })
     },
     [user, entity, onRevalidate]
+  )
+
+  const handleVotePoll = useCallback(
+    (commentId: string) => async (pollId: string, optionId: string) => {
+      if (!user) return
+      try {
+        await voteOnCommentPoll({ commentId, pollId, optionId })
+        onRevalidate()
+      } catch (error) {
+        toast({
+          title: 'Could not register vote',
+          description: (error as Error).message || 'An unexpected error occurred. Please try again.',
+          variant: 'destructive',
+        })
+      }
+    },
+    [user, onRevalidate]
   )
 
   const handleEdit = (commentId: string) => async (content: string) => {
@@ -205,6 +230,7 @@ export function CommentsList({
           key={prefillContent}
           initialContent={prefillContent}
           draftKey={`comment-draft-${entity.type}-${entity.id}`}
+          allowPoll={entity.type === 'MARKET'}
           onSubmit={handleCreateReply()}
         />
       </div>
@@ -225,6 +251,7 @@ export function CommentsList({
             onDelete={handleDelete(comment.id)}
             onPin={handlePin(comment.id)}
             onUnpin={handleUnpin(comment.id)}
+            onVotePoll={handleVotePoll(comment.id)}
           />
           <div className="ml-6 sm:ml-12">
             {comment.replies.map((reply) => (

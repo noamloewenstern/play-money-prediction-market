@@ -1,8 +1,10 @@
 import { v4 as uuidv4 } from 'uuid'
 import db from '@play-money/database'
 import { CreateNotificationData } from '../types'
+import { buildPushPayload, shouldSendPush } from './buildPushPayload'
 import { isInQuietHours } from './isInQuietHours'
 import { queueNotification } from './queueNotification'
+import { sendPushNotification } from './sendPushNotification'
 
 export async function createNotification({
   userId,
@@ -109,6 +111,15 @@ export async function createNotification({
         createdAt: now,
         updatedAt: now,
       },
+    })
+  }
+
+  // Fire-and-forget push notification for selected notification types
+  if (shouldSendPush(type)) {
+    void buildPushPayload(type, { marketId, actionUrl }).then((payload) => {
+      if (payload) {
+        void sendPushNotification({ userId, ...payload })
+      }
     })
   }
 }

@@ -237,6 +237,82 @@ export type NotificationContent =
   | ReferrerBonusNotificationContent
   | TagNewMarketNotificationContent
   | MarketBookmarkResolvedNotificationContent
+  | MarketEvidenceAddedNotificationContent
+  | MarketProbabilityAlertNotificationContent
+  | ResolutionDisputeFlaggedNotificationContent
+  | ResolutionDisputeReviewedNotificationContent
+  | UserFollowedNotificationContent
+  | ConditionalMarketActivatedNotificationContent
+
+export type MarketEvidenceAddedNotificationContent = NotificationContentBase & {
+  type: 'MARKET_EVIDENCE_ADDED'
+  actor: User
+  market: Market
+}
+
+export type CreateMarketEvidenceAddedNotification = CreateNotificationBase & {
+  type: 'MARKET_EVIDENCE_ADDED'
+  actorId: string
+  marketId: string
+}
+
+export type MarketProbabilityAlertNotificationContent = NotificationContentBase & {
+  type: 'MARKET_PROBABILITY_ALERT'
+  market: Market
+  marketOption: MarketOption
+}
+
+export type CreateMarketProbabilityAlertNotification = CreateNotificationBase & {
+  type: 'MARKET_PROBABILITY_ALERT'
+  marketId: string
+  marketOptionId: string
+}
+
+export type ResolutionDisputeFlaggedNotificationContent = NotificationContentBase & {
+  type: 'RESOLUTION_DISPUTE_FLAGGED'
+  actor: User
+  market: Market
+}
+
+export type CreateResolutionDisputeFlaggedNotification = CreateNotificationBase & {
+  type: 'RESOLUTION_DISPUTE_FLAGGED'
+  actorId: string
+  marketId: string
+}
+
+export type ResolutionDisputeReviewedNotificationContent = NotificationContentBase & {
+  type: 'RESOLUTION_DISPUTE_REVIEWED'
+  actor: User
+  market: Market
+}
+
+export type CreateResolutionDisputeReviewedNotification = CreateNotificationBase & {
+  type: 'RESOLUTION_DISPUTE_REVIEWED'
+  actorId: string
+  marketId: string
+}
+
+export type UserFollowedNotificationContent = NotificationContentBase & {
+  type: 'USER_FOLLOWED'
+  actor: User
+}
+
+export type CreateUserFollowedNotification = CreateNotificationBase & {
+  type: 'USER_FOLLOWED'
+  actorId: string
+}
+
+export type ConditionalMarketActivatedNotificationContent = NotificationContentBase & {
+  type: 'CONDITIONAL_MARKET_ACTIVATED'
+  actor: User
+  market: Market
+}
+
+export type CreateConditionalMarketActivatedNotification = CreateNotificationBase & {
+  type: 'CONDITIONAL_MARKET_ACTIVATED'
+  actorId: string
+  marketId: string
+}
 
 export type CreateNotificationData =
   | CreateMarketResolvedNotification
@@ -252,3 +328,9 @@ export type CreateNotificationData =
   | CreateReferrerBonusNotification
   | CreateTagNewMarketNotification
   | CreateMarketBookmarkResolvedNotification
+  | CreateMarketEvidenceAddedNotification
+  | CreateMarketProbabilityAlertNotification
+  | CreateResolutionDisputeFlaggedNotification
+  | CreateResolutionDisputeReviewedNotification
+  | CreateUserFollowedNotification
+  | CreateConditionalMarketActivatedNotification

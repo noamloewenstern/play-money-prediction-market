@@ -10,6 +10,7 @@ const sidebarNavItems = [
   { title: 'Users', href: '/admin/users' },
   { title: 'Markets', href: '/admin/markets' },
   { title: 'Comments', href: '/admin/comments' },
+  { title: 'Disputes', href: '/admin/disputes' },
 ]
 
 export default async function AdminLayout({ children }: { children: React.ReactNode }) {

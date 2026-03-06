@@ -1,7 +1,7 @@
 'use client'
 
 import { BellIcon, InboxIcon, TrendingUpIcon } from 'lucide-react'
-import { useCallback, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 import { ErrorBoundary } from 'react-error-boundary'
 import { useNotifications, useUnreadNotificationCount } from '@play-money/api-helpers/client/hooks'
 import { Badge } from '@play-money/ui/badge'
@@ -17,6 +17,13 @@ export function NotificationDropdown() {
   const { user } = useUser()
   const { data: notificationData, mutate } = useNotifications({ skip: !user })
   const { data: unreadData, mutate: mutateUnread } = useUnreadNotificationCount({ skip: !user })
+
+  useEffect(() => {
+    if (!user) return
+    const openNotifications = () => setIsOpen(true)
+    window.addEventListener('keyboard:notifications', openNotifications)
+    return () => window.removeEventListener('keyboard:notifications', openNotifications)
+  }, [user])
   const data = notificationData?.data
   const unreadCount = unreadData?.data?.count ?? 0
 

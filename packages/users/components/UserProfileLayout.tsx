@@ -8,7 +8,10 @@ import { FloatingBackButton } from '@play-money/ui/FloatingBackButton'
 import { UserAvatar } from '@play-money/ui/UserAvatar'
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@play-money/ui/card'
 import { Separator } from '@play-money/ui/separator'
+import { getUserFollowCounts } from '../lib/getUserFollowCounts'
 import { CreatorReputationBadge } from './CreatorReputationBadge'
+import { UserBadgesDisplay } from './UserBadgesDisplay'
+import { UserFollowButton } from './UserFollowButton'
 import { UserPlaystyleChart } from './UserPlaystyleChart'
 
 const DiscordIcon = ({ className }: { className: string }) => (
@@ -58,6 +61,7 @@ export async function UserProfileLayout({
     const {
       data: { balance },
     } = await getUserBalance({ userId: profile.id })
+    const { followersCount, followingCount } = await getUserFollowCounts({ userId: profile.id })
 
     const quester =
       balance.subtotals['DAILY_TRADE_BONUS'] +
@@ -90,9 +94,9 @@ export async function UserProfileLayout({
                 </CardTitle>
                 <CardDescription>@{profile.username}</CardDescription>
               </div>
-              {/* <div className="ml-auto flex items-center gap-1">
-            <EditOrFollowUserButton userId={profile.id} />
-          </div> */}
+              <div className="ml-auto flex items-center gap-1">
+                <UserFollowButton userId={profile.id} />
+              </div>
             </CardHeader>
             <CardContent className="pt-3 text-sm md:pt-6">
               <div className="grid gap-3">
@@ -133,22 +137,16 @@ export async function UserProfileLayout({
                     ) : null}
                   </div>
                 ) : null}
-                {/* <div className="flex flex-row gap-4">
-              <Link
-                href={`/${profile.username}/followers`}
-                className="flex items-center gap-1 text-muted-foreground hover:text-foreground hover:underline"
-              >
-                <span className="font-semibold text-foreground">{profile.followingCount || 0}</span>
-                <span>Following</span>
-              </Link>
-              <Link
-                href={`/${profile.username}/followers`}
-                className="flex items-center gap-1 text-muted-foreground hover:text-foreground hover:underline"
-              >
-                <span className="font-semibold text-foreground">{profile.followersCount || 0}</span>
-                <span>Followers</span>
-              </Link>
-            </div> */}
+                <div className="flex flex-row gap-4 text-sm">
+                  <span className="flex items-center gap-1 text-muted-foreground">
+                    <span className="font-semibold text-foreground">{followingCount}</span>
+                    <span>Following</span>
+                  </span>
+                  <span className="flex items-center gap-1 text-muted-foreground">
+                    <span className="font-semibold text-foreground">{followersCount}</span>
+                    <span>Followers</span>
+                  </span>
+                </div>
               </div>
 
               <Separator className="my-4" />
@@ -199,6 +197,11 @@ export async function UserProfileLayout({
                 </div>
               ))}
             </div>
+          </Card>
+
+          <Card className="p-4">
+            <div className="mb-3 text-sm font-semibold text-muted-foreground">Badges</div>
+            <UserBadgesDisplay userId={profile.id} showUnearned={true} />
           </Card>
         </div>
 

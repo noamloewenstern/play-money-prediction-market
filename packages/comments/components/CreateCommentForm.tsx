@@ -1,4 +1,5 @@
 import { zodResolver } from '@hookform/resolvers/zod'
+import { BarChart3 } from 'lucide-react'
 import React, { useCallback, useEffect, useState } from 'react'
 import { useForm } from 'react-hook-form'
 import { z } from 'zod'
@@ -10,6 +11,7 @@ import { DraftRecoveryBanner } from '@play-money/ui/DraftRecoveryBanner'
 import { Editor } from '@play-money/ui/editor'
 import { Form, FormControl, FormField, FormItem, FormMessage } from '@play-money/ui/form'
 import { cn } from '@play-money/ui/utils'
+import { CommentPollCreator, PollDraft } from './CommentPollCreator'
 
 const FormSchema = CommentSchema.pick({ content: true })
 
@@ -25,12 +27,15 @@ function stripHtml(html: string) {
   return html.replace(/<[^>]*>/g, '').trim()
 }
 
+const DEFAULT_POLL: PollDraft = { question: '', options: ['', ''] }
+
 export function CreateCommentForm({
   initialContent,
   variant = 'default',
   startCollapsed = false,
   focusOnRender,
   draftKey,
+  allowPoll = false,
   onSubmit,
   onCancel,
 }: {
@@ -39,9 +44,13 @@ export function CreateCommentForm({
   startCollapsed?: boolean
   focusOnRender?: boolean
   draftKey?: string
-  onSubmit: (content: string) => Promise<void>
+  allowPoll?: boolean
+  onSubmit: (content: string, poll?: PollDraft) => Promise<void>
   onCancel?: () => void
 }) {
+  const [showPoll, setShowPoll] = useState(false)
+  const [poll, setPoll] = useState<PollDraft>(DEFAULT_POLL)
+
   const [draftState] = useState(() => {
     if (!draftKey || typeof window === 'undefined') return { hasDraft: false, preview: undefined as string | undefined }
     const saved = localStorage.getItem(draftKey)
@@ -97,11 +106,14 @@ export function CreateCommentForm({
   const handleSubmit = async (data: FormData) => {
     try {
       setCommentLoading()
-      await onSubmit(data.content)
+      const pollData = showPoll && poll.question.trim() && poll.options.filter((o) => o.trim()).length >= 2 ? poll : undefined
+      await onSubmit(data.content, pollData)
       if (draftKey) {
         localStorage.removeItem(draftKey)
       }
       setCommentSuccess()
+      setShowPoll(false)
+      setPoll(DEFAULT_POLL)
     } catch (error) {
       setCommentError()
       throw error
@@ -165,13 +177,33 @@ export function CreateCommentForm({
             }}
           />
 
+          {showPoll ? (
+            <div className="px-3 pb-2">
+              <CommentPollCreator value={poll} onChange={setPoll} />
+            </div>
+          ) : null}
+
           <div
             className={cn(
-              '-mt-4 flex flex-row justify-end group-focus-within:flex',
+              '-mt-4 flex flex-row items-center justify-end group-focus-within:flex',
               startCollapsed && 'hidden',
               form.formState.isDirty && 'flex'
             )}
           >
+            {allowPoll && variant === 'default' ? (
+              <Button
+                type="button"
+                variant="ghost"
+                size="icon"
+                title={showPoll ? 'Remove poll' : 'Add poll'}
+                onClick={() => setShowPoll((v) => !v)}
+                className={cn('mr-auto h-8 w-8', showPoll && 'text-primary')}
+                data-testid="toggle-poll-button"
+              >
+                <BarChart3 className="h-4 w-4" />
+              </Button>
+            ) : null}
+
             {onCancel ? (
               <Button variant="ghost" type="button" onClick={onCancel}>
                 Cancel

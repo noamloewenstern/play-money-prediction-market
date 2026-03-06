@@ -1,4 +1,3 @@
-import { Prisma } from '@prisma/client'
 import Decimal from 'decimal.js'
 import DOMPurify from 'isomorphic-dompurify'
 import db, { MarketSchema, MarketOption, MarketOptionSchema } from '@play-money/database'
@@ -9,6 +8,7 @@ import { hasCreatedMarketToday } from '@play-money/quests/lib/helpers'
 import { getUserPrimaryAccount } from '@play-money/users/lib/getUserPrimaryAccount'
 import { createMarketLiquidityTransaction } from './createMarketLiquidityTransaction'
 import { InsufficientBalanceError } from './exceptions'
+import { generateNumericBrackets } from './generateNumericBrackets'
 import { getMarketTagsLLM } from './getMarketTagsLLM'
 import { slugifyTitle } from './helpers'
 import { notifyTagFollowers } from './notifyTagFollowers'
@@ -25,6 +25,12 @@ export async function createMarket({
   tags,
   subsidyAmount = new Decimal(INITIAL_MARKET_LIQUIDITY_PRIMARY),
   parentListId,
+  visibility = 'PUBLIC',
+  parentMarketId,
+  conditionResolution = 'Yes',
+  numericMin,
+  numericMax,
+  numericUnit,
 }: {
   question: string
   description: string
@@ -35,15 +41,35 @@ export async function createMarket({
   tags?: Array<string>
   subsidyAmount?: Decimal
   parentListId?: string
+  visibility?: 'PUBLIC' | 'PRIVATE'
+  parentMarketId?: string
+  conditionResolution?: string
+  numericMin?: number | null
+  numericMax?: number | null
+  numericUnit?: string | null
 }) {
   const sanitizedDescription = DOMPurify.sanitize(description)
   const sanitizedResolutionCriteria = resolutionCriteria ? DOMPurify.sanitize(resolutionCriteria) : null
+
+  // Validate parent market exists if this is a conditional market
+  if (parentMarketId) {
+    const parentMarket = await db.market.findUnique({ where: { id: parentMarketId } })
+    if (!parentMarket) {
+      throw new Error('Parent market not found')
+    }
+    if (parentMarket.resolvedAt || parentMarket.canceledAt) {
+      throw new Error('Parent market is already resolved or canceled')
+    }
+  }
 
   let slug = slugifyTitle(question)
 
   let parsedOptions: Array<PartialOptions>
 
-  if (options?.length) {
+  if (numericMin != null && numericMax != null) {
+    // Numeric range market: auto-generate bracket options
+    parsedOptions = generateNumericBrackets({ numericMin, numericMax, numericUnit: numericUnit ?? '' })
+  } else if (options?.length) {
     parsedOptions = options.map((data) => MarketOptionSchema.pick({ name: true, color: true }).parse(data))
   } else {
     parsedOptions = [
@@ -106,6 +132,20 @@ export async function createMarket({
           }
         : {}),
 
+      visibility,
+      ...(parentMarketId
+        ? {
+            parentMarketId,
+            conditionResolution,
+          }
+        : {}),
+      ...(numericMin != null && numericMax != null
+        ? {
+            numericMin,
+            numericMax,
+            numericUnit: numericUnit ?? '',
+          }
+        : {}),
       commentCount: 0,
       liquidityCount: 0,
       uniquePromotersCount: 0,

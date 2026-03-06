@@ -9,6 +9,7 @@ export async function updateMarket({
   closeDate,
   tags,
   createdBy,
+  visibility,
 }: {
   id: string
   question?: string
@@ -17,6 +18,7 @@ export async function updateMarket({
   closeDate?: Date
   tags?: Array<string>
   createdBy?: string
+  visibility?: 'PUBLIC' | 'PRIVATE'
 }) {
   const updatedData: Partial<Market> = {}
 
@@ -43,6 +45,10 @@ export async function updateMarket({
 
   if (createdBy) {
     updatedData.createdBy = createdBy
+  }
+
+  if (visibility) {
+    updatedData.visibility = visibility
   }
 
   const updatedMarket = await db.market.update({
