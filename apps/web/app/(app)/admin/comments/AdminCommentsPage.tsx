@@ -1,11 +1,13 @@
 'use client'
 
+import { MessageSquareIcon } from 'lucide-react'
 import React, { useState } from 'react'
 import useSWR from 'swr'
 import { getAdminComments, updateAdminComment } from '@play-money/api-helpers/client'
 import { Badge } from '@play-money/ui/badge'
 import { Button } from '@play-money/ui/button'
 import { Input } from '@play-money/ui/input'
+import { Skeleton } from '@play-money/ui/skeleton'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@play-money/ui/table'
 import { toast } from '@play-money/ui/use-toast'
 
@@ -65,7 +67,32 @@ export function AdminCommentsPage() {
       </div>
 
       {isLoading ? (
-        <div className="text-muted-foreground">Loading comments...</div>
+        <div className="rounded-md border">
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Author</TableHead>
+                <TableHead className="min-w-[300px]">Content</TableHead>
+                <TableHead>Type</TableHead>
+                <TableHead>Status</TableHead>
+                <TableHead>Date</TableHead>
+                <TableHead>Actions</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {Array.from({ length: 5 }).map((_, i) => (
+                <TableRow key={i}>
+                  <TableCell><Skeleton className="h-4 w-20" /></TableCell>
+                  <TableCell><Skeleton className="h-4 w-full" /></TableCell>
+                  <TableCell><Skeleton className="h-5 w-14 rounded-full" /></TableCell>
+                  <TableCell><Skeleton className="h-5 w-14 rounded-full" /></TableCell>
+                  <TableCell><Skeleton className="h-4 w-20" /></TableCell>
+                  <TableCell><Skeleton className="h-8 w-14 rounded-md" /></TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        </div>
       ) : (
         <>
           <div className="rounded-md border">
@@ -83,8 +110,14 @@ export function AdminCommentsPage() {
               <TableBody>
                 {comments.length === 0 ? (
                   <TableRow>
-                    <TableCell className="text-center text-muted-foreground" colSpan={6}>
-                      No comments found.
+                    <TableCell className="h-32" colSpan={6}>
+                      <div className="flex flex-col items-center justify-center gap-2 text-center">
+                        <div className="flex size-10 items-center justify-center rounded-full bg-muted">
+                          <MessageSquareIcon className="size-4 text-muted-foreground" />
+                        </div>
+                        <p className="text-sm font-medium text-muted-foreground">No comments found</p>
+                        <p className="text-xs text-muted-foreground">Try adjusting your search or filters.</p>
+                      </div>
                     </TableCell>
                   </TableRow>
                 ) : (

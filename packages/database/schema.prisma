@@ -32,7 +32,11 @@ model User {
   discordHandle    String?
   website          String?
   bio              String?
-  timezone         String             @default("America/Los_Angeles")
+  timezone           String             @default("America/Los_Angeles")
+  quietHoursEnabled  Boolean            @default(false)
+  quietHoursStart    Int?
+  quietHoursEnd      Int?
+  doNotDisturb       Boolean            @default(false)
   authAccounts     AuthAccount[]
   sessions         Session[]
   comments         Comment[]
@@ -68,7 +72,10 @@ model User {
   apiKeys          ApiKey[]
   tagFollows       TagFollow[]
   marketBookmarks  MarketBookmark[]
-  webhooks         Webhook[]
+  webhooks              Webhook[]
+  queuedNotifications   QueuedNotification[]
+  evidences        MarketEvidence[]     @relation("EvidenceAuthor")
+  evidenceVotes    MarketEvidenceVote[] @relation("EvidenceVoter")
 
   @@index([referredBy])
 }
@@ -140,6 +147,7 @@ model Market {
 
   lists MarketList[]
   bookmarks MarketBookmark[]
+  evidence MarketEvidence[]
 
   parentListId String?
   parentList   List?   @relation("ParentListMarkets", fields: [parentListId], references: [id])
@@ -390,6 +398,45 @@ enum NotificationType {
   REFERRER_BONUS
   TAG_NEW_MARKET
   MARKET_BOOKMARK_RESOLVED
+  MARKET_EVIDENCE_ADDED
+}
+
+enum EvidenceType {
+  FOR
+  AGAINST
+  NEUTRAL
+}
+
+model MarketEvidence {
+  id          String        @id @default(cuid())
+  marketId    String
+  market      Market        @relation(fields: [marketId], references: [id], onDelete: Cascade)
+  authorId    String
+  author      User          @relation("EvidenceAuthor", fields: [authorId], references: [id])
+  title       String
+  content     String
+  url         String?
+  evidenceType EvidenceType @default(NEUTRAL)
+  votes       MarketEvidenceVote[]
+  createdAt   DateTime      @default(now())
+  updatedAt   DateTime      @updatedAt
+
+  @@index([marketId])
+  @@index([authorId])
+}
+
+model MarketEvidenceVote {
+  id         String         @id @default(cuid())
+  evidenceId String
+  evidence   MarketEvidence @relation(fields: [evidenceId], references: [id], onDelete: Cascade)
+  userId     String
+  user       User           @relation("EvidenceVoter", fields: [userId], references: [id])
+  isUpvote   Boolean
+  createdAt  DateTime       @default(now())
+
+  @@unique([evidenceId, userId])
+  @@index([evidenceId])
+  @@index([userId])
 }
 
 model TagFollow {
@@ -598,4 +645,25 @@ model WebhookDelivery {
 
   @@index([webhookId, createdAt])
   @@index([status, nextRetry])
+}
+
+model QueuedNotification {
+  id                String           @id @default(cuid())
+  recipientId       String
+  recipient         User             @relation(fields: [recipientId], references: [id], onDelete: Cascade)
+  type              NotificationType
+  actorId           String
+  actionUrl         String
+  marketId          String?
+  marketOptionId    String?
+  transactionId     String?
+  listId            String?
+  commentId         String?
+  parentCommentId   String?
+  commentReactionId String?
+  groupKey          String
+  deliveredAt       DateTime?
+  createdAt         DateTime         @default(now())
+
+  @@index([recipientId, deliveredAt])
 }

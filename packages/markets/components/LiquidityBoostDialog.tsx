@@ -5,6 +5,8 @@ import React from 'react'
 import { useForm } from 'react-hook-form'
 import z from 'zod'
 import { createLiquidity } from '@play-money/api-helpers/client'
+import { getActionableError } from '@play-money/markets/lib/actionableErrors'
+import { useStatefulAction } from '@play-money/ui'
 import { Market } from '@play-money/database'
 import { CurrencyDisplay } from '@play-money/finance/components/CurrencyDisplay'
 import { DAILY_LIQUIDITY_BONUS_PRIMARY } from '@play-money/finance/economy'
@@ -65,18 +67,24 @@ export const LiquidityBoostDialog = ({
     formState: { isSubmitting, isDirty, isValid },
   } = form
 
+  const { actionState: liquidityActionState, setLoading: setLiquidityLoading, setSuccess: setLiquiditySuccess, setError: setLiquidityError } = useStatefulAction()
+
   const onSubmit = async (data: FormData) => {
     try {
+      setLiquidityLoading()
       await createLiquidity({ marketId: market.id, amount: data.amount })
-      toast({ title: `¤${data.amount} liquidity added!` })
+      setLiquiditySuccess()
+      toast({ title: `¤${data.amount} liquidity added!`, variant: 'success' })
       form.reset({ amount: 250 })
       onSuccess?.()
       onClose()
     } catch (error: unknown) {
       console.error('Failed to add liquidity:', error)
+      setLiquidityError()
+      const actionable = getActionableError(error)
       toast({
-        title: 'There was an issue adding liquidity',
-        description: error instanceof Error ? error.message : 'Please try again later',
+        title: actionable.title,
+        description: actionable.description,
         variant: 'destructive',
       })
     }
@@ -86,7 +94,7 @@ export const LiquidityBoostDialog = ({
     <Dialog open={open} onOpenChange={onClose}>
       <DialogContent>
         <DialogHeader>
-          <DialogTitle className="line-clamp-1 pr-4 text-purple-600">Boost {market.question}</DialogTitle>
+          <DialogTitle className="line-clamp-1 pr-4">Boost {market.question}</DialogTitle>
         </DialogHeader>
 
         <DialogDescription>
@@ -134,7 +142,7 @@ export const LiquidityBoostDialog = ({
                         size="sm"
                         type="button"
                         variant="secondary"
-                        className="h-6 px-2 font-mono"
+                        className="h-6 px-2 tabular-nums"
                         onClick={() => field.onChange((field.value || 0) + DAILY_LIQUIDITY_BONUS_PRIMARY)}
                       >
                         +{DAILY_LIQUIDITY_BONUS_PRIMARY}
@@ -143,7 +151,7 @@ export const LiquidityBoostDialog = ({
                         size="sm"
                         type="button"
                         variant="secondary"
-                        className="h-6 px-2 font-mono"
+                        className="h-6 px-2 tabular-nums"
                         onClick={() => field.onChange((field.value || 0) + DAILY_LIQUIDITY_BONUS_PRIMARY * 4)}
                       >
                         +{formatNumber(DAILY_LIQUIDITY_BONUS_PRIMARY * 4)}
@@ -152,7 +160,7 @@ export const LiquidityBoostDialog = ({
                         size="sm"
                         type="button"
                         variant="secondary"
-                        className="h-6 px-2 font-mono"
+                        className="h-6 px-2 tabular-nums"
                         onClick={() => field.onChange((field.value || 0) + DAILY_LIQUIDITY_BONUS_PRIMARY * 12)}
                       >
                         +{formatNumber(DAILY_LIQUIDITY_BONUS_PRIMARY * 12)}
@@ -166,7 +174,7 @@ export const LiquidityBoostDialog = ({
                         placeholder="1000"
                         {...field}
                         onChange={(e) => field.onChange(e.currentTarget.valueAsNumber)}
-                        className="h-9 font-mono"
+                        className="h-9 tabular-nums"
                       />
                     </div>
                   </FormControl>
@@ -175,7 +183,7 @@ export const LiquidityBoostDialog = ({
               )}
             />
 
-            <Button disabled={!isValid} loading={isSubmitting} type="submit">
+            <Button disabled={!isValid} actionState={liquidityActionState} type="submit">
               Add liquidity
             </Button>
           </form>

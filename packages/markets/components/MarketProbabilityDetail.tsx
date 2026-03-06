@@ -32,13 +32,13 @@ export function MarketProbabilityDetail({
     return (
       <div className="flex flex-row items-center gap-2">
         <div
-          className={cn('font-mono font-semibold leading-none', size === 'sm' && 'text-xs')}
+          className={cn('tabular-nums font-semibold leading-none', size === 'sm' && 'text-xs')}
           style={{ color: option.color }}
         >
           {formatProbability(option.probability)}
         </div>
         <Progress
-          className="h-2 max-w-[150px] transition-transform"
+          className="h-1.5 max-w-[150px] rounded-full transition-transform"
           data-color={option.color}
           indicatorStyle={{ backgroundColor: option.color }}
           value={option.probability}
@@ -52,7 +52,7 @@ export function MarketProbabilityDetail({
   return (
     <div className="line-clamp-2 text-muted-foreground">
       <span className="pr-4" style={{ color: highestProbabilityOption.color }}>
-        <span className={cn('font-mono font-semibold leading-none', size === 'sm' && 'text-xs')}>
+        <span className={cn('tabular-nums font-semibold leading-none', size === 'sm' && 'text-xs')}>
           {formatProbability(highestProbabilityOption.probability)}
         </span>{' '}
         {highestProbabilityOption.name}

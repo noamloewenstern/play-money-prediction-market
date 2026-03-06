@@ -6,6 +6,7 @@ import React from 'react'
 import { useForm } from 'react-hook-form'
 import z from 'zod'
 import { createMarketCancel } from '@play-money/api-helpers/client'
+import { useStatefulAction } from '@play-money/ui'
 import { Alert, AlertDescription, AlertTitle } from '@play-money/ui/alert'
 import { Button } from '@play-money/ui/button'
 import { Checkbox } from '@play-money/ui/checkbox'
@@ -42,16 +43,21 @@ export const CancelMarketDialog = ({
     resolver: zodResolver(FormSchema),
   })
 
+  const { actionState: cancelActionState, setLoading: setCancelLoading, setSuccess: setCancelSuccess, setError: setCancelError } = useStatefulAction()
+
   const onSubmit = async (data: FormData) => {
     try {
+      setCancelLoading()
       await createMarketCancel({ marketId: market.id, reason: data.reason })
 
+      setCancelSuccess()
       toast({ title: 'Market canceled successfully' })
       form.reset()
       onClose()
       onSuccess?.()
     } catch (error: unknown) {
       console.error('Failed to resolve market:', error)
+      setCancelError()
       toast({
         title: 'There was an issue canceling the market',
         description: error instanceof Error ? error.message : 'Please try again later',
@@ -128,7 +134,7 @@ export const CancelMarketDialog = ({
               )}
             />
 
-            <Button type="submit" loading={isSubmitting} className="w-full">
+            <Button type="submit" actionState={cancelActionState} className="w-full">
               Resolve
             </Button>
           </form>

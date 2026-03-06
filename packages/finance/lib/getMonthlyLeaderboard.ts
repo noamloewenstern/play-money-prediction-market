@@ -11,6 +11,14 @@ function transformUserOutput(input: LeaderboardUser): LeaderboardUser {
   }
 }
 
+function getThresholds(rankings: Array<LeaderboardUser>) {
+  const atRank = (rank: number) => {
+    const user = rankings[rank - 1]
+    return user ? new Decimal(user.total).round().toNumber() : 0
+  }
+  return { top10: atRank(10), top20: atRank(20), top50: atRank(50) }
+}
+
 export async function getMonthlyLeaderboard(startDate: Date, endDate: Date, userId?: string | null) {
   const usernamesToIgnore = ['house', 'community']
   const [topTraders, topCreators, topPromoters, topQuesters, topReferrers] = await Promise.all([
@@ -232,6 +240,14 @@ export async function getMonthlyLeaderboard(startDate: Date, endDate: Date, user
     }
   }
 
+  const rankingThresholds = {
+    traders: getThresholds(topTraders),
+    creators: getThresholds(topCreators),
+    promoters: getThresholds(topPromoters),
+    questers: getThresholds(topQuesters),
+    referrers: getThresholds(topReferrers),
+  }
+
   return {
     topTraders: topTraders.slice(0, 10).map(transformUserOutput),
     topCreators: topCreators.slice(0, 10).map(transformUserOutput),
@@ -239,5 +255,6 @@ export async function getMonthlyLeaderboard(startDate: Date, endDate: Date, user
     topQuesters: topQuesters.slice(0, 10).map(transformUserOutput),
     topReferrers: topReferrers.slice(0, 10).map(transformUserOutput) || [],
     userRankings,
+    rankingThresholds,
   }
 }

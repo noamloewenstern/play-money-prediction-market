@@ -67,10 +67,12 @@ export function createRouteHandler(options: {
 
       if (error instanceof Error) {
         const statusCode = error.name.includes('NotFound') ? 404 : 400
-        return NextResponse.json({ error: error.message }, { status: statusCode })
+        const ctor = error.constructor as unknown as Record<string, unknown>
+        const code = typeof ctor?.code === 'string' ? ctor.code : undefined
+        return NextResponse.json({ error: error.message, ...(code ? { code } : {}) }, { status: statusCode })
       }
 
-      return NextResponse.json({ error: 'Error processing request' }, { status: 500 })
+      return NextResponse.json({ error: 'Something unexpected went wrong. Please try again.', code: 'UNKNOWN_ERROR' }, { status: 500 })
     }
   }
 }

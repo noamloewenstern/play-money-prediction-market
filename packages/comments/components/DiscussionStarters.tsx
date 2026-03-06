@@ -45,9 +45,14 @@ export function DiscussionStarters({
   return (
     <div className="px-6 pb-4">
       <div className="rounded-lg border border-dashed border-muted-foreground/25 bg-muted/30 p-4">
-        <div className="mb-3 flex items-center gap-2 text-sm font-medium text-muted-foreground">
-          <MessageSquarePlus className="h-4 w-4" />
-          Start the discussion
+        <div className="mb-3 flex flex-col items-center gap-2 text-center">
+          <div className="flex size-10 items-center justify-center rounded-full bg-primary/10">
+            <MessageSquarePlus className="size-4 text-primary" />
+          </div>
+          <p className="text-sm font-medium">No comments yet — start the discussion</p>
+          <p className="max-w-xs text-xs text-muted-foreground">
+            Be the first to share your thoughts. Pick a prompt below or write your own.
+          </p>
         </div>
 
         <div className="space-y-2">

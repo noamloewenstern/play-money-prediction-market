@@ -33,15 +33,15 @@ export function SignedInReferralAlert() {
   return user ? (
     <Alert
       className={cn(
-        'flex cursor-pointer items-center gap-4 border-blue-300 bg-blue-50 pb-3 dark:bg-blue-600/20',
+        'flex cursor-pointer items-center gap-4 border-info/30 bg-info/5 pb-3',
         classNames
       )}
       onMouseMove={handleMouseMove}
       onClick={() => router.push('/settings/referrals')}
     >
       {/* <UserAvatar user={referringUser} /> */}
-      <UserPlusIcon className="h-4 w-4 stroke-blue-500" />
-      <AlertDescription className="text-blue-500">
+      <UserPlusIcon className="h-4 w-4 stroke-info" />
+      <AlertDescription className="text-info">
         Refer a new user, earn up to <CurrencyDisplay value={BONUS} isShort className="underline underline-offset-2" />{' '}
         <ArrowRight className="inline-block h-4 w-4" />
       </AlertDescription>

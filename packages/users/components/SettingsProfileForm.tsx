@@ -1,8 +1,11 @@
 'use client'
 
+import { zodResolver } from '@hookform/resolvers/zod'
 import { debounce } from 'lodash'
+import { CheckCircle2Icon } from 'lucide-react'
 import React from 'react'
 import { useForm } from 'react-hook-form'
+import { z } from 'zod'
 import { getUserCheckUsername, updateMe } from '@play-money/api-helpers/client'
 import { User } from '@play-money/database'
 import { Avatar, AvatarFallback, AvatarImage } from '@play-money/ui/avatar'
@@ -12,6 +15,7 @@ import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel, For
 import { Input } from '@play-money/ui/input'
 import { Textarea } from '@play-money/ui/textarea'
 import { toast } from '@play-money/ui/use-toast'
+import { cn } from '@play-money/ui/utils'
 import { useUser } from '../context/UserContext'
 
 // Monkey patch for es2022
@@ -30,7 +34,23 @@ declare namespace Intl {
   }
 }
 
-type ProfileFormValues = Pick<User, 'username' | 'bio' | 'avatarUrl' | 'displayName' | 'timezone'>
+const USERNAME_MAX_LENGTH = 30
+const DISPLAY_NAME_MAX_LENGTH = 50
+const BIO_MAX_LENGTH = 500
+
+const profileFormSchema = z.object({
+  username: z.string().min(1, { message: 'Username is required' }).max(USERNAME_MAX_LENGTH, {
+    message: `Username must be ${USERNAME_MAX_LENGTH} characters or less`,
+  }),
+  displayName: z.string().min(1, { message: 'Display name is required' }).max(DISPLAY_NAME_MAX_LENGTH, {
+    message: `Display name must be ${DISPLAY_NAME_MAX_LENGTH} characters or less`,
+  }),
+  bio: z.string().max(BIO_MAX_LENGTH, { message: `Bio must be ${BIO_MAX_LENGTH} characters or less` }).nullable(),
+  avatarUrl: z.string().nullable(),
+  timezone: z.string(),
+})
+
+type ProfileFormValues = z.infer<typeof profileFormSchema>
 
 export function SettingsProfileForm({
   hasImageUpload = false,
@@ -41,6 +61,7 @@ export function SettingsProfileForm({
 }) {
   const { user, setUser } = useUser()
   const form = useForm<ProfileFormValues>({
+    resolver: zodResolver(profileFormSchema),
     defaultValues: {
       username: user?.username ?? '',
       bio: user?.bio ?? '',
@@ -48,6 +69,7 @@ export function SettingsProfileForm({
       timezone: user?.timezone ?? '',
       avatarUrl: user?.avatarUrl ?? '',
     },
+    mode: 'onBlur',
   })
 
   const {
@@ -64,8 +86,9 @@ export function SettingsProfileForm({
       })
     } catch (error) {
       toast({
-        title: 'There was an error updating your profile',
-        description: (error as Error).message,
+        title: 'Failed to update profile',
+        description: (error as Error).message || 'An unexpected error occurred. Please try again.',
+        variant: 'destructive',
       })
     }
   }
@@ -120,18 +143,38 @@ export function SettingsProfileForm({
         <FormField
           control={form.control}
           name="displayName"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>Display name</FormLabel>
-              <FormControl>
-                <Input placeholder="Display name" {...field} />
-              </FormControl>
-              <FormDescription>
-                This is your public display name. It can be your real name or a pseudonym.
-              </FormDescription>
-              <FormMessage />
-            </FormItem>
-          )}
+          render={({ field }) => {
+            const len = field.value?.length ?? 0
+            const isNearLimit = len > DISPLAY_NAME_MAX_LENGTH * 0.8
+            const fieldState = form.getFieldState('displayName')
+            const isValid = fieldState.isDirty && !fieldState.invalid && len > 0
+            return (
+              <FormItem>
+                <div className="flex items-center justify-between">
+                  <FormLabel>Display name</FormLabel>
+                  {isValid ? <CheckCircle2Icon className="size-4 text-success" /> : null}
+                </div>
+                <FormControl>
+                  <Input placeholder="Display name" maxLength={DISPLAY_NAME_MAX_LENGTH} {...field} />
+                </FormControl>
+                <div className="flex items-center justify-between">
+                  <FormDescription>
+                    This is your public display name. It can be your real name or a pseudonym.
+                  </FormDescription>
+                  <span
+                    className={cn(
+                      'shrink-0 text-xs',
+                      isNearLimit ? 'text-warning' : 'text-muted-foreground',
+                      len >= DISPLAY_NAME_MAX_LENGTH && 'text-destructive'
+                    )}
+                  >
+                    {len}/{DISPLAY_NAME_MAX_LENGTH}
+                  </span>
+                </div>
+                <FormMessage />
+              </FormItem>
+            )
+          }}
         />
         <FormField
           control={form.control}
@@ -151,34 +194,70 @@ export function SettingsProfileForm({
               { leading: true }
             ),
           }}
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>Username</FormLabel>
-              <FormControl>
-                <Input placeholder="username" {...field} />
-              </FormControl>
-              <FormDescription>This is your username. It is unique to you on the site.</FormDescription>
-              <FormMessage /> {/* TODO: @casesandberg Figure out why the validate error isnt being displayed */}
-            </FormItem>
-          )}
+          render={({ field }) => {
+            const len = field.value?.length ?? 0
+            const isNearLimit = len > USERNAME_MAX_LENGTH * 0.8
+            const fieldState = form.getFieldState('username')
+            const isValid = fieldState.isDirty && !fieldState.invalid && len > 0
+            return (
+              <FormItem>
+                <div className="flex items-center justify-between">
+                  <FormLabel>Username</FormLabel>
+                  {isValid ? <CheckCircle2Icon className="size-4 text-success" /> : null}
+                </div>
+                <FormControl>
+                  <Input placeholder="username" maxLength={USERNAME_MAX_LENGTH} {...field} />
+                </FormControl>
+                <div className="flex items-center justify-between">
+                  <FormDescription>This is your username. It is unique to you on the site.</FormDescription>
+                  <span
+                    className={cn(
+                      'shrink-0 text-xs',
+                      isNearLimit ? 'text-warning' : 'text-muted-foreground',
+                      len >= USERNAME_MAX_LENGTH && 'text-destructive'
+                    )}
+                  >
+                    {len}/{USERNAME_MAX_LENGTH}
+                  </span>
+                </div>
+                <FormMessage />
+              </FormItem>
+            )
+          }}
         />
         <FormField
           control={form.control}
           name="bio"
-          render={({ field: { value, ...restField } }) => (
-            <FormItem>
-              <FormLabel>Bio</FormLabel>
-              <FormControl>
-                <Textarea
-                  placeholder="Tell us a little bit about yourself"
-                  className="resize-none"
-                  value={value ?? ''}
-                  {...restField}
-                />
-              </FormControl>
-              <FormMessage />
-            </FormItem>
-          )}
+          render={({ field: { value, ...restField } }) => {
+            const len = value?.length ?? 0
+            const isNearLimit = len > BIO_MAX_LENGTH * 0.8
+            return (
+              <FormItem>
+                <FormLabel>Bio</FormLabel>
+                <FormControl>
+                  <Textarea
+                    placeholder="Tell us a little bit about yourself"
+                    className="resize-none"
+                    maxLength={BIO_MAX_LENGTH}
+                    value={value ?? ''}
+                    {...restField}
+                  />
+                </FormControl>
+                <div className="flex items-center justify-between">
+                  <FormMessage />
+                  <span
+                    className={cn(
+                      'ml-auto text-xs',
+                      isNearLimit ? 'text-warning' : 'text-muted-foreground',
+                      len >= BIO_MAX_LENGTH && 'text-destructive'
+                    )}
+                  >
+                    {len}/{BIO_MAX_LENGTH}
+                  </span>
+                </div>
+              </FormItem>
+            )
+          }}
         />
 
         <FormField

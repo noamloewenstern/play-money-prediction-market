@@ -33,6 +33,7 @@ export async function GET(
       hasBoostedLiquidity,
       activeDayCount,
       otherIncome,
+      milestones,
     } = await getUserStats({ userId: id })
 
     return NextResponse.json({
@@ -69,6 +70,12 @@ export async function GET(
             href: '/questions',
           },
         ],
+        milestones: {
+          hasTraded: milestones.hasTraded,
+          hasCreatedMarket: milestones.hasCreatedMarket,
+          hasCommented: milestones.hasCommented,
+          hasBoostedLiquidity: milestones.hasBoostedLiquidity,
+        },
       },
     })
   } catch (error) {

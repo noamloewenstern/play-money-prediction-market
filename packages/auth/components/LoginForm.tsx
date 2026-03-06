@@ -35,7 +35,7 @@ function MagicLinkForm() {
       await signIn('resend', { email: data.email, callbackUrl: '/' })
     } catch (error: unknown) {
       console.error('Login Failed:', error)
-      toast({ title: 'There was an issue signing you in', description: 'Please try again later' })
+      toast({ title: 'Sign-in failed', description: 'Could not send magic link. Please check your email and try again.', variant: 'destructive' })
     } finally {
       setIsLoading(false)
     }
@@ -118,7 +118,7 @@ function PasswordForm() {
       window.location.href = '/'
     } catch (err: unknown) {
       console.error('Auth error:', err)
-      setError('Something went wrong. Please try again.')
+      setError('Unable to connect. Please check your internet connection and try again.')
     } finally {
       setIsLoading(false)
     }

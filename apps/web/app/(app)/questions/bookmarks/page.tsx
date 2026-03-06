@@ -1,6 +1,6 @@
 'use client'
 
-import { Bookmark } from 'lucide-react'
+import { BookmarkIcon, SearchIcon } from 'lucide-react'
 import Link from 'next/link'
 import React from 'react'
 import { mutate } from 'swr'
@@ -24,8 +24,17 @@ export default function BookmarksPage() {
 
   if (!user) {
     return (
-      <div className="mx-auto max-w-screen-lg p-8 text-center">
-        <p className="text-muted-foreground">Sign in to bookmark markets and build your watchlist.</p>
+      <div className="mx-auto flex max-w-screen-lg flex-col items-center gap-3 py-16 text-center">
+        <div className="flex size-14 items-center justify-center rounded-full bg-primary/10">
+          <BookmarkIcon className="size-6 text-primary" />
+        </div>
+        <h3 className="text-lg font-semibold">Sign in to bookmark markets</h3>
+        <p className="max-w-xs text-sm text-muted-foreground">
+          Save markets you want to track and build your personal watchlist.
+        </p>
+        <Link href="/login">
+          <Button className="mt-1">Sign In</Button>
+        </Link>
       </div>
     )
   }
@@ -34,7 +43,7 @@ export default function BookmarksPage() {
     <div className="mx-auto flex max-w-screen-lg flex-1 flex-col gap-8 md:flex-row">
       <div className="w-full space-y-4">
         <div className="flex items-center gap-2">
-          <Bookmark className="h-5 w-5" />
+          <BookmarkIcon className="h-5 w-5" />
           <h1 className="text-2xl font-semibold">Bookmarks</h1>
         </div>
 
@@ -57,13 +66,22 @@ export default function BookmarksPage() {
             </div>
           </div>
         ) : (
-          <p className="text-sm text-muted-foreground">
-            You have not bookmarked any markets yet. Browse{' '}
-            <Link href="/questions" className="text-primary hover:underline">
-              questions
-            </Link>{' '}
-            and bookmark markets you want to follow.
-          </p>
+          <div className="flex flex-col items-center gap-3 py-12 text-center">
+            <div className="flex size-14 items-center justify-center rounded-full bg-primary/10">
+              <BookmarkIcon className="size-6 text-primary" />
+            </div>
+            <h3 className="text-lg font-semibold">No bookmarks yet</h3>
+            <p className="max-w-sm text-sm text-muted-foreground">
+              Bookmark markets you want to keep an eye on. Click the bookmark icon on any market to save it here for quick
+              access.
+            </p>
+            <Link href="/questions">
+              <Button className="mt-1">
+                <SearchIcon className="mr-2 size-4" />
+                Browse Markets
+              </Button>
+            </Link>
+          </div>
         )}
       </div>
 

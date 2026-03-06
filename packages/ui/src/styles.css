@@ -28,6 +28,12 @@
     --success-foreground: 0 0% 100%;
     --warning: 38 92% 50%;
     --warning-foreground: 0 0% 100%;
+    --info: 217 91% 60%;
+    --info-foreground: 0 0% 100%;
+
+    /* Surface elevations for layered UIs */
+    --surface: 0 0% 100%;
+    --surface-raised: 220 14% 98%;
   }
 
   .dark {
@@ -54,6 +60,12 @@
     --success-foreground: 0 0% 100%;
     --warning: 38 92% 40%;
     --warning-foreground: 0 0% 100%;
+    --info: 217 91% 55%;
+    --info-foreground: 0 0% 100%;
+
+    /* Surface elevations for layered UIs */
+    --surface: 224 25% 8%;
+    --surface-raised: 224 22% 10%;
   }
 }
 
@@ -63,6 +75,27 @@
   }
   body {
     @apply bg-background text-foreground antialiased;
+    font-feature-settings: "cv02", "cv03", "cv04", "cv11";
+  }
+
+  /* Smooth scroll for anchored links */
+  html {
+    scroll-behavior: smooth;
+  }
+
+  /* Better focus outlines */
+  :focus-visible {
+    @apply outline-none ring-2 ring-ring ring-offset-2 ring-offset-background;
+  }
+
+  /* Smoother transitions on interactive elements */
+  a, button, input, select, textarea {
+    @apply transition-colors duration-150;
+  }
+
+  /* Subtle selection color */
+  ::selection {
+    @apply bg-primary/20 text-foreground;
   }
 }
 

@@ -1,6 +1,7 @@
 'use client'
 
 import { flexRender, functionalUpdate, getCoreRowModel, useReactTable } from '@tanstack/react-table'
+import { InboxIcon } from 'lucide-react'
 import type {
   ColumnDef,
   VisibilityState,
@@ -119,7 +120,7 @@ export function DataTable<TData, TValue>({
           <DataTableViewOptions table={table} />
         </div>
       ) : null}
-      <div className="overflow-hidden rounded-xl border font-mono text-sm shadow-soft">
+      <div className="overflow-hidden rounded-xl border text-sm shadow-soft">
         <Table>
           <TableHeader>
             {table.getHeaderGroups().map((headerGroup) => (
@@ -145,8 +146,16 @@ export function DataTable<TData, TValue>({
               ))
             ) : (
               <TableRow>
-                <TableCell className="h-24 text-center" colSpan={columns.length}>
-                  {emptyState || 'No results.'}
+                <TableCell className="h-32" colSpan={columns.length}>
+                  {emptyState || (
+                    <div className="flex flex-col items-center justify-center gap-2 text-center">
+                      <div className="flex size-10 items-center justify-center rounded-full bg-muted">
+                        <InboxIcon className="size-4 text-muted-foreground" />
+                      </div>
+                      <p className="text-sm font-medium text-muted-foreground">No results</p>
+                      <p className="text-xs text-muted-foreground">Try adjusting your search or filters.</p>
+                    </div>
+                  )}
                 </TableCell>
               </TableRow>
             )}

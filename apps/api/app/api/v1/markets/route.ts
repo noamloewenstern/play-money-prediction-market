@@ -20,9 +20,24 @@ export async function GET(req: Request): Promise<SchemaResponse<typeof schema.ge
     const searchParams = new URLSearchParams(url.search)
     const params = Object.fromEntries(searchParams)
 
-    const { status = 'active', createdBy, tags, ...paginationParams } = schema.get.parameters.parse(params) ?? {}
+    const {
+      status = 'active',
+      createdBy,
+      tags,
+      marketType,
+      minTraders,
+      maxTraders,
+      minLiquidity,
+      maxLiquidity,
+      closeDateMin,
+      closeDateMax,
+      ...paginationParams
+    } = schema.get.parameters.parse(params) ?? {}
 
-    const results = await getMarkets({ createdBy, tags, status }, paginationParams)
+    const results = await getMarkets(
+      { createdBy, tags, status, marketType, minTraders, maxTraders, minLiquidity, maxLiquidity, closeDateMin, closeDateMax },
+      paginationParams
+    )
 
     return NextResponse.json(results)
   } catch (error) {

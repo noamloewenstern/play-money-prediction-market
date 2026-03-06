@@ -26,9 +26,9 @@ export async function MarketEmptyState({ searchQuery, tag }: MarketEmptyStatePro
 
   return (
     <div className="flex flex-col items-center gap-8 py-12">
-      <div className="flex flex-col items-center gap-2 text-center">
-        <div className="flex size-12 items-center justify-center rounded-full bg-muted">
-          <SearchIcon className="size-5 text-muted-foreground" />
+      <div className="flex flex-col items-center gap-3 text-center">
+        <div className="flex size-14 items-center justify-center rounded-full bg-primary/10">
+          <SearchIcon className="size-6 text-primary" />
         </div>
         <h3 className="text-lg font-semibold">No markets found</h3>
         <p className="max-w-md text-sm text-muted-foreground">
@@ -73,7 +73,7 @@ export async function MarketEmptyState({ searchQuery, tag }: MarketEmptyStatePro
             <TrendingUpIcon className="size-3" />
             Popular markets
           </div>
-          <div className="w-full divide-y rounded-xl border font-mono text-sm">
+          <div className="w-full divide-y rounded-xl border text-sm">
             {popularMarkets.map((market) => {
               const mostLikelyOption = market.options.reduce((prev, current) =>
                 (prev.probability || 0) > (current.probability || 0) ? prev : current
@@ -87,7 +87,7 @@ export async function MarketEmptyState({ searchQuery, tag }: MarketEmptyStatePro
                 >
                   <span className="mr-4 line-clamp-1">{market.question}</span>
                   {!market.canceledAt && !market.marketResolution ? (
-                    <span className="flex-shrink-0 font-medium" style={{ color: mostLikelyOption.color }}>
+                    <span className="flex-shrink-0 tabular-nums font-semibold" style={{ color: mostLikelyOption.color }}>
                       {Math.round(mostLikelyOption.probability || 0)}%
                     </span>
                   ) : null}

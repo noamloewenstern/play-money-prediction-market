@@ -16,6 +16,13 @@ export default {
         status: z.enum(['active', 'halted', 'closed', 'resolved', 'canceled', 'all']).optional(),
         createdBy: z.string().optional(),
         tags: zodCoerceCSVToArray.optional(),
+        marketType: z.enum(['binary', 'multi']).optional(),
+        minTraders: z.coerce.number().int().nonnegative().optional(),
+        maxTraders: z.coerce.number().int().nonnegative().optional(),
+        minLiquidity: z.coerce.number().nonnegative().optional(),
+        maxLiquidity: z.coerce.number().nonnegative().optional(),
+        closeDateMin: z.coerce.date().optional(),
+        closeDateMax: z.coerce.date().optional(),
       })
       .merge(paginationSchema)
       .optional(),

@@ -8,7 +8,7 @@ import { triggerWebhook } from '@play-money/webhooks/lib/triggerWebhook'
 import { createDailyTradeBonusTransaction } from '@play-money/quests/lib/createDailyTradeBonusTransaction'
 import { hasPlacedMarketTradeToday } from '@play-money/quests/lib/helpers'
 import { getUserPrimaryAccount } from '@play-money/users/lib/getUserPrimaryAccount'
-import { isMarketTradable } from '../rules'
+import { isMarketResolved, isMarketTradable } from '../rules'
 import { createLiquidityVolumeBonusTransaction } from './createLiquidityVolumeBonusTransaction'
 import { createMarketBuyTransaction } from './createMarketBuyTransaction'
 import { MarketClosedError } from './exceptions'
@@ -30,7 +30,10 @@ export async function marketBuy({
   const [market, userAccount] = await Promise.all([getMarket({ id: marketId }), getUserPrimaryAccount({ userId })])
 
   if (!isMarketTradable({ market })) {
-    throw new MarketClosedError()
+    const reason = isMarketResolved({ market })
+      ? 'This market has been resolved and is no longer accepting trades.'
+      : 'This market is closed and is no longer accepting trades.'
+    throw new MarketClosedError(reason)
   }
 
   const transaction = await createMarketBuyTransaction({

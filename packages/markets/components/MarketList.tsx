@@ -1,3 +1,5 @@
+'use client'
+
 import { MessageSquareIcon, UsersIcon, DiamondIcon } from 'lucide-react'
 import Link from 'next/link'
 import React from 'react'
@@ -5,6 +7,7 @@ import { CurrencyDisplay } from '@play-money/finance/components/CurrencyDisplay'
 import { UserAvatar } from '@play-money/ui/UserAvatar'
 import { Tooltip, TooltipContent, TooltipTrigger } from '@play-money/ui/tooltip'
 import { ExtendedMarket } from '../types'
+import { QuickTradePopover } from './QuickTradePopover'
 
 export function MarketList({
   markets,
@@ -29,15 +32,15 @@ export function MarketList({
         )
 
         return (
-          <div className="border p-4" key={market.id}>
+          <div className="rounded-lg border p-4 transition-colors hover:bg-muted/20" key={market.id}>
             <Link
-              className="line-clamp-2 text-lg font-medium visited:text-muted-foreground"
+              className="line-clamp-2 text-lg font-medium leading-relaxed visited:text-muted-foreground"
               href={`/questions/${market.id}/${market.slug}${refParam}`}
             >
               {market.question}
             </Link>
 
-            <div className="flex min-h-5 gap-4 font-mono text-sm text-muted-foreground">
+            <div className="mt-1 flex min-h-5 gap-4 text-sm text-muted-foreground">
               <div className="flex gap-2 overflow-hidden">
                 {market.canceledAt ? (
                   <div className="text-muted-foreground">
@@ -48,9 +51,16 @@ export function MarketList({
                     Resolved {market.marketResolution.resolution.name}
                   </div>
                 ) : (
-                  <div style={{ color: mostLikelyOption.color }} className="flex-shrink-0 font-medium">
-                    {Math.round(mostLikelyOption.probability || 0)}% {mostLikelyOption.name}
-                  </div>
+                  <QuickTradePopover marketId={market.id} options={market.options}>
+                    <button
+                      type="button"
+                      className="flex-shrink-0 cursor-pointer rounded-md font-medium transition-opacity hover:opacity-80"
+                      style={{ color: mostLikelyOption.color }}
+                      data-quick-trade
+                    >
+                      {Math.round(mostLikelyOption.probability || 0)}% {mostLikelyOption.name}
+                    </button>
+                  </QuickTradePopover>
                 )}
               </div>
 

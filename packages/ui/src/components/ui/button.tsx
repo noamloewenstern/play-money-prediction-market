@@ -1,6 +1,6 @@
 import { Slot } from '@radix-ui/react-slot'
 import { cva, type VariantProps } from 'class-variance-authority'
-import { Loader2 } from 'lucide-react'
+import { CheckIcon, Loader2 } from 'lucide-react'
 import * as React from 'react'
 import { cn } from '../../lib/utils'
 
@@ -34,32 +34,62 @@ const buttonVariants = cva(
   }
 )
 
+type ActionState = 'idle' | 'loading' | 'success' | 'error'
+
 export type ButtonProps = React.ButtonHTMLAttributes<HTMLButtonElement> &
   VariantProps<typeof buttonVariants> & {
     asChild?: boolean
     loading?: boolean
+    actionState?: ActionState
   }
 
 const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
-  ({ className, variant, size, asChild = false, loading, disabled, children, ...props }, ref) => {
+  ({ className, variant, size, asChild = false, loading, disabled, actionState, children, ...props }, ref) => {
     const Comp = asChild ? Slot : 'button'
-    const renderLoader =
-      size === 'icon' ? (
-        <Loader2 className="h-4 w-4 animate-spin" />
-      ) : (
-        <>
+
+    const effectiveState: ActionState = actionState ?? (loading ? 'loading' : 'idle')
+    const isLoading = effectiveState === 'loading'
+    const isSuccess = effectiveState === 'success'
+    const isError = effectiveState === 'error'
+
+    const renderContent = () => {
+      if (isSuccess) {
+        return size === 'icon' ? (
+          <CheckIcon className="h-4 w-4 animate-action-success" />
+        ) : (
+          <>
+            <CheckIcon className="h-4 w-4 animate-action-success" />
+            {children}
+          </>
+        )
+      }
+
+      if (isLoading) {
+        return size === 'icon' ? (
           <Loader2 className="h-4 w-4 animate-spin" />
-          {children}
-        </>
-      )
+        ) : (
+          <>
+            <Loader2 className="h-4 w-4 animate-spin" />
+            {children}
+          </>
+        )
+      }
+
+      return children
+    }
+
     return (
       <Comp
-        className={cn(buttonVariants({ variant, size, className }))}
-        disabled={loading || disabled}
+        className={cn(
+          buttonVariants({ variant, size, className }),
+          isSuccess && 'bg-success text-success-foreground hover:bg-success/90',
+          isError && 'animate-action-shake',
+        )}
+        disabled={isLoading || isSuccess || disabled}
         ref={ref}
         {...props}
       >
-        {loading ? renderLoader : children}
+        {renderContent()}
       </Comp>
     )
   }

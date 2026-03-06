@@ -113,6 +113,26 @@ async function getLastTradeByUser(userId: string) {
   return lastTrade?.createdAt
 }
 
+async function hasEverCommented(userId: string) {
+  const comment = await db.comment.findFirst({
+    where: { authorId: userId },
+    select: { id: true },
+  })
+  return comment != null
+}
+
+async function hasEverBoostedLiquidity(userId: string) {
+  const transaction = await db.transaction.findFirst({
+    where: {
+      initiatorId: userId,
+      type: 'LIQUIDITY_DEPOSIT',
+      isReverse: null,
+    },
+    select: { id: true },
+  })
+  return transaction != null
+}
+
 export async function getUserStats({ userId }: { userId: string }) {
   const [
     netWorth,
@@ -125,6 +145,8 @@ export async function getUserStats({ userId }: { userId: string }) {
     hasBoostedLiquidity,
     activeDayCount,
     otherIncome,
+    hasEverCommentedResult,
+    hasEverBoostedLiquidityResult,
   ] = await Promise.all([
     getNetWorthByUser(userId),
     getTradingVolumeByUser(userId),
@@ -136,6 +158,8 @@ export async function getUserStats({ userId }: { userId: string }) {
     hasBoostedLiquidityToday({ userId }),
     calculateActiveDayCount({ userId }),
     getOtherIncomeByUser(userId),
+    hasEverCommented(userId),
+    hasEverBoostedLiquidity(userId),
   ])
 
   return {
@@ -149,5 +173,11 @@ export async function getUserStats({ userId }: { userId: string }) {
     hasBoostedLiquidity,
     activeDayCount,
     otherIncome,
+    milestones: {
+      hasTraded: lastTradeAt != null,
+      hasCreatedMarket: totalMarkets > 0,
+      hasCommented: hasEverCommentedResult,
+      hasBoostedLiquidity: hasEverBoostedLiquidityResult,
+    },
   }
 }

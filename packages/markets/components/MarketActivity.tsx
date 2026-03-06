@@ -92,7 +92,7 @@ export async function MarketActivity({ marketId }: { marketId: string }) {
             <MarketActivityItem
               key={activity.timestampAt.toString()}
               timestampAt={activity.timestampAt}
-              icon={<DiamondPlusIcon className="size-4 text-purple-600" />}
+              icon={<DiamondPlusIcon className="size-4 text-info" />}
               isFirst={i === 0}
               isLast={i === activities.length - 1}
             >

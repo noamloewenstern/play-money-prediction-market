@@ -10,6 +10,7 @@ import '@play-money/ui/emoji'
 import '@play-money/ui/styles.css'
 import { Toaster } from '@play-money/ui/toaster'
 import { TooltipProvider } from '@play-money/ui/tooltip'
+import { ConnectionStatusProvider, NavigationHistoryProvider } from '@play-money/ui'
 import { UserProvider } from '@play-money/users/context/UserContext'
 import { getUserById } from '@play-money/users/lib/getUserById'
 import './globals.css'
@@ -41,7 +42,11 @@ export default async function RootLayout({ children }: { children: React.ReactNo
               <UserProvider user={user}>
                 <LazyEditorExtensions>
                   <ReferralProvider>
-                    <TooltipProvider>{children}</TooltipProvider>
+                    <ConnectionStatusProvider>
+                      <NavigationHistoryProvider>
+                        <TooltipProvider>{children}</TooltipProvider>
+                      </NavigationHistoryProvider>
+                    </ConnectionStatusProvider>
                   </ReferralProvider>
                 </LazyEditorExtensions>
               </UserProvider>

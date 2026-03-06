@@ -73,7 +73,7 @@ export function MarketBalanceBreakdown({
   const promoterTransactionsSum = sumTransactionSubtotals(megaBalance, promoterTransactions)
 
   return (
-    <div className="divide-y font-mono text-xs *:py-2 first:*:pt-0 last:*:pb-0">
+    <div className="divide-y tabular-nums text-xs *:py-2 first:*:pt-0 last:*:pb-0">
       <div>
         {positions.map((position) => {
           const option = options.find((option) => option.id === position.optionId)!
@@ -89,13 +89,13 @@ export function MarketBalanceBreakdown({
               <TooltipTrigger className="flex w-full justify-between gap-2 text-xs text-muted-foreground">
                 <div className="flex gap-1">
                   <div className="mt-1 size-2 flex-shrink-0 rounded-md" style={{ backgroundColor: option.color }} />
-                  <span className="line-clamp-2 text-left font-mono">
+                  <span className="line-clamp-2 text-left tabular-nums">
                     {option.name}
                     {marketOfOption ? ` — ${marketOfOption.question}` : ''}
                   </span>
                 </div>
                 <div className="flex gap-2">
-                  {change ? <span className={change > 0 ? 'text-lime-500' : 'text-red-400'}>{changeLabel}</span> : null}
+                  {change ? <span className={change > 0 ? 'text-success' : 'text-destructive'}>{changeLabel}</span> : null}
                   <CurrencyDisplay value={position.value} />
                 </div>
               </TooltipTrigger>

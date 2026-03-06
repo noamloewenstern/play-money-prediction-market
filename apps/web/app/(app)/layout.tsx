@@ -1,6 +1,9 @@
-import { MenuIcon } from 'lucide-react'
+import { MenuIcon, TrendingUpIcon, PlusCircleIcon, TrophyIcon } from 'lucide-react'
 import Link from 'next/link'
 import { getMyBalance } from '@play-money/api-helpers/client'
+import { LocationChip } from '@play-money/ui/LocationChip'
+import { OfflineBanner } from '@play-money/ui/OfflineBanner'
+import { URLBreadcrumb } from '@play-money/ui/URLBreadcrumb'
 import { NotificationDropdown } from '@play-money/notifications/components/NotificationDropdown'
 import { UserQuestCard } from '@play-money/quests/components/UserQuestCard'
 import { GlobalSearchTriggerLink } from '@play-money/search/components/GlobalSearchTriggerLink'
@@ -18,30 +21,33 @@ function MainNav({
     <nav className={cn('flex items-center text-sm', className)} {...props}>
       {renderItemWrap(
         <Link
-          className="rounded-md px-3 py-1.5 font-medium text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
+          className="flex items-center gap-1.5 rounded-lg px-3 py-2 font-medium text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
           href="/questions"
         >
+          <TrendingUpIcon className="size-4" />
           Questions
         </Link>
       )}
       {renderItemWrap(
         <Link
-          className="rounded-md px-3 py-1.5 font-medium text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
+          className="flex items-center gap-1.5 rounded-lg px-3 py-2 font-medium text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
           href="/create-post"
         >
-          Create Question
+          <PlusCircleIcon className="size-4" />
+          Create
         </Link>
       )}
       {renderItemWrap(
         <Link
-          className="rounded-md px-3 py-1.5 font-medium text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
+          className="flex items-center gap-1.5 rounded-lg px-3 py-2 font-medium text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
           href="/leaderboard"
         >
+          <TrophyIcon className="size-4" />
           Leaderboard
         </Link>
       )}
       {renderItemWrap(
-        <GlobalSearchTriggerLink className="h-auto rounded-md px-3 py-1.5 text-[length:inherit] text-muted-foreground transition-colors hover:bg-accent hover:text-foreground" />
+        <GlobalSearchTriggerLink className="h-auto rounded-lg px-3 py-2 text-[length:inherit] text-muted-foreground transition-colors hover:bg-accent hover:text-foreground" />
       )}
     </nav>
   )
@@ -61,57 +67,65 @@ export default async function AppLayout({ children }: { children: React.ReactNod
   return (
     <div className="flex min-h-screen flex-col bg-background">
       <header className="sticky top-0 z-40 w-full border-b bg-background/80 backdrop-blur-lg">
-        <div className="mx-auto flex h-16 max-w-screen-xl items-center justify-between gap-4 px-4 md:px-8">
+        <div className="mx-auto flex h-14 max-w-screen-xl items-center justify-between gap-4 px-4 md:px-8">
           <Sheet>
             <SheetTrigger asChild>
               <Button className="md:hidden" size="icon" variant="ghost">
-                <MenuIcon className="h-5 w-5" />
+                <MenuIcon className="size-5" />
                 <span className="sr-only">Toggle navigation menu</span>
               </Button>
             </SheetTrigger>
-            <SheetContent className="flex flex-col" side="left">
-              <div className="flex flex-1 flex-col gap-4">
+            <SheetContent className="flex flex-col gap-6" side="left">
+              <Link className="flex items-center gap-2" href="/">
                 <span className="text-lg font-bold tracking-tight">PlayMoney</span>
-                <MainNav
-                  className="flex flex-col items-start space-y-1 text-lg"
-                  renderItemWrap={(child) => <SheetClose asChild>{child}</SheetClose>}
-                />
+              </Link>
+              <MainNav
+                className="flex flex-col items-start gap-1 text-base"
+                renderItemWrap={(child) => <SheetClose asChild>{child}</SheetClose>}
+              />
+              <div className="mt-auto">
+                <UserQuestCard />
               </div>
-              <UserQuestCard />
             </SheetContent>
           </Sheet>
-          <Link className="flex items-center gap-2" href="/">
+          <LocationChip className="md:hidden" />
+          <Link className="hidden items-center gap-2 md:flex" href="/">
             <span className="text-lg font-bold tracking-tight">PlayMoney</span>
           </Link>
-          <MainNav className="hidden gap-1 md:flex" />
+          <MainNav className="hidden gap-0.5 md:flex" />
 
-          <div className="ml-auto flex items-center space-x-2">
+          <div className="ml-auto flex items-center gap-1">
             <NotificationDropdown />
             <UserNav initialBalance={initialBalance} />
           </div>
         </div>
       </header>
 
+      <OfflineBanner />
+
+      <div className="mx-auto w-full max-w-screen-xl px-4 pt-3 md:px-8">
+        <URLBreadcrumb />
+      </div>
       <main className="mx-auto flex w-full max-w-screen-xl flex-1 space-y-4 p-4 md:p-8">{children}</main>
 
-      <footer className="border-t bg-muted/30">
-        <div className="mx-auto flex max-w-screen-xl gap-4 px-4 py-6 text-sm text-muted-foreground md:px-8">
+      <footer className="border-t bg-muted/20">
+        <div className="mx-auto flex max-w-screen-xl items-center gap-6 px-4 py-5 text-sm text-muted-foreground md:px-8">
+          <span className="font-semibold text-foreground/70">PlayMoney</span>
           <a
-            className="transition-colors hover:text-foreground hover:underline"
+            className="transition-colors hover:text-foreground"
             href="https://discord.gg/Q5CeSMFeBP"
             rel="noreferrer"
             target="_blank"
           >
-            Join the discord
+            Discord
           </a>
-          <span className="text-border">|</span>
           <a
-            className="transition-colors hover:text-foreground hover:underline"
+            className="transition-colors hover:text-foreground"
             href="https://github.com/casesandberg/play-money"
             rel="noreferrer"
             target="_blank"
           >
-            Open source
+            GitHub
           </a>
         </div>
       </footer>

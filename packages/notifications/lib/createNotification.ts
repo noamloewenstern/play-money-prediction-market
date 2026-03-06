@@ -1,6 +1,8 @@
 import { v4 as uuidv4 } from 'uuid'
 import db from '@play-money/database'
 import { CreateNotificationData } from '../types'
+import { isInQuietHours } from './isInQuietHours'
+import { queueNotification } from './queueNotification'
 
 export async function createNotification({
   userId,
@@ -15,12 +17,35 @@ export async function createNotification({
   transactionId,
   marketOptionId,
   listId,
+  skipQuietHoursCheck = false,
 }: {
   userId: string
   actionUrl: string
   groupKey: string
   listId?: string
+  skipQuietHoursCheck?: boolean
 } & CreateNotificationData) {
+  if (!skipQuietHoursCheck) {
+    const inQuietHours = await isInQuietHours({ userId })
+    if (inQuietHours) {
+      await queueNotification({
+        userId,
+        type,
+        groupKey,
+        actionUrl,
+        actorId,
+        marketId,
+        commentId,
+        commentReactionId,
+        parentCommentId,
+        transactionId,
+        marketOptionId,
+        listId,
+      })
+      return
+    }
+  }
+
   const isGroupable = ['MARKET_TRADE', 'MARKET_LIQUIDITY_ADDED', 'COMMENT_REACTION', 'REFERRER_BONUS'].includes(type)
 
   const notification = await db.notification.create({

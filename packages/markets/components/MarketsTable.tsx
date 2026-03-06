@@ -8,22 +8,13 @@ import { PageInfo } from '@play-money/api-helpers'
 import { User } from '@play-money/database'
 import { CurrencyDisplay } from '@play-money/finance/components/CurrencyDisplay'
 import { formatDistanceToNowShort } from '@play-money/ui'
-import { useSearchParam } from '@play-money/ui'
 import { UserAvatar } from '@play-money/ui/UserAvatar'
 import { DataTable } from '@play-money/ui/data-table'
 import { DataTableColumnHeader } from '@play-money/ui/data-table-column-header'
-import { Progress } from '@play-money/ui/progress'
-import {
-  Select,
-  SelectContent,
-  SelectGroup,
-  SelectItem,
-  SelectLabel,
-  SelectTrigger,
-  SelectValue,
-} from '@play-money/ui/select'
 import { ExtendedMarket } from '../types'
+import { MarketFilterPanel } from './MarketFilterPanel'
 import { MarketProbabilityDetail } from './MarketProbabilityDetail'
+import { QuickTradePopover } from './QuickTradePopover'
 
 export const columns: Array<ColumnDef<ExtendedMarket>> = [
   {
@@ -37,7 +28,7 @@ export const columns: Array<ColumnDef<ExtendedMarket>> = [
       return (
         <Link
           href={`/questions/${row.original.id}/${row.original.slug || 'market'}`}
-          className="ml-1 line-clamp-2 visited:text-muted-foreground"
+          className="line-clamp-2 leading-relaxed visited:text-muted-foreground"
         >
           {row.getValue('question')}
         </Link>
@@ -55,20 +46,36 @@ export const columns: Array<ColumnDef<ExtendedMarket>> = [
       const marketResolution = row.original.marketResolution
       const canceledAt = row.original.canceledAt
 
-      return (
-        <Link href={`/questions/${row.original.id}/${row.original.slug || 'market'}`}>
-          {canceledAt ? (
+      if (canceledAt) {
+        return (
+          <Link href={`/questions/${row.original.id}/${row.original.slug || 'market'}`}>
             <div className="text-muted-foreground">
               <span className="font-semibold">Canceled</span>
             </div>
-          ) : marketResolution ? (
+          </Link>
+        )
+      }
+
+      if (marketResolution) {
+        return (
+          <Link href={`/questions/${row.original.id}/${row.original.slug || 'market'}`}>
             <div className="text-muted-foreground">
               <span className="font-semibold">Resolved</span> {marketResolution.resolution.name}
             </div>
-          ) : (
+          </Link>
+        )
+      }
+
+      return (
+        <QuickTradePopover marketId={row.original.id} options={options}>
+          <button
+            type="button"
+            className="w-full cursor-pointer text-left transition-opacity hover:opacity-80"
+            data-quick-trade
+          >
             <MarketProbabilityDetail options={options} />
-          )}
-        </Link>
+          </button>
+        </QuickTradePopover>
       )
     },
   },
@@ -133,43 +140,22 @@ export const columns: Array<ColumnDef<ExtendedMarket>> = [
   },
 ]
 
-function MarketTableStatusSelect({ defaultValue = 'active' }: { defaultValue?: string }) {
-  const [status, setStatus] = useSearchParam('status')
-
-  return (
-    <Select
-      value={status || defaultValue}
-      onValueChange={(value) => {
-        setStatus(value === defaultValue ? undefined : value)
-      }}
-    >
-      <SelectTrigger>
-        <SelectValue placeholder="Select status" />
-      </SelectTrigger>
-      <SelectContent>
-        <SelectGroup>
-          <SelectLabel>Status</SelectLabel>
-          <SelectItem value="active">Active</SelectItem>
-          <SelectItem value="closed">Closed</SelectItem>
-          <SelectItem value="resolved">Resolved</SelectItem>
-          <SelectItem value="canceled">Canceled</SelectItem>
-        </SelectGroup>
-      </SelectContent>
-    </Select>
-  )
-}
-
-export function MarketsTable({ data, pageInfo }: { data: Array<ExtendedMarket>; pageInfo: PageInfo }) {
+export function MarketsTable({
+  data,
+  pageInfo,
+  emptyState,
+}: {
+  data: Array<ExtendedMarket>
+  pageInfo: PageInfo
+  emptyState?: React.ReactNode
+}) {
   return (
     <DataTable
       data={data}
       columns={columns}
       pageInfo={pageInfo}
-      controls={
-        <div>
-          <MarketTableStatusSelect />
-        </div>
-      }
+      emptyState={emptyState}
+      controls={<MarketFilterPanel />}
     />
   )
 }

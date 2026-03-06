@@ -4,9 +4,11 @@ import React from 'react'
 import { getUserBalance, getUserStats, getUserUsername } from '@play-money/api-helpers/client'
 import { CurrencyDisplay } from '@play-money/finance/components/CurrencyDisplay'
 import { formatNumber } from '@play-money/finance/lib/formatCurrency'
+import { FloatingBackButton } from '@play-money/ui/FloatingBackButton'
 import { UserAvatar } from '@play-money/ui/UserAvatar'
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@play-money/ui/card'
 import { Separator } from '@play-money/ui/separator'
+import { CreatorReputationBadge } from './CreatorReputationBadge'
 import { UserPlaystyleChart } from './UserPlaystyleChart'
 
 const DiscordIcon = ({ className }: { className: string }) => (
@@ -82,7 +84,10 @@ export async function UserProfileLayout({
             <CardHeader className="flex flex-row items-start gap-4 bg-muted/50">
               <UserAvatar user={profile} size="lg" />
               <div>
-                <CardTitle className="text-lg">{profile.displayName}</CardTitle>
+                <CardTitle className="flex items-center gap-2 text-lg">
+                  {profile.displayName}
+                  <CreatorReputationBadge userId={profile.id} size="sm" />
+                </CardTitle>
                 <CardDescription>@{profile.username}</CardDescription>
               </div>
               {/* <div className="ml-auto flex items-center gap-1">
@@ -156,7 +161,7 @@ export async function UserProfileLayout({
                   <div className="text-muted-foreground">Net worth</div>
                 </div>
                 <div className="text-center">
-                  <div className="font-mono font-semibold">{formatNumber(stats.tradingVolume)}</div>
+                  <div className="tabular-nums font-semibold">{formatNumber(stats.tradingVolume)}</div>
                   <div className="text-muted-foreground">Trading volume</div>
                 </div>
                 <div className="text-center">
@@ -190,7 +195,7 @@ export async function UserProfileLayout({
               {playstyleData.map(({ subject, value, color }) => (
                 <div key={subject} className="flex items-center gap-1">
                   <div className="h-2 w-2 rounded-md" style={{ backgroundColor: color }} />
-                  <div className="font-mono text-xs text-muted-foreground">{subject}</div>
+                  <div className="tabular-nums text-xs text-muted-foreground">{subject}</div>
                 </div>
               ))}
             </div>
@@ -198,6 +203,7 @@ export async function UserProfileLayout({
         </div>
 
         <div className="w-full flex-1">{children}</div>
+        <FloatingBackButton />
       </main>
     )
   } catch (error) {

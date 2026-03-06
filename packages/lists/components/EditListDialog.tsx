@@ -73,8 +73,8 @@ export const EditListDialog = ({
     } catch (error: unknown) {
       console.error('Failed to edit list:', error)
       toast({
-        title: 'There was an issue editing the list',
-        description: error instanceof Error ? error.message : 'Please try again later',
+        title: 'Failed to edit list',
+        description: error instanceof Error ? error.message : 'An unexpected error occurred. Please try again.',
         variant: 'destructive',
       })
     }

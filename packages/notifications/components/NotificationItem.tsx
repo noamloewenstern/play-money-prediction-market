@@ -21,19 +21,19 @@ import { formatDistanceToNowShort } from '../../ui/src/helpers'
 import { NotificationGroupWithLastNotification } from '../lib/getNotifications'
 
 const NOTIFICATION_ICON_MAP: Record<string, { icon: React.ElementType; className: string }> = {
-  MARKET_RESOLVED: { icon: CheckCircle2Icon, className: 'text-green-600' },
-  MARKET_CANCELED: { icon: XCircleIcon, className: 'text-red-500' },
-  MARKET_CLOSED: { icon: LockIcon, className: 'text-amber-500' },
-  MARKET_TRADE: { icon: TrendingUpIcon, className: 'text-blue-500' },
-  MARKET_LIQUIDITY_ADDED: { icon: DropletsIcon, className: 'text-cyan-500' },
-  MARKET_COMMENT: { icon: MessageSquareIcon, className: 'text-violet-500' },
-  LIST_COMMENT: { icon: MessageSquareIcon, className: 'text-violet-500' },
-  COMMENT_REPLY: { icon: MessageSquareIcon, className: 'text-violet-500' },
-  COMMENT_REACTION: { icon: SmileIcon, className: 'text-amber-500' },
-  COMMENT_MENTION: { icon: AtSignIcon, className: 'text-pink-500' },
-  REFERRER_BONUS: { icon: GiftIcon, className: 'text-emerald-500' },
-  TAG_NEW_MARKET: { icon: HashIcon, className: 'text-indigo-500' },
-  MARKET_BOOKMARK_RESOLVED: { icon: BookmarkIcon, className: 'text-green-600' },
+  MARKET_RESOLVED: { icon: CheckCircle2Icon, className: 'text-success' },
+  MARKET_CANCELED: { icon: XCircleIcon, className: 'text-destructive' },
+  MARKET_CLOSED: { icon: LockIcon, className: 'text-warning' },
+  MARKET_TRADE: { icon: TrendingUpIcon, className: 'text-info' },
+  MARKET_LIQUIDITY_ADDED: { icon: DropletsIcon, className: 'text-info' },
+  MARKET_COMMENT: { icon: MessageSquareIcon, className: 'text-muted-foreground' },
+  LIST_COMMENT: { icon: MessageSquareIcon, className: 'text-muted-foreground' },
+  COMMENT_REPLY: { icon: MessageSquareIcon, className: 'text-muted-foreground' },
+  COMMENT_REACTION: { icon: SmileIcon, className: 'text-warning' },
+  COMMENT_MENTION: { icon: AtSignIcon, className: 'text-primary-foreground' },
+  REFERRER_BONUS: { icon: GiftIcon, className: 'text-success' },
+  TAG_NEW_MARKET: { icon: HashIcon, className: 'text-info' },
+  MARKET_BOOKMARK_RESOLVED: { icon: BookmarkIcon, className: 'text-success' },
 }
 
 function createSnippet(htmlString: string, maxLength = 150) {
@@ -211,7 +211,7 @@ export function NotificationItem({
             <div className="h-8 w-8 rounded-full bg-muted-foreground"></div>
           )}
           {TypeIcon ? (
-            <div className="absolute -bottom-1 -right-1 flex h-4 w-4 items-center justify-center rounded-full bg-background shadow-sm">
+            <div className="absolute -bottom-1 -right-1 flex h-4 w-4 items-center justify-center rounded-full bg-background shadow-soft-xs">
               <TypeIcon className={cn('h-3 w-3', iconInfo.className)} />
             </div>
           ) : null}

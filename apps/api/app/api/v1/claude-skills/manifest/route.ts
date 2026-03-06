@@ -1,8 +1,13 @@
+import { createHash } from 'crypto'
+import { readFile } from 'fs/promises'
 import { NextResponse } from 'next/server'
+import path from 'path'
 import type { SchemaResponse } from '@play-money/api-helpers'
 import schema from './schema'
 
 export const dynamic = 'force-dynamic'
+
+const SKILLS_DIR = path.join(process.cwd(), 'skills')
 
 const SKILLS = [
   {
@@ -73,6 +78,25 @@ const SKILLS = [
   },
 ]
 
+const hashCache = new Map<string, string>()
+
+async function computeSha256(skillName: string): Promise<string> {
+  const cached = hashCache.get(skillName)
+  if (cached) return cached
+
+  const filePath = path.join(SKILLS_DIR, `${skillName}.md`)
+  const content = await readFile(filePath, 'utf-8')
+  const hash = createHash('sha256').update(content).digest('hex')
+  hashCache.set(skillName, hash)
+  return hash
+}
+
 export async function GET(_req: Request): Promise<SchemaResponse<typeof schema.get.responses>> {
-  return NextResponse.json({ data: SKILLS })
+  const skillsWithHash = await Promise.all(
+    SKILLS.map(async (skill) => ({
+      ...skill,
+      sha256: await computeSha256(skill.name),
+    }))
+  )
+  return NextResponse.json({ data: skillsWithHash })
 }

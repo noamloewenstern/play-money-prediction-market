@@ -26,6 +26,7 @@ export type ExtendedMarket = Market & {
     resolvedBy: User
   }
   parentList?: List
+  lists?: Array<{ list: List }>
 }
 
 export type ExtendedMarketPosition = MarketOptionPosition & {

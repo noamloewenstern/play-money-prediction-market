@@ -49,3 +49,4 @@ tmp/
 storybook-static
 .vercel
 .automaker/
+test-results/

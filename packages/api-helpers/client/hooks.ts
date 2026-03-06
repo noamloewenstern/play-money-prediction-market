@@ -106,8 +106,58 @@ export function useNotifications({ skip = false }: { skip?: boolean }) {
   )
 }
 
+const THIRTY_SECONDS = 1000 * 30
+export const MY_UNREAD_COUNT_PATH = '/v1/users/me/notifications/unread-count'
+export function useUnreadNotificationCount({ skip = false }: { skip?: boolean }) {
+  return useSWR<{ data: { count: number } }>(
+    !skip ? MY_UNREAD_COUNT_PATH : null,
+    { refreshInterval: THIRTY_SECONDS, refreshWhenHidden: false }
+  )
+}
+
+export const MY_QUIET_HOURS_PATH = '/v1/users/me/quiet-hours'
+export function useMyQuietHours({ skip = false }: { skip?: boolean } = {}) {
+  return useSWR<{
+    data: {
+      quietHoursEnabled: boolean
+      quietHoursStart: number | null
+      quietHoursEnd: number | null
+      doNotDisturb: boolean
+      timezone: string
+    }
+  }>(!skip ? MY_QUIET_HOURS_PATH : null)
+}
+
 export function useUserStats({ userId, skip = false }: { userId: string; skip?: boolean }) {
-  return useSWR<{ data: { quests: Array<Quest> } }>(!skip ? `/v1/users/${userId}/stats` : null)
+  return useSWR<{
+    data: {
+      quests: Array<Quest>
+      milestones: {
+        hasTraded: boolean
+        hasCreatedMarket: boolean
+        hasCommented: boolean
+        hasBoostedLiquidity: boolean
+      }
+    }
+  }>(!skip ? `/v1/users/${userId}/stats` : null)
+}
+
+export function useCreatorReputation({ userId, skip = false }: { userId: string; skip?: boolean }) {
+  return useSWR<{
+    data: {
+      score: number
+      totalMarkets: number
+      resolvedMarkets: number
+      canceledMarkets: number
+      breakdown: {
+        resolutionRate: number
+        timeliness: number
+        traderAttraction: number
+        volumeGenerated: number
+        communityEngagement: number
+      }
+    }
+  }>(!skip ? `/v1/users/${userId}/reputation` : null)
 }
 
 export const MY_BALANCE_PATH = '/v1/users/me/balance'

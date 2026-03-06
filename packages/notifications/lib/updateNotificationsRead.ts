@@ -4,22 +4,62 @@ export async function updateNotificationsRead({
   userId,
   marketId,
   listId,
+  type,
+  groupId,
 }: {
   userId: string
   marketId?: string
   listId?: string
-}): Promise<number> {
+  type?: string
+  groupId?: string
+}): Promise<{ count: number; markedAt: string }> {
   const now = new Date()
 
+  const where: Record<string, unknown> = {
+    recipientId: userId,
+    readAt: null,
+  }
+  if (marketId) where.marketId = marketId
+  if (listId) where.listId = listId
+  if (type) where.type = type
+  if (groupId) {
+    where.groups = { some: { id: groupId } }
+  }
+
   const result = await db.notification.updateMany({
-    where: {
-      recipientId: userId,
-      readAt: null,
-      marketId: marketId,
-      listId: listId,
-    },
+    where,
     data: {
       readAt: now,
+    },
+  })
+
+  return { count: result.count, markedAt: now.toISOString() }
+}
+
+export async function undoNotificationsRead({
+  userId,
+  markedAt,
+  type,
+  groupId,
+}: {
+  userId: string
+  markedAt: string
+  type?: string
+  groupId?: string
+}): Promise<number> {
+  const where: Record<string, unknown> = {
+    recipientId: userId,
+    readAt: new Date(markedAt),
+  }
+  if (type) where.type = type
+  if (groupId) {
+    where.groups = { some: { id: groupId } }
+  }
+
+  const result = await db.notification.updateMany({
+    where,
+    data: {
+      readAt: null,
     },
   })
 

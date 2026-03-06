@@ -47,6 +47,14 @@ const config: Omit<Config, 'content'> = {
           DEFAULT: 'hsl(var(--warning))',
           foreground: 'hsl(var(--warning-foreground))',
         },
+        info: {
+          DEFAULT: 'hsl(var(--info))',
+          foreground: 'hsl(var(--info-foreground))',
+        },
+        surface: {
+          DEFAULT: 'hsl(var(--surface))',
+          raised: 'hsl(var(--surface-raised))',
+        },
       },
       borderRadius: {
         xl: 'calc(var(--radius) + 4px)',
@@ -116,6 +124,31 @@ const config: Omit<Config, 'content'> = {
           from: { transform: 'translateY(4px)', opacity: '0' },
           to: { transform: 'translateY(0)', opacity: '1' },
         },
+        'scale-in': {
+          from: { transform: 'scale(0.95)', opacity: '0' },
+          to: { transform: 'scale(1)', opacity: '1' },
+        },
+        'slide-down': {
+          from: { transform: 'translateY(-4px)', opacity: '0' },
+          to: { transform: 'translateY(0)', opacity: '1' },
+        },
+        'shimmer': {
+          '0%': { backgroundPosition: '-200% 0' },
+          '100%': { backgroundPosition: '200% 0' },
+        },
+        'action-success': {
+          '0%': { transform: 'scale(0)', opacity: '0' },
+          '50%': { transform: 'scale(1.2)' },
+          '100%': { transform: 'scale(1)', opacity: '1' },
+        },
+        'action-shake': {
+          '0%, 100%': { transform: 'translateX(0)' },
+          '15%': { transform: 'translateX(-4px)' },
+          '30%': { transform: 'translateX(4px)' },
+          '45%': { transform: 'translateX(-3px)' },
+          '60%': { transform: 'translateX(3px)' },
+          '75%': { transform: 'translateX(-1px)' },
+        },
       },
       animation: {
         'accordion-down': 'accordion-down 0.2s ease-out',
@@ -125,6 +158,11 @@ const config: Omit<Config, 'content'> = {
         'slide-in-right': 'slide-in-right 0.3s cubic-bezier(.36,.07,.19,.97) both',
         'fade-in': 'fade-in 0.2s ease-out',
         'slide-up': 'slide-up 0.25s ease-out',
+        'scale-in': 'scale-in 0.2s ease-out',
+        'slide-down': 'slide-down 0.2s ease-out',
+        'shimmer': 'shimmer 2s linear infinite',
+        'action-success': 'action-success 0.3s ease-out both',
+        'action-shake': 'action-shake 0.5s ease-out both',
       },
       inset: {},
     },

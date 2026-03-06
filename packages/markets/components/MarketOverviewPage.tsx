@@ -3,9 +3,9 @@
 import { format, isPast } from 'date-fns'
 import orderBy from 'lodash/orderBy'
 import truncate from 'lodash/truncate'
-import { CircleCheckBig, ChevronDown, Link2Icon, ArrowRight } from 'lucide-react'
+import { BarChart3Icon, CircleCheckBig, ChevronDown, Link2Icon, ListIcon } from 'lucide-react'
 import Link from 'next/link'
-import React from 'react'
+import React, { useState } from 'react'
 import { mutate } from 'swr'
 import { createComment } from '@play-money/api-helpers/client'
 import {
@@ -16,6 +16,7 @@ import {
 } from '@play-money/api-helpers/client/hooks'
 import { CreateCommentForm } from '@play-money/comments/components/CreateCommentForm'
 import { CurrencyDisplay } from '@play-money/finance/components/CurrencyDisplay'
+import { INITIAL_MARKET_LIQUIDITY_PRIMARY } from '@play-money/finance/economy'
 import { marketOptionBalancesToProbabilities } from '@play-money/finance/lib/helpers'
 import { UserAvatar } from '@play-money/ui/UserAvatar'
 import { Alert, AlertDescription, AlertTitle } from '@play-money/ui/alert'
@@ -25,18 +26,24 @@ import { Card, CardContent, CardHeader, CardTitle } from '@play-money/ui/card'
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@play-money/ui/collapsible'
 import { ReadMoreEditor } from '@play-money/ui/editor'
 import { toast } from '@play-money/ui/use-toast'
+import { cn } from '@play-money/ui/utils'
+import { CreatorReputationBadge } from '@play-money/users/components/CreatorReputationBadge'
 import { UserLink } from '@play-money/users/components/UserLink'
 import { useUser } from '@play-money/users/context/UserContext'
 import { useSelectedItems } from '../../ui/src/contexts/SelectedItemContext'
 import { useSearchParam } from '../../ui/src/hooks/useSearchParam'
-import { canModifyMarket, isMarketClosed, isMarketTradable } from '../rules'
+import { canModifyMarket, isMarketTradable } from '../rules'
 import { ExtendedMarket } from '../types'
 import { EditMarketDialog } from './EditMarketDialog'
 import { EditMarketOptionDialog } from './EditMarketOptionDialog'
 import { LiquidityBoostAlert } from './LiquidityBoostAlert'
 import { LiquidityBoostDialog } from './LiquidityBoostDialog'
+import { LowLiquidityBanner } from './LowLiquidityBanner'
+import { MarketComparisonView } from './MarketComparisonView'
 import { MarketGraph } from './MarketGraph'
 import { MarketOptionRow } from './MarketOptionRow'
+import { MarketListsChip } from './MarketListsChip'
+import { MarketStatusBanner } from './MarketStatusBanner'
 import { MarketToolbar } from './MarketToolbar'
 import { useSidebar } from './SidebarContext'
 
@@ -66,11 +73,12 @@ export function MarketOverviewPage({
   const [isEditing, setIsEditing] = useSearchParam('edit')
   const [isEditOption, setIsEditOption] = useSearchParam('editOption')
   const [isBoosting, setIsBoosting] = useSearchParam('boost')
-  const [, setResolving] = useSearchParam('resolve')
   const isCreator = user?.id === market.createdBy
   const probabilities = marketOptionBalancesToProbabilities(balance?.amm)
   const canEdit = user ? canModifyMarket({ market, user }) : false
   const canTrade = isMarketTradable({ market })
+  const isMultiOption = market.options.length >= 3
+  const [viewMode, setViewMode] = useState<'compare' | 'list'>(isMultiOption ? 'compare' : 'list')
 
   const mostLikelyOption = market.options.reduce((prev, current) =>
     (prev.probability || 0) > (current.probability || 0) ? prev : current
@@ -99,17 +107,7 @@ export function MarketOverviewPage({
 
   return (
     <>
-      {isMarketClosed({ market }) ? (
-        <div
-          className="flex flex-row items-center justify-between gap-2 rounded border border-primary bg-primary/10 p-1 pl-3 text-foreground"
-          onClick={() => setResolving('true')}
-        >
-          This question has ended, please resolve it now.
-          <Button size="sm">
-            Resolve <ArrowRight className="h-4 w-4" />
-          </Button>
-        </div>
-      ) : null}
+      <MarketStatusBanner market={market} />
 
       <Card className="flex-1">
         <MarketToolbar
@@ -131,36 +129,37 @@ export function MarketOverviewPage({
             </Link>
           ) : null}
           <CardTitle className="leading-relaxed">{market.question}</CardTitle>
-          <div className="flex flex-row flex-wrap gap-x-4 gap-y-2 text-sm text-muted-foreground md:flex-nowrap">
+          <div className="flex flex-row flex-wrap items-center gap-x-3 gap-y-2 text-sm text-muted-foreground md:flex-nowrap">
             {market.canceledAt ? (
-              <div className="text-muted-foreground">
-                <span className="font-semibold">Canceled</span>
-              </div>
+              <Badge variant="secondary" className="font-semibold">Canceled</Badge>
             ) : null}
             {!market.marketResolution && !market.canceledAt ? (
-              <div style={{ color: mostLikelyOption.color }} className="flex-shrink-0 font-medium">
+              <span
+                data-walkthrough="probability"
+                style={{ color: mostLikelyOption.color }}
+                className="flex-shrink-0 tabular-nums font-semibold"
+              >
                 {Math.round(mostLikelyOption.probability || 0)}% {truncate(mostLikelyOption.name, { length: 30 })}
-              </div>
+              </span>
             ) : null}
             {market.liquidityCount ? (
-              <div className="flex-shrink-0">
+              <span className="flex-shrink-0">
                 <CurrencyDisplay value={market.liquidityCount} isShort /> Vol.
-              </div>
+              </span>
             ) : null}
-
             {market.closeDate ? (
-              <div className="flex-shrink-0">
+              <span className="flex-shrink-0">
                 {isPast(market.closeDate) ? 'Ended' : 'Ending'} {format(market.closeDate, 'MMM d, yyyy')}
-              </div>
+              </span>
             ) : null}
             {market.user ? (
-              <div className="flex items-center gap-1 truncate">
+              <span className="flex items-center gap-1.5 truncate">
                 <UserAvatar user={market.user} size="sm" />
                 <UserLink user={market.user} hideUsername />
-              </div>
+                <CreatorReputationBadge userId={market.createdBy} size="sm" />
+              </span>
             ) : null}
-            {/* <div>15 Traders</div>
-          <div>$650 Volume</div> */}
+            {market.lists?.length ? <MarketListsChip lists={market.lists} /> : null}
           </div>
         </CardHeader>
         <CardContent>
@@ -230,23 +229,68 @@ export function MarketOverviewPage({
               ) : null}
             </>
           ) : orderedMarketOptions.length ? (
-            <Card>
-              {orderedMarketOptions.map((option, i) => (
-                <MarketOptionRow
-                  key={option.id}
-                  option={option}
-                  active={option.id === selected[0]}
-                  probability={probabilities[option.id] || option.probability || 0}
-                  className={i > 0 ? 'border-t' : ''}
-                  canEdit={user ? canModifyMarket({ market, user }) : false}
-                  onEdit={() => setIsEditOption(option.id)}
-                  onSelect={() => {
-                    setSelected([option.id])
-                    triggerEffect()
-                  }}
-                />
-              ))}
-            </Card>
+            <>
+              {isMultiOption ? (
+                <div className="mb-2 flex justify-end">
+                  <div className="inline-flex items-center rounded-md border p-0.5">
+                    <button
+                      type="button"
+                      onClick={() => setViewMode('compare')}
+                      className={cn(
+                        'inline-flex items-center gap-1 rounded-sm px-2 py-1 text-xs font-medium transition-colors',
+                        viewMode === 'compare' ? 'bg-muted text-foreground' : 'text-muted-foreground hover:text-foreground'
+                      )}
+                    >
+                      <BarChart3Icon className="size-3.5" />
+                      Compare
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setViewMode('list')}
+                      className={cn(
+                        'inline-flex items-center gap-1 rounded-sm px-2 py-1 text-xs font-medium transition-colors',
+                        viewMode === 'list' ? 'bg-muted text-foreground' : 'text-muted-foreground hover:text-foreground'
+                      )}
+                    >
+                      <ListIcon className="size-3.5" />
+                      List
+                    </button>
+                  </div>
+                </div>
+              ) : null}
+              {viewMode === 'compare' && isMultiOption ? (
+                <Card className="p-3">
+                  <MarketComparisonView
+                    options={orderedMarketOptions}
+                    probabilities={probabilities}
+                    activeOptionId={selected[0]}
+                    marketId={market.id}
+                    onSelect={(optionId) => {
+                      setSelected([optionId])
+                      triggerEffect()
+                    }}
+                  />
+                </Card>
+              ) : (
+                <Card>
+                  {orderedMarketOptions.map((option, i) => (
+                    <MarketOptionRow
+                      key={option.id}
+                      option={option}
+                      active={option.id === selected[0]}
+                      probability={probabilities[option.id] || option.probability || 0}
+                      className={i > 0 ? 'border-t' : ''}
+                      canEdit={user ? canModifyMarket({ market, user }) : false}
+                      onEdit={() => setIsEditOption(option.id)}
+                      onSelect={() => {
+                        setSelected([option.id])
+                        triggerEffect()
+                      }}
+                    />
+                  ))}
+                </Card>
+              )}
+            </>
           ) : null}
         </CardContent>
 
@@ -273,16 +317,26 @@ export function MarketOverviewPage({
 
         {!market.resolvedAt && !market.canceledAt ? (
           <CardContent>
-            <LiquidityBoostAlert onClick={() => setIsBoosting('true')} />
+            {(market.liquidityCount ?? 0) <= INITIAL_MARKET_LIQUIDITY_PRIMARY * 1.5 ? (
+              <LowLiquidityBanner onClick={() => setIsBoosting('true')} />
+            ) : (
+              <LiquidityBoostAlert onClick={() => setIsBoosting('true')} />
+            )}
           </CardContent>
         ) : null}
 
-        <div className="flex flex-row items-center justify-between px-6 ">
-          <div className="text-lg font-semibold">Activity</div>
+        <div className="mx-6 border-t" />
+
+        <div className="flex flex-row items-center justify-between px-6 pt-5">
+          <h3 className="text-base font-semibold">Activity</h3>
         </div>
 
-        <div className="mt-2 px-6">
-          <CreateCommentForm onSubmit={handleCreateComment} startCollapsed />
+        <div className="mt-3 px-6">
+          <CreateCommentForm
+            onSubmit={handleCreateComment}
+            startCollapsed
+            draftKey={`comment-draft-MARKET-${market.id}`}
+          />
         </div>
         {renderActivity}
 

@@ -1,4 +1,4 @@
-import { ArrowRightIcon, MinusIcon } from 'lucide-react'
+import { ArrowRightIcon, ClockIcon, ListIcon, TrendingUpIcon, MinusIcon } from 'lucide-react'
 import Link from 'next/link'
 import React from 'react'
 import { getLists, getMarkets } from '@play-money/api-helpers/client'
@@ -23,8 +23,11 @@ export default async function AppPage() {
         <PersonalizedFeed />
 
         <Card className="overflow-hidden">
-          <div className="flex items-center justify-between border-b bg-muted/50 px-5 py-3">
-            <h4 className="text-sm font-semibold uppercase tracking-wider text-muted-foreground">Closing soon</h4>
+          <div className="flex items-center justify-between border-b bg-muted/40 px-5 py-3">
+            <div className="flex items-center gap-2">
+              <ClockIcon className="size-4 text-muted-foreground" />
+              <h4 className="text-sm font-semibold text-muted-foreground">Closing Soon</h4>
+            </div>
 
             <Link
               className="flex items-center gap-1 text-xs font-medium text-muted-foreground transition-colors hover:text-foreground"
@@ -35,7 +38,7 @@ export default async function AppPage() {
             </Link>
           </div>
 
-          <div className="divide-y font-mono text-sm">
+          <div className="divide-y text-sm">
             {closingMarkets.map((market) => {
               return (
                 <div
@@ -43,14 +46,14 @@ export default async function AppPage() {
                   key={market.id}
                 >
                   <Link
-                    className="flex-[3] px-5 pb-1 pt-3 leading-snug visited:text-muted-foreground sm:py-3"
+                    className="flex-[3] px-5 pb-1 pt-3 leading-relaxed visited:text-muted-foreground sm:py-3.5"
                     href={`/questions/${market.id}/${market.slug}`}
                   >
                     <span className="line-clamp-2">{market.question}</span>
                   </Link>
 
                   <div className="flex flex-[2] items-center">
-                    <Link className="flex-1 px-3 py-2 sm:py-3" href={`/questions/${market.id}/${market.slug}`}>
+                    <Link className="flex-1 px-4 py-2 sm:py-3.5" href={`/questions/${market.id}/${market.slug}`}>
                       {market.canceledAt ? (
                         <div className="text-muted-foreground">
                           <span className="font-semibold">Canceled</span>
@@ -63,11 +66,13 @@ export default async function AppPage() {
                         <MarketProbabilityDetail options={market.options} />
                       )}
                     </Link>
-                    <div className="px-4 py-2 sm:py-3">
+                    <div className="px-4 py-2 sm:py-3.5">
                       {market.closeDate ? (
-                        <div className="text-xs text-muted-foreground">{formatDistanceToNowShort(market.closeDate)}</div>
+                        <div className="whitespace-nowrap text-xs text-muted-foreground">
+                          {formatDistanceToNowShort(market.closeDate)}
+                        </div>
                       ) : (
-                        <MinusIcon className="h-4 w-4 text-muted-foreground/50" />
+                        <MinusIcon className="size-4 text-muted-foreground/50" />
                       )}
                     </div>
                   </div>
@@ -78,11 +83,14 @@ export default async function AppPage() {
         </Card>
 
         <Card className="overflow-hidden">
-          <div className="flex items-center justify-between border-b bg-muted/50 px-5 py-3">
-            <h4 className="text-sm font-semibold uppercase tracking-wider text-muted-foreground">Recent lists</h4>
+          <div className="flex items-center justify-between border-b bg-muted/40 px-5 py-3">
+            <div className="flex items-center gap-2">
+              <ListIcon className="size-4 text-muted-foreground" />
+              <h4 className="text-sm font-semibold text-muted-foreground">Recent Lists</h4>
+            </div>
           </div>
 
-          <div className="divide-y font-mono text-sm">
+          <div className="divide-y text-sm">
             {newLists.map((list) => {
               return (
                 <div
@@ -90,14 +98,14 @@ export default async function AppPage() {
                   key={list.id}
                 >
                   <Link
-                    className="flex-[3] px-5 pb-1 pt-3 leading-snug visited:text-muted-foreground sm:py-3"
+                    className="flex-[3] px-5 pb-1 pt-3 leading-relaxed visited:text-muted-foreground sm:py-3.5"
                     href={`/lists/${list.id}/${list.slug}`}
                   >
-                    <span className="line-clamp-2">{list.title}</span>
+                    <span className="line-clamp-2 font-medium">{list.title}</span>
                   </Link>
 
                   <div className="flex flex-[2] items-center">
-                    <Link className="flex-1 px-3 py-2 sm:py-3" href={`/lists/${list.id}/${list.slug}`}>
+                    <Link className="flex-1 px-4 py-2 sm:py-3.5" href={`/lists/${list.id}/${list.slug}`}>
                       <span className="line-clamp-2 text-xs text-muted-foreground">
                         {list.markets.slice(0, 5).map((m) => (
                           <span className="inline pr-1" key={m.market.id}>
@@ -110,7 +118,7 @@ export default async function AppPage() {
                         ))}
                       </span>
                     </Link>
-                    <div className="px-4 py-2 sm:py-3">
+                    <div className="px-4 py-2 sm:py-3.5">
                       <Link href={`/${list.owner.username}`}>
                         <UserAvatar size="sm" user={list.owner} />
                       </Link>
@@ -123,8 +131,11 @@ export default async function AppPage() {
         </Card>
 
         <Card className="overflow-hidden">
-          <div className="flex items-center justify-between border-b bg-muted/50 px-5 py-3">
-            <h4 className="text-sm font-semibold uppercase tracking-wider text-muted-foreground">Recent questions</h4>
+          <div className="flex items-center justify-between border-b bg-muted/40 px-5 py-3">
+            <div className="flex items-center gap-2">
+              <TrendingUpIcon className="size-4 text-muted-foreground" />
+              <h4 className="text-sm font-semibold text-muted-foreground">Recent Questions</h4>
+            </div>
 
             <Link
               className="flex items-center gap-1 text-xs font-medium text-muted-foreground transition-colors hover:text-foreground"
@@ -135,7 +146,7 @@ export default async function AppPage() {
             </Link>
           </div>
 
-          <div className="divide-y font-mono text-sm">
+          <div className="divide-y text-sm">
             {newMarkets.map((market) => {
               return (
                 <div
@@ -143,14 +154,14 @@ export default async function AppPage() {
                   key={market.id}
                 >
                   <Link
-                    className="flex-[3] px-5 pb-1 pt-3 leading-snug visited:text-muted-foreground sm:py-3"
+                    className="flex-[3] px-5 pb-1 pt-3 leading-relaxed visited:text-muted-foreground sm:py-3.5"
                     href={`/questions/${market.id}/${market.slug}`}
                   >
                     <span className="line-clamp-2">{market.question}</span>
                   </Link>
 
                   <div className="flex flex-[2] items-center">
-                    <Link className="flex-1 px-3 py-2 sm:py-3" href={`/questions/${market.id}/${market.slug}`}>
+                    <Link className="flex-1 px-4 py-2 sm:py-3.5" href={`/questions/${market.id}/${market.slug}`}>
                       {market.canceledAt ? (
                         <div className="text-muted-foreground">
                           <span className="font-semibold">Canceled</span>
@@ -163,7 +174,7 @@ export default async function AppPage() {
                         <MarketProbabilityDetail options={market.options} />
                       )}
                     </Link>
-                    <div className="px-4 py-2 sm:py-3">
+                    <div className="px-4 py-2 sm:py-3.5">
                       <Link href={`/${market.user.username}`}>
                         <UserAvatar size="sm" user={market.user} />
                       </Link>

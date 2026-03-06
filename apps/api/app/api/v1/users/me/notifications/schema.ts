@@ -13,10 +13,12 @@ export default {
     },
   },
   post: {
-    summary: 'Mark all notification as read for the currenty user',
+    summary: 'Mark notifications as read with optional type/group filter and undo support',
     security: true,
     responses: {
-      200: z.object({ data: z.object({ success: z.boolean() }) }),
+      200: z.object({
+        data: z.object({ success: z.boolean(), count: z.number().optional(), markedAt: z.string().optional() }),
+      }),
       404: ServerErrorSchema,
       500: ServerErrorSchema,
     },

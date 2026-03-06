@@ -6,11 +6,16 @@ import { Card, CardContent } from '@play-money/ui/card'
 import { cn } from '@play-money/ui/utils'
 import { UserLink } from '@play-money/users/components/UserLink'
 import { ExtendedMarket } from '../types'
+import { MarketLeaderboardPanelSkeleton } from './MarketLeaderboardPanelSkeleton'
 
 export function MarketLeaderboardPanel({ market }: { market: ExtendedMarket }) {
   const { data: positionsData } = useMarketBalances({ marketId: market.id })
   const positions = positionsData?.data
   const userInLeaderboard = positions?.user && positions?.balances.find((b) => b.accountId === positions.user.accountId)
+
+  if (!positionsData) {
+    return <MarketLeaderboardPanelSkeleton />
+  }
 
   return positions?.balances.length || positions?.user ? (
     <Card>
@@ -32,7 +37,7 @@ export function MarketLeaderboardPanel({ market }: { market: ExtendedMarket }) {
                       {i + 1}
                     </Badge>
                     <UserLink user={balance.account.userPrimary} className="truncate text-sm" hideUsername />
-                    <span className="ml-auto font-mono text-sm text-muted-foreground">
+                    <span className="ml-auto tabular-nums text-sm text-muted-foreground">
                       <CurrencyDisplay value={balance.total} isShort />
                     </span>
                   </li>
@@ -47,7 +52,7 @@ export function MarketLeaderboardPanel({ market }: { market: ExtendedMarket }) {
             <div className="mt-2 text-xs font-semibold uppercase text-muted-foreground">You</div>
             <li className="flex items-center gap-2 py-2">
               <UserLink user={positions.user.account.userPrimary} className="truncate text-sm" hideUsername />
-              <span className="ml-auto font-mono text-sm text-muted-foreground">
+              <span className="ml-auto tabular-nums text-sm text-muted-foreground">
                 <CurrencyDisplay value={positions.user.total} isShort />
               </span>
             </li>

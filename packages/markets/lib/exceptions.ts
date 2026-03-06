@@ -61,6 +61,15 @@ export class InsufficientBalanceError extends Error {
   }
 }
 
+export class InsufficientSharesError extends Error {
+  static code = 'INSUFFICIENT_SHARES'
+
+  constructor(message = 'Insufficient shares') {
+    super(message)
+    this.name = 'InsufficientSharesError'
+  }
+}
+
 export class InvalidTransactionTypeError extends Error {
   static code = 'INVALID_TRANSACTION_TYPE'
 

@@ -1,7 +1,7 @@
 'use client'
 
-import { CircleOffIcon } from 'lucide-react'
-import React from 'react'
+import { CircleOffIcon, ShareIcon } from 'lucide-react'
+import React, { useState } from 'react'
 import { mutate } from 'swr'
 import {
   MARKET_BALANCE_PATH,
@@ -10,15 +10,18 @@ import {
   useMarketBalance,
 } from '@play-money/api-helpers/client/hooks'
 import { useSelectedItems } from '@play-money/ui'
+import { Button } from '@play-money/ui/button'
 import { Card, CardContent, CardHeader } from '@play-money/ui/card'
 import { Combobox } from '@play-money/ui/combobox'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@play-money/ui/tabs'
 import { cn } from '@play-money/ui/utils'
+import { useUser } from '@play-money/users/context/UserContext'
 import { ExtendedMarket } from '../types'
 import { MarketBalanceBreakdown } from './MarketBalanceBreakdown'
 import { MarketBuyForm } from './MarketBuyForm'
 import { MarketLeaderboardPanel } from './MarketLeaderboardPanel'
 import { MarketSellForm } from './MarketSellForm'
+import { SharePositionDialog } from './SharePositionDialog'
 import { useSidebar } from './SidebarContext'
 
 export function MarketTradePanel({
@@ -34,6 +37,7 @@ export function MarketTradePanel({
   isCanceled: boolean
   onTradeComplete?: () => void
 }) {
+  const { user } = useUser()
   const { selected, setSelected } = useSelectedItems()
   // We can SSR this now, since the P&L will be the one thats updated externally and this one will only ever be updated by a user!
   const { data: balanceData, mutate: revalidate } = useMarketBalance({ marketId: market.id })
@@ -41,6 +45,12 @@ export function MarketTradePanel({
   const balance = balanceData?.data
   const activeOption = market.options.find((o) => o.id === selected[0])
   const activePosition = balance?.userPositions.find((p) => p.optionId === activeOption?.id)
+  const [sharePosition, setSharePosition] = useState<{ optionId: string } | null>(null)
+
+  const shareOption = sharePosition ? market.options.find((o) => o.id === sharePosition.optionId) : null
+  const sharePositionData = sharePosition
+    ? balance?.userPositions.find((p) => p.optionId === sharePosition.optionId)
+    : null
 
   const handleComplete = async () => {
     void mutate(MY_BALANCE_PATH)
@@ -62,7 +72,7 @@ export function MarketTradePanel({
           <div className="text-balance text-center text-sm uppercase text-muted-foreground">Question canceled</div>
         </Card>
       ) : isTradable ? (
-        <Card className={cn(effect && 'animate-slide-in-right')} onAnimationEnd={resetEffect}>
+        <Card className={cn(effect && 'animate-slide-in-right')} onAnimationEnd={resetEffect} data-walkthrough="trade-panel">
           <Tabs defaultValue="buy">
             <CardHeader className="flex items-start bg-muted md:p-3">
               <Combobox
@@ -110,6 +120,17 @@ export function MarketTradePanel({
           <CardContent className="flex flex-col gap-2 p-3 md:py-4">
             <div className="flex justify-between font-semibold">
               <span>Balance</span>
+              {activePosition && activeOption && user ? (
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="h-auto p-0 text-muted-foreground"
+                  onClick={() => setSharePosition({ optionId: activeOption.id })}
+                >
+                  <ShareIcon className="mr-1 h-3.5 w-3.5" />
+                  Share
+                </Button>
+              ) : null}
             </div>
 
             <MarketBalanceBreakdown
@@ -119,6 +140,17 @@ export function MarketTradePanel({
             />
           </CardContent>
         </Card>
+      ) : null}
+
+      {shareOption && sharePositionData && user ? (
+        <SharePositionDialog
+          market={market}
+          option={shareOption}
+          position={sharePositionData}
+          userId={user.id}
+          open={!!sharePosition}
+          onClose={() => setSharePosition(null)}
+        />
       ) : null}
     </div>
   )

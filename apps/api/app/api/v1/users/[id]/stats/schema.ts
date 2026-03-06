@@ -23,6 +23,12 @@ export default {
               completed: z.boolean(),
             })
           ),
+          milestones: z.object({
+            hasTraded: z.boolean(),
+            hasCreatedMarket: z.boolean(),
+            hasCommented: z.boolean(),
+            hasBoostedLiquidity: z.boolean(),
+          }),
         }),
       }),
       404: ServerErrorSchema,

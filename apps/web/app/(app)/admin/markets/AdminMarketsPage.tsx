@@ -1,5 +1,6 @@
 'use client'
 
+import { CircleDotIcon } from 'lucide-react'
 import Link from 'next/link'
 import React, { useState } from 'react'
 import useSWR from 'swr'
@@ -29,6 +30,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@play-money/ui/select'
+import { Skeleton } from '@play-money/ui/skeleton'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@play-money/ui/table'
 import { toast } from '@play-money/ui/use-toast'
 
@@ -320,7 +322,41 @@ export function AdminMarketsPage() {
       ) : null}
 
       {isLoading ? (
-        <div className="text-muted-foreground">Loading markets...</div>
+        <div className="rounded-md border">
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead className="w-[40px]" />
+                <TableHead className="min-w-[250px]">Question</TableHead>
+                <TableHead>Creator</TableHead>
+                <TableHead>Status</TableHead>
+                <TableHead>Traders</TableHead>
+                <TableHead>Comments</TableHead>
+                <TableHead>Created</TableHead>
+                <TableHead>Actions</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {Array.from({ length: 5 }).map((_, i) => (
+                <TableRow key={i}>
+                  <TableCell><Skeleton className="h-4 w-4 rounded" /></TableCell>
+                  <TableCell><Skeleton className="h-4 w-full" /></TableCell>
+                  <TableCell><Skeleton className="h-4 w-16" /></TableCell>
+                  <TableCell><Skeleton className="h-5 w-14 rounded-full" /></TableCell>
+                  <TableCell><Skeleton className="h-4 w-8" /></TableCell>
+                  <TableCell><Skeleton className="h-4 w-8" /></TableCell>
+                  <TableCell><Skeleton className="h-4 w-20" /></TableCell>
+                  <TableCell>
+                    <div className="flex gap-1">
+                      <Skeleton className="h-8 w-16 rounded-md" />
+                      <Skeleton className="h-8 w-14 rounded-md" />
+                    </div>
+                  </TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        </div>
       ) : (
         <>
           <div className="rounded-md border">
@@ -347,8 +383,14 @@ export function AdminMarketsPage() {
               <TableBody>
                 {markets.length === 0 ? (
                   <TableRow>
-                    <TableCell className="text-center text-muted-foreground" colSpan={8}>
-                      No markets found.
+                    <TableCell className="h-32" colSpan={8}>
+                      <div className="flex flex-col items-center justify-center gap-2 text-center">
+                        <div className="flex size-10 items-center justify-center rounded-full bg-muted">
+                          <CircleDotIcon className="size-4 text-muted-foreground" />
+                        </div>
+                        <p className="text-sm font-medium text-muted-foreground">No markets found</p>
+                        <p className="text-xs text-muted-foreground">Try adjusting your search or filters.</p>
+                      </div>
                     </TableCell>
                   </TableRow>
                 ) : (

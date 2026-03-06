@@ -1,7 +1,7 @@
 import Decimal from 'decimal.js'
 import { getUserPrimaryAccount } from '@play-money/users/lib/getUserPrimaryAccount'
 import { triggerWebhook } from '@play-money/webhooks/lib/triggerWebhook'
-import { isMarketTradable } from '../rules'
+import { isMarketResolved, isMarketTradable } from '../rules'
 import { createMarketSellTransaction } from './createMarketSellTransaction'
 import { MarketClosedError } from './exceptions'
 import { getMarket } from './getMarket'
@@ -22,7 +22,10 @@ export async function marketSell({
     getUserPrimaryAccount({ userId: userId }),
   ])
   if (!isMarketTradable({ market })) {
-    throw new MarketClosedError()
+    const reason = isMarketResolved({ market })
+      ? 'This market has been resolved and is no longer accepting trades.'
+      : 'This market is closed and is no longer accepting trades.'
+    throw new MarketClosedError(reason)
   }
 
   const transaction = await createMarketSellTransaction({

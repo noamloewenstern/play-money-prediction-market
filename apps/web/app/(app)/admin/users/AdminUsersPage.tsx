@@ -1,5 +1,6 @@
 'use client'
 
+import { UsersIcon } from 'lucide-react'
 import Link from 'next/link'
 import React, { useState } from 'react'
 import useSWR from 'swr'
@@ -14,6 +15,7 @@ import {
   DialogTitle,
 } from '@play-money/ui/dialog'
 import { Input } from '@play-money/ui/input'
+import { Skeleton } from '@play-money/ui/skeleton'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@play-money/ui/table'
 import { toast } from '@play-money/ui/use-toast'
 
@@ -101,7 +103,45 @@ export function AdminUsersPage() {
       />
 
       {isLoading ? (
-        <div className="text-muted-foreground">Loading users...</div>
+        <div className="rounded-md border">
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>User</TableHead>
+                <TableHead>Email</TableHead>
+                <TableHead>Role</TableHead>
+                <TableHead>Status</TableHead>
+                <TableHead>Markets</TableHead>
+                <TableHead>Trades</TableHead>
+                <TableHead>Joined</TableHead>
+                <TableHead>Actions</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {Array.from({ length: 5 }).map((_, i) => (
+                <TableRow key={i}>
+                  <TableCell>
+                    <Skeleton className="h-4 w-24" />
+                    <Skeleton className="mt-1 h-3 w-16" />
+                  </TableCell>
+                  <TableCell><Skeleton className="h-4 w-32" /></TableCell>
+                  <TableCell><Skeleton className="h-5 w-12 rounded-full" /></TableCell>
+                  <TableCell><Skeleton className="h-5 w-14 rounded-full" /></TableCell>
+                  <TableCell><Skeleton className="h-4 w-8" /></TableCell>
+                  <TableCell><Skeleton className="h-4 w-8" /></TableCell>
+                  <TableCell><Skeleton className="h-4 w-20" /></TableCell>
+                  <TableCell>
+                    <div className="flex gap-1">
+                      <Skeleton className="h-8 w-12 rounded-md" />
+                      <Skeleton className="h-8 w-12 rounded-md" />
+                      <Skeleton className="h-8 w-16 rounded-md" />
+                    </div>
+                  </TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        </div>
       ) : (
         <>
           <div className="rounded-md border">
@@ -121,8 +161,14 @@ export function AdminUsersPage() {
               <TableBody>
                 {users.length === 0 ? (
                   <TableRow>
-                    <TableCell className="text-center text-muted-foreground" colSpan={8}>
-                      No users found.
+                    <TableCell className="h-32" colSpan={8}>
+                      <div className="flex flex-col items-center justify-center gap-2 text-center">
+                        <div className="flex size-10 items-center justify-center rounded-full bg-muted">
+                          <UsersIcon className="size-4 text-muted-foreground" />
+                        </div>
+                        <p className="text-sm font-medium text-muted-foreground">No users found</p>
+                        <p className="text-xs text-muted-foreground">Try adjusting your search or filters.</p>
+                      </div>
                     </TableCell>
                   </TableRow>
                 ) : (

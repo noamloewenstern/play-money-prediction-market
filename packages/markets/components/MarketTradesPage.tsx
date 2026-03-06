@@ -1,11 +1,14 @@
 import { format, isPast } from 'date-fns'
+import { ArrowRightLeftIcon, TrendingUpIcon } from 'lucide-react'
 import truncate from 'lodash/truncate'
+import Link from 'next/link'
 import React from 'react'
 import { PageInfo } from '@play-money/api-helpers/types'
 import { CurrencyDisplay } from '@play-money/finance/components/CurrencyDisplay'
 import { TradesTable } from '@play-money/finance/components/TradesTable'
 import { TransactionWithEntries } from '@play-money/finance/types'
 import { UserAvatar } from '@play-money/ui/UserAvatar'
+import { Button } from '@play-money/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@play-money/ui/card'
 import { UserLink } from '@play-money/users/components/UserLink'
 import { ExtendedMarket } from '../types'
@@ -60,7 +63,21 @@ export function MarketTradesPage({
         {transactions.length ? (
           <TradesTable data={transactions} pageInfo={pageInfo} />
         ) : (
-          <div className="text-sm text-muted-foreground">No trades have been made yet.</div>
+          <div className="flex flex-col items-center gap-3 py-8 text-center">
+            <div className="flex size-12 items-center justify-center rounded-full bg-primary/10">
+              <ArrowRightLeftIcon className="size-5 text-primary" />
+            </div>
+            <p className="text-sm font-semibold">No trades yet</p>
+            <p className="max-w-sm text-xs text-muted-foreground">
+              Be the first to trade on this market. Buy shares in the outcome you think is most likely.
+            </p>
+            <Link href={`/questions/${market.id}/${market.slug}`}>
+              <Button size="sm" className="mt-1">
+                <TrendingUpIcon className="mr-1.5 size-3.5" />
+                Make a Prediction
+              </Button>
+            </Link>
+          </div>
         )}
       </CardContent>
     </Card>

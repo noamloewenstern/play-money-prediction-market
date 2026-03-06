@@ -6,6 +6,7 @@ import type { LeaderboardUser } from '@play-money/finance/types'
 import { Badge } from '@play-money/ui/badge'
 import { cn } from '@play-money/ui/utils'
 import { UserLink } from '@play-money/users/components/UserLink'
+import { LeaderboardRankingGoals } from './LeaderboardRankingGoals'
 import { LeaderboardTitle } from './LeaderboardTitle'
 
 function LeaderboardUserTable({
@@ -42,7 +43,7 @@ function LeaderboardUserTable({
               hideUsername
               user={{ ...leaderboardUser, id: leaderboardUser.userId }}
             />
-            <span className="ml-auto font-mono text-sm text-muted-foreground">
+            <span className="ml-auto tabular-nums text-sm text-muted-foreground">
               <CurrencyDisplay isShort value={leaderboardUser.total} />
             </span>
           </li>
@@ -63,7 +64,7 @@ function LeaderboardUserTable({
               hideUsername
               user={{ ...activeUserRank, id: activeUserRank.userId }}
             />
-            <span className="ml-auto font-mono text-sm text-muted-foreground">
+            <span className="ml-auto tabular-nums text-sm text-muted-foreground">
               <CurrencyDisplay isShort value={activeUserRank.total} />
             </span>
           </li>
@@ -99,8 +100,13 @@ export default async function AppQuestionsPage() {
     <div className="mx-auto max-w-screen-lg flex-1 gap-8 md:flex-row">
       <h3 className="mb-8 text-center text-2xl font-semibold">{monthName} Leaderboard</h3>
 
+      <LeaderboardRankingGoals
+        rankingThresholds={leaderboard.rankingThresholds}
+        userRankings={leaderboard.userRankings}
+      />
+
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 md:grid-cols-2 lg:grid-cols-3">
-        <div className="w-full rounded-lg border bg-card text-card-foreground shadow-sm">
+        <div className="w-full overflow-hidden rounded-xl border bg-card text-card-foreground shadow-soft">
           <LeaderboardTitle
             description="Calculated as all realized gains from trading during the period plus the net present value of any
                 positions held during the period."
@@ -110,7 +116,7 @@ export default async function AppQuestionsPage() {
           <LeaderboardUserTable activeUserRank={leaderboard.userRankings?.trader} users={leaderboard.topTraders} />
         </div>
 
-        <div className="w-full rounded-lg border bg-card text-card-foreground shadow-sm">
+        <div className="w-full overflow-hidden rounded-xl border bg-card text-card-foreground shadow-soft">
           <LeaderboardTitle
             description="Calculated as all unique trader fees obtained during the time period."
             title="Top creators"
@@ -118,7 +124,7 @@ export default async function AppQuestionsPage() {
           <LeaderboardUserTable activeUserRank={leaderboard.userRankings?.creator} users={leaderboard.topCreators} />
         </div>
 
-        <div className="w-full rounded-lg border bg-card text-card-foreground shadow-sm">
+        <div className="w-full overflow-hidden rounded-xl border bg-card text-card-foreground shadow-soft">
           <LeaderboardTitle
             description="Calculated as all volume bonuses obtained from all liquidity boosted markets during the time period."
             title="Top promoters"
@@ -126,7 +132,7 @@ export default async function AppQuestionsPage() {
           <LeaderboardUserTable activeUserRank={leaderboard.userRankings?.promoter} users={leaderboard.topPromoters} />
         </div>
 
-        <div className="w-full rounded-lg border bg-card text-card-foreground shadow-sm">
+        <div className="w-full overflow-hidden rounded-xl border bg-card text-card-foreground shadow-soft">
           <LeaderboardTitle
             description="Calculated as all quest-related bonuses collected in the time period."
             title="Top questers"
@@ -135,7 +141,7 @@ export default async function AppQuestionsPage() {
           <LeaderboardUserTable activeUserRank={leaderboard.userRankings?.quester} users={leaderboard.topQuesters} />
         </div>
 
-        <div className="w-full rounded-lg border bg-card text-card-foreground shadow-sm">
+        <div className="w-full overflow-hidden rounded-xl border bg-card text-card-foreground shadow-soft">
           <LeaderboardTitle
             description="Calculated as all referrer-related bonuses collected in the time period."
             title="Top referrers"

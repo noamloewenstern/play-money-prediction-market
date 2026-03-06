@@ -60,7 +60,7 @@ export const columns: Array<ColumnDef<ExtendedMarketPosition>> = [
       const quantity = new Decimal(row.original.quantity).toDecimalPlaces(4)
 
       return change && quantity.gt(0) ? (
-        <span className={change > 0 ? 'text-lime-500' : 'text-red-400'}>{changeLabel}</span>
+        <span className={change > 0 ? 'text-success' : 'text-destructive'}>{changeLabel}</span>
       ) : null
     },
   },

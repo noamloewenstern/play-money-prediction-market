@@ -4,10 +4,10 @@ import { zodResolver } from '@hookform/resolvers/zod'
 import { PopoverClose } from '@radix-ui/react-popover'
 import { format, endOfDay, endOfWeek, endOfMonth, endOfYear, addMonths } from 'date-fns'
 import shuffle from 'lodash/shuffle'
-import { ToggleLeftIcon, XIcon, CircleIcon, CircleDotIcon, PlusIcon, AlignLeftIcon } from 'lucide-react'
+import { ToggleLeftIcon, XIcon, CircleIcon, CircleDotIcon, PlusIcon, AlignLeftIcon, CheckCircle2Icon, EyeIcon, EyeOffIcon } from 'lucide-react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
-import { useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 import { CirclePicker } from 'react-color'
 import { useFieldArray, useForm } from 'react-hook-form'
 import { mutate } from 'swr'
@@ -18,6 +18,7 @@ import { MarketSchema, MarketOptionSchema, QuestionContributionPolicySchema } fr
 import { CurrencyDisplay } from '@play-money/finance/components/CurrencyDisplay'
 import { INITIAL_MARKET_LIQUIDITY_PRIMARY } from '@play-money/finance/economy'
 import { calculateTotalCost } from '@play-money/lists/lib/helpers'
+import { useStatefulAction } from '@play-money/ui'
 import { Button } from '@play-money/ui/button'
 import { Card } from '@play-money/ui/card'
 import { Checkbox } from '@play-money/ui/checkbox'
@@ -30,12 +31,16 @@ import { MultiSelect } from '@play-money/ui/multi-select'
 import { Popover, PopoverContent, PopoverTrigger } from '@play-money/ui/popover'
 import { RadioGroup, RadioGroupItem } from '@play-money/ui/radio-group'
 import { toast } from '@play-money/ui/use-toast'
+import { DraftRecoveryBanner } from '@play-money/ui/DraftRecoveryBanner'
 import { cn } from '@play-money/ui/utils'
 import { useUser } from '@play-money/users/context/UserContext'
 import { clearPresistedData, getPersistedData, usePersistForm } from '../../ui/src/hooks/usePersistForm'
-import { parseQuestionForDate } from '../lib/helpers'
+import { parseQuestionForDate, slugifyTitle } from '../lib/helpers'
+import { MarketPreviewCard } from './MarketPreviewCard'
 
 const CREATE_MARKET_FORM_KEY = 'create-market-form'
+const QUESTION_MAX_LENGTH = 200
+const TAG_MAX_COUNT = 5
 
 const COLORS = [
   '#f44336',
@@ -54,8 +59,16 @@ const marketCreateFormSchema = MarketSchema.pick({
   question: true,
   description: true,
   resolutionCriteria: true,
-  closeDate: true,
   tags: true,
+}).extend({
+  question: z.string().trim().min(1, { message: 'Question is required' }).max(QUESTION_MAX_LENGTH, {
+    message: `Question must be ${QUESTION_MAX_LENGTH} characters or less`,
+  }),
+  closeDate: z.coerce.date().nullable().refine(
+    (date) => !date || date > new Date(),
+    { message: 'Close date must be in the future' }
+  ),
+  tags: z.string().trim().array().max(TAG_MAX_COUNT, { message: `Maximum ${TAG_MAX_COUNT} tags allowed` }),
 }).and(
   z.object({
     options: z.array(MarketOptionSchema.pick({ name: true, color: true })),
@@ -68,47 +81,94 @@ type MarketCreateFormValues = z.infer<typeof marketCreateFormSchema>
 export function CreateMarketForm({
   colors = COLORS,
   onSuccess,
+  initialQuestion,
+  initialTags,
 }: {
   colors?: Array<string>
   onSuccess?: () => Promise<void>
+  initialQuestion?: string
+  initialTags?: Array<string>
 }) {
   const { user } = useUser()
   const [SHUFFLED_COLORS] = useState(shuffle(colors))
   const router = useRouter()
   const tzName = /\((?<tz>[A-Za-z\s].*)\)/.exec(new Date().toString())?.groups?.tz ?? null
 
+  const freshDefaults = useMemo(
+    () => ({
+      question: '',
+      type: 'binary' as const,
+      description: '',
+      resolutionCriteria: null,
+      closeDate: endOfMonth(addMonths(new Date(), 1)),
+      options: [
+        { name: 'Yes', color: SHUFFLED_COLORS[0] },
+        { name: 'No', color: SHUFFLED_COLORS[1] },
+      ],
+      contributionPolicy: 'OWNERS_ONLY' as const,
+      tags: [] as Array<string>,
+    }),
+    [] // eslint-disable-line react-hooks/exhaustive-deps -- Only compute on mount
+  )
+
+  const [hasDraft, setHasDraft] = useState(() => {
+    if (typeof window === 'undefined') return false
+    const raw = localStorage.getItem(CREATE_MARKET_FORM_KEY)
+    if (!raw) return false
+    try {
+      const parsed = JSON.parse(raw) as MarketCreateFormValues
+      return Boolean(parsed.question)
+    } catch {
+      return false
+    }
+  })
+
   const getDefaultValues = useMemo(
-    () =>
-      getPersistedData<MarketCreateFormValues>({
-        defaultValue: {
-          question: '',
-          type: 'binary',
-          description: '',
-          resolutionCriteria: null,
-          closeDate: endOfMonth(addMonths(new Date(), 1)),
-          options: [
-            { name: 'Yes', color: SHUFFLED_COLORS[0] },
-            { name: 'No', color: SHUFFLED_COLORS[1] },
-          ],
-          contributionPolicy: 'OWNERS_ONLY',
-          tags: [],
-        },
+    () => {
+      const persisted = getPersistedData<MarketCreateFormValues>({
+        defaultValue: freshDefaults,
         localStorageKey: CREATE_MARKET_FORM_KEY,
-      }),
-    []
+      })
+
+      if (initialQuestion && !persisted.question) {
+        persisted.question = initialQuestion
+      }
+      if (initialTags?.length && !persisted.tags?.length) {
+        persisted.tags = initialTags
+      }
+
+      return persisted
+    },
+    [] // eslint-disable-line react-hooks/exhaustive-deps -- Only compute on mount
   )
 
   const form = useForm<MarketCreateFormValues>({
     resolver: zodResolver(marketCreateFormSchema),
     defaultValues: getDefaultValues,
+    mode: 'onBlur',
   })
 
   usePersistForm({ value: form.getValues(), localStorageKey: CREATE_MARKET_FORM_KEY })
 
+  const handleDiscardDraft = useCallback(() => {
+    clearPresistedData({ localStorageKey: CREATE_MARKET_FORM_KEY })
+    form.reset(freshDefaults)
+    form.reset(freshDefaults) // Requires double reset to work: https://github.com/orgs/react-hook-form/discussions/7589#discussioncomment-8295031
+    setHasDraft(false)
+  }, [form, freshDefaults])
+
+  const handleRestoreDraft = useCallback(() => {
+    setHasDraft(false)
+  }, [])
+
+  const { actionState: createActionState, setLoading: setCreateLoading, setSuccess: setCreateSuccess, setError: setCreateError } = useStatefulAction()
+
   async function onSubmit(market: MarketCreateFormValues) {
     try {
+      setCreateLoading()
       const { data: created } = await createMarket(market)
 
+      setCreateSuccess()
       clearPresistedData({ localStorageKey: CREATE_MARKET_FORM_KEY })
       form.reset({})
       form.reset({}) // Requires double reset to work: https://github.com/orgs/react-hook-form/discussions/7589#discussioncomment-8295031
@@ -118,19 +178,25 @@ export function CreateMarketForm({
       if (created.market) {
         toast({
           title: 'Your question has been created',
+          description: market.question,
+          variant: 'success',
         })
         router.push(`/questions/${created.market.id}/${created.market.slug}`)
       } else if (created.list) {
         toast({
           title: 'Your list has been created',
+          description: market.question,
+          variant: 'success',
         })
         router.push(`/lists/${created.list.id}/${created.list.slug}`)
       }
     } catch (error) {
       console.error(error)
+      setCreateError()
       toast({
-        title: 'There was an error creating your market',
-        description: (error as Error).message,
+        title: 'Failed to create market',
+        description: (error as Error).message || 'An unexpected error occurred. Please try again.',
+        variant: 'destructive',
       })
     }
   }
@@ -142,7 +208,14 @@ export function CreateMarketForm({
     name: 'options',
   })
 
+  const [showPreview, setShowPreview] = useState(true)
+
   const type = form.watch('type')
+  const watchedQuestion = form.watch('question')
+  const watchedOptions = form.watch('options')
+  const watchedTags = form.watch('tags')
+  const watchedCloseDate = form.watch('closeDate')
+  const slugPreview = useMemo(() => (watchedQuestion ? slugifyTitle(watchedQuestion) : ''), [watchedQuestion])
 
   useEffect(
     function replaceOptionsIfMulti() {
@@ -218,19 +291,28 @@ export function CreateMarketForm({
   const cost = type === 'list' ? calculateTotalCost(fields.length) : INITIAL_MARKET_LIQUIDITY_PRIMARY
 
   return (
-    <div className="relative mx-auto w-full max-w-screen-sm">
-      {!user ? (
-        <div className="absolute inset-0 z-10 flex items-start justify-center pt-24">
-          <div className="rounded-lg border bg-background/95 p-6 text-center shadow-lg backdrop-blur">
-            <p className="mb-2 text-lg font-semibold">Sign in to create a question</p>
-            <p className="mb-4 text-sm text-muted-foreground">You need to be signed in to create a question.</p>
-            <Link href="/login">
-              <Button>Sign in</Button>
-            </Link>
+    <div className="mx-auto w-full max-w-screen-sm">
+      <div className="relative">
+        {!user ? (
+          <div className="absolute inset-0 z-10 flex items-start justify-center pt-24">
+            <div className="rounded-lg border bg-background/95 p-6 text-center shadow-soft-lg backdrop-blur">
+              <p className="mb-2 text-lg font-semibold">Sign in to create a question</p>
+              <p className="mb-4 text-sm text-muted-foreground">You need to be signed in to create a question.</p>
+              <Link href="/login">
+                <Button>Sign in</Button>
+              </Link>
+            </div>
           </div>
-        </div>
-      ) : null}
-      <Card className={cn('flex flex-1 p-6', !user && 'pointer-events-none opacity-50')}>
+        ) : null}
+        {hasDraft ? (
+          <DraftRecoveryBanner
+            className="mb-3"
+            preview={getDefaultValues.question}
+            onRestore={handleRestoreDraft}
+            onDiscard={handleDiscardDraft}
+          />
+        ) : null}
+        <Card className={cn('flex flex-1 p-6 md:p-8', !user && 'pointer-events-none opacity-50')}>
         <Form {...form}>
           <form autoComplete="off" className="flex-1 space-y-6" onSubmit={(e) => void handleSubmit(e)}>
           <FormField
@@ -240,69 +322,69 @@ export function CreateMarketForm({
               <FormItem className="space-y-3">
                 <FormLabel>Market type</FormLabel>
                 <FormControl>
-                  <RadioGroup onValueChange={field.onChange} defaultValue={field.value} className="flex flex-row gap-4">
-                    <Card className="flex flex-row flex-wrap">
+                  <RadioGroup onValueChange={field.onChange} defaultValue={field.value} className="grid grid-cols-3 gap-2">
                       <FormItem
                         className={cn(
-                          'm-0.5 flex w-36',
-                          field.value === 'binary' && 'bg-primary/10 ring-2 ring-inset ring-primary'
+                          'flex rounded-xl border-2 border-transparent transition-all duration-150 hover:border-muted-foreground/20',
+                          field.value === 'binary' && 'border-primary bg-primary/5 hover:border-primary'
                         )}
                       >
                         <FormControl>
                           <RadioGroupItem value="binary" className="hidden" />
                         </FormControl>
-                        <FormLabel className="flex w-full cursor-pointer flex-col items-center justify-center p-2 pt-0">
-                          <div className="flex h-6 items-center">
-                            <ToggleLeftIcon className="size-6" />
+                        <FormLabel className="flex w-full cursor-pointer flex-col items-center justify-center gap-1.5 p-3">
+                          <div className="flex size-9 items-center justify-center rounded-lg bg-muted">
+                            <ToggleLeftIcon className="size-5" />
                           </div>
                           <div className="flex flex-col items-center">
-                            <div className="text-base">Binary</div>
-                            <div className="text-xs text-muted-foreground">Yes/no question</div>
+                            <div className="text-sm font-semibold">Binary</div>
+                            <div className="text-[11px] text-muted-foreground">Yes/no question</div>
                           </div>
                         </FormLabel>
                       </FormItem>
                       <FormItem
                         className={cn(
-                          'm-0.5 flex w-36',
-                          field.value === 'multi' && 'bg-primary/10 ring-2 ring-inset ring-primary'
+                          'flex rounded-xl border-2 border-transparent transition-all duration-150 hover:border-muted-foreground/20',
+                          field.value === 'multi' && 'border-primary bg-primary/5 hover:border-primary'
                         )}
                       >
                         <FormControl>
                           <RadioGroupItem value="multi" className="hidden" />
                         </FormControl>
-                        <FormLabel className="flex w-full cursor-pointer flex-col items-center justify-center p-2 pt-0">
-                          <div className="flex h-6 items-center">
-                            <CircleIcon className="size-4 stroke-[3px]" />
-                            <CircleDotIcon className="size-4 stroke-[3px]" />
-                            <CircleIcon className="size-4 stroke-[3px]" />
+                        <FormLabel className="flex w-full cursor-pointer flex-col items-center justify-center gap-1.5 p-3">
+                          <div className="flex size-9 items-center justify-center rounded-lg bg-muted">
+                            <div className="flex">
+                              <CircleIcon className="size-3.5 stroke-[3px]" />
+                              <CircleDotIcon className="size-3.5 stroke-[3px]" />
+                              <CircleIcon className="size-3.5 stroke-[3px]" />
+                            </div>
                           </div>
                           <div className="flex flex-col items-center">
-                            <div className="text-base">Multiple choice</div>
-                            <div className="text-xs text-muted-foreground">Many options</div>
+                            <div className="text-sm font-semibold">Multiple choice</div>
+                            <div className="text-[11px] text-muted-foreground">Many options</div>
                           </div>
                         </FormLabel>
                       </FormItem>
 
                       <FormItem
                         className={cn(
-                          'm-0.5 flex w-36',
-                          field.value === 'list' && 'bg-primary/10 ring-2 ring-inset ring-primary'
+                          'flex rounded-xl border-2 border-transparent transition-all duration-150 hover:border-muted-foreground/20',
+                          field.value === 'list' && 'border-primary bg-primary/5 hover:border-primary'
                         )}
                       >
                         <FormControl>
                           <RadioGroupItem value="list" className="hidden" />
                         </FormControl>
-                        <FormLabel className="flex w-full cursor-pointer flex-col items-center justify-center p-2 pt-0">
-                          <div className="flex h-6 items-center">
+                        <FormLabel className="flex w-full cursor-pointer flex-col items-center justify-center gap-1.5 p-3">
+                          <div className="flex size-9 items-center justify-center rounded-lg bg-muted">
                             <AlignLeftIcon className="size-5" />
                           </div>
                           <div className="flex flex-col items-center">
-                            <div className="text-base">List</div>
-                            <div className="text-xs text-muted-foreground">Multiple questions</div>
+                            <div className="text-sm font-semibold">List</div>
+                            <div className="text-[11px] text-muted-foreground">Multiple questions</div>
                           </div>
                         </FormLabel>
                       </FormItem>
-                    </Card>
                   </RadioGroup>
                 </FormControl>
                 <FormMessage />
@@ -313,30 +395,56 @@ export function CreateMarketForm({
           <FormField
             control={form.control}
             name="question"
-            render={({ field: { onBlur, ...field } }) => (
-              <FormItem>
-                <FormLabel>{type === 'list' ? 'Name' : 'Question'}</FormLabel>
-                <FormControl>
-                  <Input
-                    placeholder={
-                      type === 'binary'
-                        ? 'Will bitcoin hit $76,543.21 by the end of 2024?'
-                        : type === 'multi'
-                          ? 'Who will win the 2024 US Presidential Election?'
-                          : type === 'list'
-                            ? 'What will be true of of the next iPhone?'
-                            : ''
-                    }
-                    onBlur={() => {
-                      handleQuestionBlur()
-                      onBlur()
-                    }}
-                    {...field}
-                  />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
+            render={({ field: { onBlur, ...field } }) => {
+              const questionLen = field.value?.length ?? 0
+              const isNearLimit = questionLen > QUESTION_MAX_LENGTH * 0.8
+              const fieldState = form.getFieldState('question')
+              const isValid = fieldState.isDirty && !fieldState.invalid && questionLen > 0
+              return (
+                <FormItem>
+                  <div className="flex items-center justify-between">
+                    <FormLabel>{type === 'list' ? 'Name' : 'Question'}</FormLabel>
+                    {isValid ? <CheckCircle2Icon className="size-4 text-success" /> : null}
+                  </div>
+                  <FormControl>
+                    <Input
+                      placeholder={
+                        type === 'binary'
+                          ? 'Will bitcoin hit $76,543.21 by the end of 2024?'
+                          : type === 'multi'
+                            ? 'Who will win the 2024 US Presidential Election?'
+                            : type === 'list'
+                              ? 'What will be true of of the next iPhone?'
+                              : ''
+                      }
+                      maxLength={QUESTION_MAX_LENGTH}
+                      onBlur={() => {
+                        handleQuestionBlur()
+                        onBlur()
+                      }}
+                      {...field}
+                    />
+                  </FormControl>
+                  <div className="flex items-center justify-between">
+                    <FormMessage />
+                    <span
+                      className={cn(
+                        'ml-auto text-xs',
+                        isNearLimit ? 'text-warning' : 'text-muted-foreground',
+                        questionLen >= QUESTION_MAX_LENGTH && 'text-destructive'
+                      )}
+                    >
+                      {questionLen}/{QUESTION_MAX_LENGTH}
+                    </span>
+                  </div>
+                  {slugPreview ? (
+                    <p className="text-xs text-muted-foreground">
+                      Slug: <span className="font-mono">{slugPreview}</span>
+                    </p>
+                  ) : null}
+                </FormItem>
+              )
+            }}
           />
 
           <div className="space-y-2">
@@ -344,22 +452,22 @@ export function CreateMarketForm({
 
             <Card className="divide-y">
               {fields.map((fieldItem, index) => (
-                <div className="relative flex gap-1 p-2" key={fieldItem.id}>
+                <div className="relative flex items-center gap-2 p-3" key={fieldItem.id}>
                   {(type === 'binary' && index > 1) ||
                   (type === 'multi' && index > 2) ||
                   (type === 'list' && index > 3) ? (
                     <Button
-                      variant="outline"
+                      variant="ghost"
                       size="icon"
-                      className="absolute -left-3 mt-2 size-6"
+                      className="absolute -left-3 size-6 rounded-full border bg-background shadow-soft-xs"
                       onClick={() => {
                         remove(index)
                       }}
                     >
-                      <XIcon className="size-4" />
+                      <XIcon className="size-3" />
                     </Button>
                   ) : null}
-                  <div className="ml-2 mt-2.5 w-8 text-sm font-medium text-muted-foreground">#{index + 1}</div>
+                  <div className="w-6 text-center text-xs font-semibold tabular-nums text-muted-foreground">{index + 1}</div>
                   <FormField
                     control={form.control}
                     name={`options.${index}.name`}
@@ -520,7 +628,15 @@ export function CreateMarketForm({
             name="tags"
             render={({ field: { value, onChange, ...field } }) => (
               <FormItem>
-                <FormLabel>Tags</FormLabel>
+                <div className="flex items-center justify-between">
+                  <FormLabel>Tags</FormLabel>
+                  <span className={cn(
+                    'text-xs',
+                    (value?.length ?? 0) >= TAG_MAX_COUNT ? 'text-warning' : 'text-muted-foreground'
+                  )}>
+                    {value?.length ?? 0}/{TAG_MAX_COUNT}
+                  </span>
+                </div>
                 <FormControl>
                   <MultiSelect
                     value={value?.map((v) => ({ value: v, label: v }))}
@@ -537,9 +653,15 @@ export function CreateMarketForm({
           <FormField
             control={form.control}
             name="closeDate"
-            render={({ field }) => (
+            render={({ field }) => {
+              const closeDateState = form.getFieldState('closeDate')
+              const isCloseDateValid = field.value && !closeDateState.invalid && field.value > new Date()
+              return (
               <FormItem>
-                <FormLabel>Close Date</FormLabel>
+                <div className="flex items-center justify-between">
+                  <FormLabel>Close Date</FormLabel>
+                  {isCloseDateValid ? <CheckCircle2Icon className="size-4 text-success" /> : null}
+                </div>
                 <FormControl>
                   <div>
                     <Input
@@ -602,18 +724,46 @@ export function CreateMarketForm({
                 </FormControl>
                 <FormMessage />
               </FormItem>
-            )}
+              )
+            }}
           />
-          <p className="text-sm text-muted-foreground">
+          <p className="text-xs text-muted-foreground">
             Trading will stop at this time in your local timezone {tzName === null ? '' : `(${tzName})`}
           </p>
-          <Button loading={form.formState.isSubmitting} type="submit">
-            Create for
-            <CurrencyDisplay value={cost} />
-          </Button>
+
+          <div className="border-t pt-6">
+            <Button actionState={createActionState} type="submit" size="lg" className="w-full">
+              Create for
+              <CurrencyDisplay value={cost} />
+            </Button>
+          </div>
           </form>
         </Form>
       </Card>
+      </div>
+
+      <div className="mt-4">
+        <button
+          type="button"
+          className="flex w-full items-center gap-2 px-1 py-2 text-sm font-medium text-muted-foreground transition-colors hover:text-foreground"
+          onClick={() => setShowPreview((prev) => !prev)}
+        >
+          {showPreview ? <EyeOffIcon className="size-4" /> : <EyeIcon className="size-4" />}
+          {showPreview ? 'Hide preview' : 'Show preview'}
+        </button>
+        {showPreview ? (
+          <div>
+            <p className="mb-2 px-1 text-xs text-muted-foreground">How your market will appear to others</p>
+            <MarketPreviewCard
+              question={watchedQuestion}
+              options={watchedOptions ?? []}
+              tags={watchedTags ?? []}
+              closeDate={watchedCloseDate ?? null}
+              type={type as 'binary' | 'multi' | 'list'}
+            />
+          </div>
+        ) : null}
+      </div>
     </div>
   )
 }

@@ -31,7 +31,7 @@ export function SidebarReferralAlert() {
 
   return referringUser ? (
     <Alert
-      className={cn('flex gap-4 border-blue-600 bg-blue-50 dark:bg-blue-600/20', classNames)}
+      className={cn('flex gap-4 border-info/50 bg-info/5', classNames)}
       onMouseMove={handleMouseMove}
     >
       <UserAvatar user={referringUser} />
@@ -46,7 +46,7 @@ export function SidebarReferralAlert() {
           <UserLink user={referringUser} hideUsername /> when you sign up today.
         </AlertDescription>
         <AlertTitle className="mb-0 mt-1">
-          <Button variant="link" className="h-auto p-0 text-blue-600 underline" onClick={() => router.push('/login')}>
+          <Button variant="link" className="h-auto p-0 text-info underline" onClick={() => router.push('/login')}>
             Sign up
             <ArrowRight className="h-4 w-4" />
           </Button>

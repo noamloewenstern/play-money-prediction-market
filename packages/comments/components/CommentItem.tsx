@@ -37,6 +37,7 @@ export function CommentItem({
   activeUserId,
   comment,
   isHighlighted,
+  isPending,
   condensed = false,
   canPin = false,
   onEmojiSelect,
@@ -49,6 +50,7 @@ export function CommentItem({
   activeUserId: string
   comment: CommentWithReactions
   isHighlighted?: boolean
+  isPending?: boolean
   condensed?: boolean
   canPin?: boolean
   onEmojiSelect: (emoji: string) => void
@@ -94,9 +96,10 @@ export function CommentItem({
       id={comment.id}
       className={cn(
         isHighlighted && 'bg-primary/10 ring-2 ring-primary ring-offset-2 ring-offset-background',
-        'group flex flex-row gap-4 rounded-md px-6 py-2 hover:bg-muted/50',
-        (isReplyOpen || isPortalOpen) && 'bg-muted/50',
-        condensed && 'gap-2 px-3'
+        'group flex flex-row gap-3 rounded-lg px-5 py-3 transition-colors hover:bg-muted/40',
+        (isReplyOpen || isPortalOpen) && 'bg-muted/40',
+        condensed && 'gap-2 px-3 py-2',
+        isPending && 'opacity-60'
       )}
     >
       <UserAvatar user={comment.author} className="mt-2" />
@@ -172,7 +175,7 @@ export function CommentItem({
                     <AlertDialog>
                       <AlertDialogTrigger asChild>
                         <DropdownMenuItem
-                          className="text-red-500 focus:text-red-500"
+                          className="text-destructive focus:text-destructive"
                           onSelect={(e) => e.preventDefault()}
                         >
                           Delete

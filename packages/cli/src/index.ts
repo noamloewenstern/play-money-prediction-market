@@ -2,7 +2,9 @@
 
 import { Command } from 'commander'
 import { installSkills } from './install'
+import { listSkills } from './list'
 import { uninstallSkills } from './uninstall'
+import { verifySkills } from './verify'
 
 const program = new Command()
 
@@ -32,6 +34,32 @@ program
   .action(async () => {
     try {
       await uninstallSkills()
+    } catch (error) {
+      console.error('Error:', error instanceof Error ? error.message : 'Unknown error')
+      process.exit(1)
+    }
+  })
+
+program
+  .command('verify-claude-skills')
+  .description('Check that Claude Code skills are correctly installed and configured')
+  .option('--online', 'Also verify against remote manifest and check integrity', false)
+  .option('--base-url <url>', 'Play Money API base URL (for online checks)')
+  .action(async (options: { online: boolean; baseUrl?: string }) => {
+    try {
+      await verifySkills(options)
+    } catch (error) {
+      console.error('Error:', error instanceof Error ? error.message : 'Unknown error')
+      process.exit(1)
+    }
+  })
+
+program
+  .command('list-claude-skills')
+  .description('List installed Claude Code skills for Play Money')
+  .action(async () => {
+    try {
+      await listSkills()
     } catch (error) {
       console.error('Error:', error instanceof Error ? error.message : 'Unknown error')
       process.exit(1)

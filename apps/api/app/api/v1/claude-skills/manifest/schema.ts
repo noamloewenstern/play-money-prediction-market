@@ -6,6 +6,7 @@ const SkillManifestEntrySchema = z.object({
   description: z.string(),
   version: z.string(),
   downloadUrl: z.string(),
+  sha256: z.string(),
 })
 
 export default {

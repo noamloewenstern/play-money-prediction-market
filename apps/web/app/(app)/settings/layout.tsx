@@ -7,6 +7,14 @@ const sidebarNavItems = [
     href: '/settings',
   },
   {
+    title: 'Trading',
+    href: '/settings/trading',
+  },
+  {
+    title: 'Notifications',
+    href: '/settings/notifications',
+  },
+  {
     title: 'Referrals',
     href: '/settings/referrals',
   },

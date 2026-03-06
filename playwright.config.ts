@@ -2,8 +2,8 @@ import { defineConfig } from '@playwright/test'
 
 export default defineConfig({
   testDir: '.',
-  testMatch: 'verify-breadcrumb.spec.ts',
-  timeout: 30000,
+  testMatch: 'verify-empty-states.spec.ts',
+  timeout: 90000,
   use: {
     baseURL: 'http://localhost:3000',
     headless: true,

@@ -9,12 +9,24 @@ export default function Error({ error }: { error: Error & { digest?: string; cod
   }, [error])
 
   if (error.message === UserNotFoundError.code) {
-    return <h2>User not found</h2>
+    return (
+      <div className="flex flex-col items-center justify-center gap-4 py-16 text-center">
+        <h2 className="text-lg font-semibold">User not found</h2>
+        <p className="text-sm text-muted-foreground">This user does not exist or may have been removed.</p>
+        <a href="/" className="rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90">
+          Go home
+        </a>
+      </div>
+    )
   }
 
   return (
-    <div>
-      <h2>Something went wrong!</h2>
+    <div className="flex flex-col items-center justify-center gap-4 py-16 text-center">
+      <h2 className="text-lg font-semibold">Something went wrong</h2>
+      <p className="text-sm text-muted-foreground">An unexpected error occurred while loading this profile.</p>
+      <a href="/" className="rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90">
+        Go home
+      </a>
     </div>
   )
 }

@@ -27,6 +27,11 @@ export async function getMarket({
           },
         },
         parentList: true,
+        lists: {
+          include: {
+            list: true,
+          },
+        },
       },
     })
   }

@@ -31,8 +31,8 @@ export async function PortfolioEmptyState() {
       <div className="grid w-full max-w-lg gap-3 sm:grid-cols-2">
         <Card>
           <CardContent className="flex items-start gap-3 p-4">
-            <div className="flex size-8 flex-shrink-0 items-center justify-center rounded-full bg-green-500/10">
-              <ArrowUpIcon className="size-4 text-green-600" />
+            <div className="flex size-8 flex-shrink-0 items-center justify-center rounded-full bg-success/10">
+              <ArrowUpIcon className="size-4 text-success" />
             </div>
             <div>
               <p className="text-sm font-semibold">Buy shares</p>
@@ -44,8 +44,8 @@ export async function PortfolioEmptyState() {
         </Card>
         <Card>
           <CardContent className="flex items-start gap-3 p-4">
-            <div className="flex size-8 flex-shrink-0 items-center justify-center rounded-full bg-red-400/10">
-              <ArrowDownIcon className="size-4 text-red-500" />
+            <div className="flex size-8 flex-shrink-0 items-center justify-center rounded-full bg-destructive/10">
+              <ArrowDownIcon className="size-4 text-destructive" />
             </div>
             <div>
               <p className="text-sm font-semibold">Sell to lock in profit</p>
@@ -70,7 +70,7 @@ export async function PortfolioEmptyState() {
             <TrendingUpIcon className="size-3" />
             Trending markets
           </div>
-          <div className="w-full divide-y rounded-xl border font-mono text-sm">
+          <div className="w-full divide-y rounded-xl border text-sm">
             {trendingMarkets.map((market) => {
               const mostLikelyOption = market.options.reduce((prev, current) =>
                 (prev.probability || 0) > (current.probability || 0) ? prev : current
@@ -84,7 +84,7 @@ export async function PortfolioEmptyState() {
                 >
                   <span className="mr-4 line-clamp-1">{market.question}</span>
                   {!market.canceledAt && !market.marketResolution ? (
-                    <span className="flex-shrink-0 font-medium" style={{ color: mostLikelyOption.color }}>
+                    <span className="flex-shrink-0 tabular-nums font-semibold" style={{ color: mostLikelyOption.color }}>
                       {Math.round(mostLikelyOption.probability || 0)}%
                     </span>
                   ) : null}

@@ -5,6 +5,7 @@ import React from 'react'
 import { useForm } from 'react-hook-form'
 import z from 'zod'
 import { createMarketResolve } from '@play-money/api-helpers/client'
+import { useStatefulAction } from '@play-money/ui'
 import { Button } from '@play-money/ui/button'
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@play-money/ui/dialog'
 import { ReadMoreEditor } from '@play-money/ui/editor'
@@ -37,16 +38,21 @@ export const ResolveMarketDialog = ({
     resolver: zodResolver(FormSchema),
   })
 
+  const { actionState: resolveActionState, setLoading: setResolveLoading, setSuccess: setResolveSuccess, setError: setResolveError } = useStatefulAction()
+
   const onSubmit = async (data: FormData) => {
     try {
+      setResolveLoading()
       await createMarketResolve({ marketId: market.id, optionId: data.optionId, supportingLink: data.supportingLink })
 
+      setResolveSuccess()
       toast({ title: 'Market resolved successfully' })
       form.reset()
       onClose()
       onSuccess?.()
     } catch (error: unknown) {
       console.error('Failed to resolve market:', error)
+      setResolveError()
       toast({
         title: 'There was an issue resolving the market',
         description: error instanceof Error ? error.message : 'Please try again later',
@@ -108,7 +114,7 @@ export const ResolveMarketDialog = ({
                 </FormItem>
               )}
             />
-            <Button type="submit" disabled={!isDirty || !isValid} loading={isSubmitting} className="w-full">
+            <Button type="submit" disabled={!isDirty || !isValid} actionState={resolveActionState} className="w-full">
               Resolve
             </Button>
           </form>

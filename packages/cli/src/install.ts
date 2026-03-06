@@ -1,3 +1,4 @@
+import { createHash } from 'crypto'
 import fs from 'fs'
 import https from 'https'
 import http from 'http'
@@ -9,6 +10,7 @@ type ManifestEntry = {
   description: string
   version: string
   downloadUrl: string
+  sha256: string
 }
 
 type InstallOptions = {
@@ -55,6 +57,16 @@ function writeJsonFile(filePath: string, data: Record<string, unknown>): void {
   fs.writeFileSync(filePath, JSON.stringify(data, null, 2) + '\n', 'utf-8')
 }
 
+function verifyChecksum(content: string, skill: ManifestEntry): void {
+  if (!skill.sha256) return
+  const hash = createHash('sha256').update(content).digest('hex')
+  if (hash !== skill.sha256) {
+    throw new Error(
+      `Integrity check failed for ${skill.name}: expected sha256 ${skill.sha256}, got ${hash}`
+    )
+  }
+}
+
 export async function installSkills(options: InstallOptions): Promise<void> {
   const { apiKey, baseUrl, update } = options
   const claudeDir = path.join(os.homedir(), '.claude')
@@ -76,21 +88,22 @@ export async function installSkills(options: InstallOptions): Promise<void> {
   for (const skill of skills) {
     const filePath = path.join(skillsDir, `${skill.name}.md`)
 
+    const downloadUrl = `${baseUrl}${skill.downloadUrl}`
+
     if (update && fs.existsSync(filePath)) {
-      // Check version by reading frontmatter or just re-download
       const existing = fs.readFileSync(filePath, 'utf-8')
-      const downloadUrl = `${baseUrl}${skill.downloadUrl}`
       const content = await fetch(downloadUrl)
       if (existing === content) {
         skipped++
         continue
       }
+      verifyChecksum(content, skill)
       fs.writeFileSync(filePath, content, 'utf-8')
       console.log(`  Updated: ${skill.name} (v${skill.version})`)
       installed++
     } else {
-      const downloadUrl = `${baseUrl}${skill.downloadUrl}`
       const content = await fetch(downloadUrl)
+      verifyChecksum(content, skill)
       fs.writeFileSync(filePath, content, 'utf-8')
       console.log(`  Installed: ${skill.name} (v${skill.version})`)
       installed++

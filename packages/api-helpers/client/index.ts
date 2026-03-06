@@ -8,6 +8,18 @@ import { PaginatedResponse, PaginationRequest } from '../types'
 
 // TODO: @casesandberg Generate this from OpenAPI schema
 
+export class ApiError extends Error {
+  code?: string
+  statusCode: number
+
+  constructor(message: string, statusCode: number, code?: string) {
+    super(message)
+    this.name = 'ApiError'
+    this.statusCode = statusCode
+    this.code = code
+  }
+}
+
 async function apiHandler<T>(
   input: string,
   options?: { method?: string; body?: Record<string, unknown>; next?: unknown }
@@ -46,8 +58,8 @@ async function apiHandler<T>(
   }
 
   if (!res.ok) {
-    const { error } = (await res.json()) as { error: string }
-    throw new Error(error || 'There was an error with this request')
+    const body = (await res.json()) as { error: string; code?: string }
+    throw new ApiError(body.error || 'There was an error with this request', res.status, body.code)
   }
 
   return res.json() as Promise<T>
@@ -168,14 +180,42 @@ export async function getMarkets({
   status,
   createdBy,
   tags,
+  marketType,
+  minTraders,
+  maxTraders,
+  minLiquidity,
+  maxLiquidity,
+  closeDateMin,
+  closeDateMax,
   ...paginationParams
 }: {
   status?: string
   createdBy?: string
   tags?: Array<string>
+  marketType?: string
+  minTraders?: number
+  maxTraders?: number
+  minLiquidity?: number
+  maxLiquidity?: number
+  closeDateMin?: string
+  closeDateMax?: string
 } & PaginationRequest = {}) {
   const currentParams = new URLSearchParams(
-    JSON.parse(JSON.stringify({ status, createdBy, tags, ...paginationParams }))
+    JSON.parse(
+      JSON.stringify({
+        status,
+        createdBy,
+        tags,
+        marketType,
+        minTraders,
+        maxTraders,
+        minLiquidity,
+        maxLiquidity,
+        closeDateMin,
+        closeDateMax,
+        ...paginationParams,
+      })
+    )
   )
 
   const search = currentParams.toString()
@@ -422,10 +462,45 @@ export async function createMarketCancel({ marketId, reason }: { marketId: strin
   })
 }
 
-export async function createMyNotifications() {
-  return apiHandler<unknown>(`${process.env.NEXT_PUBLIC_API_URL}/v1/users/me/notifications`, {
-    method: 'POST',
+// Quiet Hours
+
+export type QuietHoursSettings = {
+  quietHoursEnabled: boolean
+  quietHoursStart: number | null
+  quietHoursEnd: number | null
+  doNotDisturb: boolean
+  timezone: string
+}
+
+export async function getMyQuietHours(): Promise<{ data: QuietHoursSettings }> {
+  return apiHandler<{ data: QuietHoursSettings }>(`${process.env.NEXT_PUBLIC_API_URL}/v1/users/me/quiet-hours`)
+}
+
+export async function updateMyQuietHours(body: {
+  quietHoursEnabled?: boolean
+  quietHoursStart?: number | null
+  quietHoursEnd?: number | null
+  doNotDisturb?: boolean
+}): Promise<{ data: QuietHoursSettings }> {
+  return apiHandler<{ data: QuietHoursSettings }>(`${process.env.NEXT_PUBLIC_API_URL}/v1/users/me/quiet-hours`, {
+    method: 'PATCH',
+    body,
   })
+}
+
+export async function createMyNotifications(options?: {
+  type?: string
+  groupId?: string
+  undo?: boolean
+  markedAt?: string
+}) {
+  return apiHandler<{ data: { success: boolean; count?: number; markedAt?: string } }>(
+    `${process.env.NEXT_PUBLIC_API_URL}/v1/users/me/notifications`,
+    {
+      method: 'POST',
+      ...(options ? { body: options as Record<string, unknown> } : {}),
+    }
+  )
 }
 
 export async function createMyResourceViewed({
@@ -445,10 +520,29 @@ export async function createMyResourceViewed({
   })
 }
 
+export type CommentSearchResult = {
+  id: string
+  content: string
+  authorId: string
+  authorUsername: string
+  authorDisplayName: string
+  entityType: string
+  entityId: string
+  entityTitle: string
+  entitySlug: string
+  createdAt: string
+}
+
 export async function getSearch({ query }: { query: string }) {
-  return apiHandler<{ data: { users: Array<User>; markets: Array<Market>; lists: Array<List> } }>(
-    `${process.env.NEXT_PUBLIC_API_URL}/v1/search?query=${encodeURIComponent(query)}`
-  )
+  return apiHandler<{
+    data: {
+      users: Array<User>
+      markets: Array<Market>
+      lists: Array<List>
+      tags: Array<{ tag: string; count: number }>
+      comments: Array<CommentSearchResult>
+    }
+  }>(`${process.env.NEXT_PUBLIC_API_URL}/v1/search?query=${encodeURIComponent(query)}`)
 }
 
 export async function getUserCheckUsername({
@@ -485,6 +579,79 @@ export async function getUserStats({ userId }: { userId: string }) {
       }>
     }
   }>(`${process.env.NEXT_PUBLIC_API_URL}/v1/users/${userId}/stats`)
+}
+
+export async function getUserPortfolioExposure({ userId }: { userId: string }) {
+  return apiHandler<{
+    data: {
+      totalValue: number
+      totalCost: number
+      totalPnl: number
+      maxLoss: number
+      tagExposures: Array<{
+        tag: string
+        totalValue: number
+        totalCost: number
+        pnl: number
+        pnlPercent: number
+        positionCount: number
+        positions: Array<{
+          marketId: string
+          marketQuestion: string
+          optionName: string
+          optionColor: string
+          value: number
+          cost: number
+          quantity: number
+          pnl: number
+          pnlPercent: number
+        }>
+      }>
+      correlatedGroups: Array<{
+        tags: Array<string>
+        totalValue: number
+        positionCount: number
+        marketIds: Array<string>
+      }>
+      untaggedExposure: {
+        tag: string
+        totalValue: number
+        totalCost: number
+        pnl: number
+        pnlPercent: number
+        positionCount: number
+        positions: Array<{
+          marketId: string
+          marketQuestion: string
+          optionName: string
+          optionColor: string
+          value: number
+          cost: number
+          quantity: number
+          pnl: number
+          pnlPercent: number
+        }>
+      } | null
+    }
+  }>(`${process.env.NEXT_PUBLIC_API_URL}/v1/users/${userId}/portfolio-exposure`)
+}
+
+export async function getCreatorReputation({ userId }: { userId: string }) {
+  return apiHandler<{
+    data: {
+      score: number
+      totalMarkets: number
+      resolvedMarkets: number
+      canceledMarkets: number
+      breakdown: {
+        resolutionRate: number
+        timeliness: number
+        traderAttraction: number
+        volumeGenerated: number
+        communityEngagement: number
+      }
+    }
+  }>(`${process.env.NEXT_PUBLIC_API_URL}/v1/users/${userId}/reputation`)
 }
 
 export async function getUser({ userId }: { userId: string }): Promise<{ data: User }> {
@@ -571,6 +738,13 @@ export async function getLeaderboard({ month, year }: { month?: string; year?: s
         promoter: LeaderboardUser
         quester: LeaderboardUser
         referrer: LeaderboardUser
+      }
+      rankingThresholds: {
+        traders: { top10: number; top20: number; top50: number }
+        creators: { top10: number; top20: number; top50: number }
+        promoters: { top10: number; top20: number; top50: number }
+        questers: { top10: number; top20: number; top50: number }
+        referrers: { top10: number; top20: number; top50: number }
       }
     }
   }>(`${process.env.NEXT_PUBLIC_API_URL}/v1/leaderboard${month && year ? `?year=${year}&month=${month}` : ''}`)

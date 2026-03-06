@@ -89,7 +89,7 @@ export function rateLimit(config: RateLimitConfig) {
       const resetTime = Math.ceil((oldestInWindow + config.windowMs) / 1_000)
 
       return NextResponse.json(
-        { error: 'Too many requests, please try again later' },
+        { error: 'Too many requests. Please wait a moment and try again.', code: 'RATE_LIMITED' },
         {
           status: 429,
           headers: {

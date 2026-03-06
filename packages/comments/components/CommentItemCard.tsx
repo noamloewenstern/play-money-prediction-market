@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, useCallback } from 'react'
 import { createComment, createCommentReaction, deleteComment, updateComment } from '@play-money/api-helpers/client'
 import { CommentWithReactions } from '@play-money/comments/lib/getComment'
 import { CommentEntityType } from '@play-money/database'
@@ -10,7 +10,7 @@ import { useUser } from '@play-money/users/context/UserContext'
 import { CommentItem } from './CommentItem'
 
 export function CommentItemCard({
-  comment,
+  comment: serverComment,
   entity,
   onRevalidate,
 }: {
@@ -20,6 +20,19 @@ export function CommentItemCard({
 }) {
   const { user } = useUser()
   const [highlightedCommentId, setHighlightedCommentId] = useState<string | null>(null)
+  const [optimisticReactions, setOptimisticReactions] = useState<
+    Array<{ emoji: string; userId: string; displayName: string }>
+  >([])
+
+  // Clear optimistic reactions when server data updates
+  useEffect(
+    function clearOptimisticOnServerUpdate() {
+      setOptimisticReactions([])
+    },
+    [serverComment]
+  )
+
+  const comment = applyOptimisticReactions(serverComment, optimisticReactions, user?.id)
 
   useEffect(function highlightCommentFromURL() {
     const url = new URL(window.location.href)
@@ -35,16 +48,34 @@ export function CommentItemCard({
     }
   }, [])
 
-  const handleToggleEmojiReaction = (commentId: string) => async (emoji: string) => {
-    try {
-      await createCommentReaction({ commentId, emoji })
-    } catch (error) {
-      if (error instanceof Error && error.message !== 'deleted') {
-        throw error
+  const handleToggleEmojiReaction = useCallback(
+    (commentId: string) => async (emoji: string) => {
+      if (!user) return
+
+      // Optimistically update
+      setOptimisticReactions((prev) => {
+        const hasReaction = prev.some((r) => r.emoji === emoji && r.userId === user.id)
+        if (hasReaction) {
+          return prev.filter((r) => !(r.emoji === emoji && r.userId === user.id))
+        }
+        return [...prev, { emoji, userId: user.id, displayName: user.displayName }]
+      })
+
+      try {
+        await createCommentReaction({ commentId, emoji })
+        onRevalidate()
+      } catch (error) {
+        setOptimisticReactions([])
+        if (error instanceof Error && error.message !== 'deleted') {
+          toast({
+            title: 'Could not update reaction',
+            description: (error as Error).message,
+          })
+        }
       }
-    }
-    onRevalidate()
-  }
+    },
+    [user, onRevalidate]
+  )
 
   const handleCreateReply = (parentId?: string) => async (content: string) => {
     try {
@@ -52,8 +83,9 @@ export function CommentItemCard({
       onRevalidate()
     } catch (error) {
       toast({
-        title: 'There was an error creating your comment',
-        description: (error as Error).message,
+        title: 'Failed to post comment',
+        description: (error as Error).message || 'An unexpected error occurred. Please try again.',
+        variant: 'destructive',
       })
     }
   }
@@ -88,4 +120,51 @@ export function CommentItemCard({
       />
     </Card>
   )
+}
+
+function applyOptimisticReactions(
+  comment: CommentWithReactions,
+  pendingReactions: Array<{ emoji: string; userId: string; displayName: string }>,
+  activeUserId?: string
+): CommentWithReactions {
+  if (!pendingReactions.length || !activeUserId) return comment
+
+  let reactions = [...comment.reactions]
+
+  for (const pending of pendingReactions) {
+    const existingIdx = reactions.findIndex((r) => r.emoji === pending.emoji && r.user.id === pending.userId)
+    if (existingIdx >= 0) {
+      reactions = reactions.filter((_, i) => i !== existingIdx)
+    } else {
+      reactions = [
+        ...reactions,
+        {
+          id: `optimistic-reaction-${pending.emoji}-${pending.userId}`,
+          emoji: pending.emoji,
+          userId: pending.userId,
+          commentId: comment.id,
+          user: {
+            id: pending.userId,
+            displayName: pending.displayName,
+            username: '',
+            avatarUrl: null,
+            twitterHandle: null,
+            discordHandle: null,
+            website: null,
+            bio: null,
+            timezone: '',
+            primaryAccountId: '',
+            suspendedAt: null,
+            referralCode: null,
+            referredBy: null,
+            createdAt: new Date(),
+            updatedAt: new Date(),
+            role: 'USER' as const,
+          },
+        },
+      ]
+    }
+  }
+
+  return { ...comment, reactions }
 }

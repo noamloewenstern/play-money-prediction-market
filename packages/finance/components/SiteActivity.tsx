@@ -8,7 +8,7 @@ import max from 'lodash/max'
 import sumBy from 'lodash/sumBy'
 import truncate from 'lodash/truncate'
 import uniqBy from 'lodash/uniqBy'
-import { DiamondPlusIcon, CoinsIcon } from 'lucide-react'
+import { DiamondPlusIcon, CoinsIcon, ActivityIcon } from 'lucide-react'
 import Link from 'next/link'
 import { useSiteActivity } from '@play-money/api-helpers/client/hooks'
 import { CurrencyDisplay } from '@play-money/finance/components/CurrencyDisplay'
@@ -17,6 +17,7 @@ import { UserAvatar } from '@play-money/ui/UserAvatar'
 import { UserLink } from '@play-money/users/components/UserLink'
 import { UsersCondensedList } from '@play-money/users/components/UsersCondensedList'
 import { SiteActivityItem } from './SiteActivityItem'
+import { SiteActivitySkeleton } from './SiteActivitySkeleton'
 
 function isNotNull<T>(value: T | null): value is T {
   return value !== null && value !== undefined
@@ -34,6 +35,24 @@ function summarizeTransactions(transactions: Array<TransactionWithEntries>) {
 export function SiteActivity() {
   const { data } = useSiteActivity()
   const { data: activities = [] } = data || {}
+
+  if (!data) {
+    return <SiteActivitySkeleton />
+  }
+
+  if (activities.length === 0) {
+    return (
+      <div className="flex flex-col items-center gap-3 py-8 text-center">
+        <div className="flex size-10 items-center justify-center rounded-full bg-primary/10">
+          <ActivityIcon className="size-4 text-primary" />
+        </div>
+        <p className="text-sm font-semibold">No activity yet</p>
+        <p className="max-w-xs text-xs text-muted-foreground">
+          Recent trades, new markets, and resolutions will appear here as the community gets going.
+        </p>
+      </div>
+    )
+  }
 
   return (
     <div className="space-y-4">
@@ -96,7 +115,7 @@ export function SiteActivity() {
             <SiteActivityItem
               key={activity.timestampAt.toString()}
               timestampAt={activity.timestampAt}
-              icon={<DiamondPlusIcon className="size-4 text-purple-600" />}
+              icon={<DiamondPlusIcon className="size-4 text-info" />}
               isFirst={i === 0}
               isLast={i === activities.length - 1}
             >

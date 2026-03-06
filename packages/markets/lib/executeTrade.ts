@@ -5,6 +5,7 @@ import { getHouseAccount } from '@play-money/finance/lib/getHouseAccount'
 import { calculateRealizedGainsTax } from '@play-money/finance/lib/helpers'
 import { TransactionEntryInput } from '@play-money/finance/types'
 import { getMarketOptionPosition } from '@play-money/users/lib/getMarketOptionPosition'
+import { InsufficientBalanceError, InsufficientSharesError } from './exceptions'
 import { getMarketAmmAccount } from './getMarketAmmAccount'
 import { getMarketClearingAccount } from './getMarketClearingAccount'
 
@@ -34,9 +35,15 @@ export async function executeTrade({
   ])
 
   if (!balanceToTrade.total.gte(amount)) {
-    throw new Error(
-      isBuy ? 'User does not have enough balance to purchase' : 'User does not have enough option shares to sell'
-    )
+    if (isBuy) {
+      throw new InsufficientBalanceError(
+        `Insufficient balance. You have ¤${Math.floor(balanceToTrade.total.toNumber())} — reduce quantity or earn more via daily quests.`
+      )
+    } else {
+      throw new InsufficientSharesError(
+        `Insufficient shares. You have ${Math.floor(balanceToTrade.total.toNumber())} shares — reduce the amount to sell.`
+      )
+    }
   }
   const ammAssetBalances = ammBalances.filter(({ assetType }) => assetType === 'MARKET_OPTION')
 
