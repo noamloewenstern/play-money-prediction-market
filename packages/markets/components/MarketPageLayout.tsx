@@ -8,7 +8,9 @@ import { SidebarReferralAlert } from '@play-money/referrals/components/SidebarRe
 import { Tabs, TabsList, TabsTrigger } from '@play-money/ui/tabs'
 import { SelectedItemsProvider } from '../../ui/src/contexts/SelectedItemContext'
 import { ExtendedMarket } from '../types'
+import { MarketBreadcrumb } from './MarketBreadcrumb'
 import { MarketPageSidebar } from './MarketPageSidebar'
+import { MarketStickyBar } from './MarketStickyBar'
 import { SidebarProvider } from './SidebarContext'
 
 export function MarketPageLayout({
@@ -58,6 +60,7 @@ export function MarketPageLayout({
       <SidebarProvider>
         <main className="mx-auto flex w-full max-w-screen-lg flex-1 flex-col gap-8 md:flex-row">
           <div className="flex-1 space-y-2">
+            <MarketBreadcrumb market={market} />
             <Tabs defaultValue={initialTab} className="w-[400px]" onValueChange={handleTabChange}>
               <TabsList>
                 <TabsTrigger value="overview">Overview</TabsTrigger>
@@ -67,6 +70,7 @@ export function MarketPageLayout({
                 <TabsTrigger value="liquidity">Liquidity</TabsTrigger>
               </TabsList>
             </Tabs>
+            <MarketStickyBar market={market} />
             {children}
           </div>
 

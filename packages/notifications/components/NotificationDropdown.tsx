@@ -1,14 +1,13 @@
 'use client'
 
-import { BellIcon } from 'lucide-react'
+import { BellIcon, InboxIcon } from 'lucide-react'
 import { useState } from 'react'
 import { ErrorBoundary } from 'react-error-boundary'
 import { createMyNotifications } from '@play-money/api-helpers/client'
 import { useNotifications } from '@play-money/api-helpers/client/hooks'
 import { Badge } from '@play-money/ui/badge'
 import { Button } from '@play-money/ui/button'
-import { Card, CardContent } from '@play-money/ui/card'
-import { DropdownMenu, DropdownMenuContent, DropdownMenuTrigger } from '@play-money/ui/dropdown-menu'
+import { Sheet, SheetContent, SheetTitle, SheetTrigger } from '@play-money/ui/sheet'
 import { useUser } from '@play-money/users/context/UserContext'
 import { NotificationItem } from './NotificationItem'
 
@@ -21,7 +20,6 @@ export function NotificationDropdown() {
   const handleMarkAllRead = async () => {
     try {
       await createMyNotifications()
-
       void mutate()
     } catch (error) {
       console.error('Error marking read:', error)
@@ -29,71 +27,65 @@ export function NotificationDropdown() {
   }
 
   return user ? (
-    <DropdownMenu open={isOpen} onOpenChange={setIsOpen}>
-      <DropdownMenuTrigger asChild>
-        <Button variant="ghost" size="icon" className="relative">
+    <Sheet open={isOpen} onOpenChange={setIsOpen}>
+      <SheetTrigger asChild>
+        <Button variant="ghost" size="icon" className="relative" aria-label="Open notifications">
           <BellIcon className="h-5 w-5" />
           {data?.unreadCount && data?.unreadCount > 0 ? (
             <span className="absolute right-1 top-1 inline-flex h-2 w-2 items-center justify-center rounded-full bg-primary text-xs font-medium text-primary-foreground"></span>
           ) : null}
         </Button>
-      </DropdownMenuTrigger>
-      <DropdownMenuContent
-        className="w-screen p-0 md:w-[400px]"
-        align="end"
-        onCloseAutoFocus={(e) => {
-          // Stop focus on the trigger button when closing the dropdown conflicting with focusing comments
-          e.preventDefault()
-          e.stopPropagation()
-        }}
-      >
-        <Card className="border-0 shadow-lg">
-          <ErrorBoundary
-            fallback={
-              <div className="p-4 text-sm uppercase text-muted-foreground">
-                There was an error loading notifications
-              </div>
-            }
-          >
-            <div className="flex justify-between border-b p-3 px-4 md:p-3 md:px-4">
-              <div>
-                Notifications
-                <Badge variant="outline" className="ml-2">
-                  {data?.unreadCount}
-                </Badge>
-              </div>
-              <div>
-                <Button
-                  variant="link"
-                  size="sm"
-                  className="h-6 p-1"
-                  disabled={!data?.unreadCount}
-                  onClick={handleMarkAllRead}
-                >
-                  Mark all read
-                </Button>
-              </div>
+      </SheetTrigger>
+      <SheetContent className="flex w-full flex-col p-0 sm:max-w-md" side="right">
+        <ErrorBoundary
+          fallback={
+            <div className="p-4 text-sm uppercase text-muted-foreground">
+              There was an error loading notifications
             </div>
-            <CardContent className="max-h-[450px] overflow-y-auto p-0 md:p-0">
+          }
+        >
+          <div className="flex items-center justify-between border-b px-4 py-3">
+            <div className="flex items-center gap-2">
+              <SheetTitle className="text-lg font-semibold">Notifications</SheetTitle>
+              {data?.unreadCount ? (
+                <Badge variant="secondary" className="tabular-nums">
+                  {data.unreadCount}
+                </Badge>
+              ) : null}
+            </div>
+            <Button
+              variant="ghost"
+              size="sm"
+              className="mr-6 text-xs text-muted-foreground"
+              disabled={!data?.unreadCount}
+              onClick={handleMarkAllRead}
+            >
+              Mark all read
+            </Button>
+          </div>
+
+          <div className="flex-1 overflow-y-auto">
+            {data?.notifications?.length ? (
               <div className="divide-y">
-                {data?.notifications?.length ? (
-                  data?.notifications.map(({ id, count, lastNotification }, i) => (
-                    <div key={id} onClick={() => setIsOpen(false)}>
-                      <NotificationItem
-                        notification={lastNotification}
-                        count={count}
-                        unread={!lastNotification.readAt}
-                      />
-                    </div>
-                  ))
-                ) : (
-                  <div className="p-4 text-center text-sm text-muted-foreground">Zero notifications</div>
-                )}
+                {data.notifications.map(({ id, count, lastNotification }) => (
+                  <div key={id} onClick={() => setIsOpen(false)}>
+                    <NotificationItem
+                      notification={lastNotification}
+                      count={count}
+                      unread={!lastNotification.readAt}
+                    />
+                  </div>
+                ))}
               </div>
-            </CardContent>
-          </ErrorBoundary>
-        </Card>
-      </DropdownMenuContent>
-    </DropdownMenu>
+            ) : (
+              <div className="flex flex-col items-center justify-center gap-2 py-16 text-muted-foreground">
+                <InboxIcon className="h-10 w-10 opacity-40" />
+                <p className="text-sm">No notifications yet</p>
+              </div>
+            )}
+          </div>
+        </ErrorBoundary>
+      </SheetContent>
+    </Sheet>
   ) : null
 }

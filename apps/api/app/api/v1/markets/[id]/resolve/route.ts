@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server'
 import type { SchemaResponse } from '@play-money/api-helpers'
+import { rateLimit } from '@play-money/api-helpers/lib/rateLimit'
 import { getAuthUser } from '@play-money/auth/lib/getAuthUser'
 import { getMarket } from '@play-money/markets/lib/getMarket'
 import { resolveMarket } from '@play-money/markets/lib/resolveMarket'
@@ -8,6 +9,8 @@ import { getUserById } from '@play-money/users/lib/getUserById'
 import schema from './schema'
 
 export const dynamic = 'force-dynamic'
+
+const limiter = rateLimit({ windowMs: 60_000, maxRequests: 10 })
 
 export async function POST(
   req: Request,
@@ -18,6 +21,9 @@ export async function POST(
     if (!userId) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
+
+    const rateLimitResponse = limiter(req, userId)
+    if (rateLimitResponse) return rateLimitResponse
 
     const { id } = schema.post.parameters.parse(params)
 

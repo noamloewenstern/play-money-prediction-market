@@ -14,6 +14,7 @@
   "dependencies": {
     "@asteasolutions/zod-to-openapi": "^7.2.0",
     "@play-money/api-helpers": "*",
+    "@play-money/audit-log": "*",
     "@play-money/auth": "*",
     "@play-money/comments": "*",
     "@play-money/database": "*",
@@ -25,6 +26,7 @@
     "@play-money/search": "*",
     "@play-money/transparency": "*",
     "@play-money/users": "*",
+    "@play-money/webhooks": "*",
     "bcryptjs": "^2.4.3",
     "bip39": "^3.1.0",
     "decimal.js": "^10.4.3",

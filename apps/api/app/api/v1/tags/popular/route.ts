@@ -1,0 +1,29 @@
+import { NextResponse } from 'next/server'
+import type { SchemaResponse } from '@play-money/api-helpers'
+import { rateLimit } from '@play-money/api-helpers/lib/rateLimit'
+import { getPopularTags } from '@play-money/markets/lib/getPopularTags'
+import schema from './schema'
+
+export const dynamic = 'force-dynamic'
+
+const limiter = rateLimit({ windowMs: 60_000, maxRequests: 120 })
+
+export async function GET(req: Request): Promise<SchemaResponse<typeof schema.get.responses>> {
+  try {
+    const rateLimitResponse = limiter(req)
+    if (rateLimitResponse) return rateLimitResponse
+
+    const url = new URL(req.url)
+    const searchParams = new URLSearchParams(url.search)
+    const params = Object.fromEntries(searchParams)
+
+    const { excludeTag, limit } = schema.get.parameters.parse(params)
+
+    const tags = await getPopularTags({ excludeTag, limit })
+
+    return NextResponse.json({ data: tags })
+  } catch (error) {
+    console.log(error) // eslint-disable-line no-console -- Log error for debugging
+    return NextResponse.json({ error: 'Error processing request' }, { status: 500 })
+  }
+}

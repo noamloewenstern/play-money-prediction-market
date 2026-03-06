@@ -5,6 +5,7 @@ export async function updateMarket({
   id,
   question,
   description,
+  resolutionCriteria,
   closeDate,
   tags,
   createdBy,
@@ -12,6 +13,7 @@ export async function updateMarket({
   id: string
   question?: string
   description?: string
+  resolutionCriteria?: string | null
   closeDate?: Date
   tags?: Array<string>
   createdBy?: string
@@ -25,6 +27,10 @@ export async function updateMarket({
 
   if (description) {
     updatedData.description = description
+  }
+
+  if (resolutionCriteria !== undefined) {
+    updatedData.resolutionCriteria = resolutionCriteria
   }
 
   if (closeDate) {

@@ -6,5 +6,12 @@ import { MarketCommentsPage } from '@play-money/markets/components/MarketComment
 export default async function AppPostsSlugPage({ params }: { params: { marketId: string } }) {
   const { data: market } = await getExtendedMarket({ marketId: params.marketId })
 
-  return <MarketCommentsPage market={market} renderComments={<MarketComments marketId={market.id} />} />
+  return (
+    <MarketCommentsPage
+      market={market}
+      renderComments={
+        <MarketComments marketId={market.id} creatorId={market.createdBy} marketQuestion={market.question} />
+      }
+    />
+  )
 }

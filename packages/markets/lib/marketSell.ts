@@ -1,5 +1,6 @@
 import Decimal from 'decimal.js'
 import { getUserPrimaryAccount } from '@play-money/users/lib/getUserPrimaryAccount'
+import { triggerWebhook } from '@play-money/webhooks/lib/triggerWebhook'
 import { isMarketTradable } from '../rules'
 import { createMarketSellTransaction } from './createMarketSellTransaction'
 import { MarketClosedError } from './exceptions'
@@ -24,11 +25,25 @@ export async function marketSell({
     throw new MarketClosedError()
   }
 
-  await createMarketSellTransaction({
+  const transaction = await createMarketSellTransaction({
     initiatorId: userId,
     accountId: userAccount.id,
     marketId,
     amount,
     optionId,
+  })
+
+  void triggerWebhook({
+    eventType: 'TRADE_EXECUTED',
+    marketId,
+    payload: {
+      marketId,
+      question: market.question,
+      optionId,
+      userId,
+      amount: amount.toString(),
+      type: 'SELL',
+      transactionId: transaction.id,
+    },
   })
 }

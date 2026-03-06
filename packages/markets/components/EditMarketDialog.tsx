@@ -15,7 +15,13 @@ import { Input } from '@play-money/ui/input'
 import { MultiSelect } from '@play-money/ui/multi-select'
 import { toast } from '@play-money/ui/use-toast'
 
-const FormSchema = MarketSchema.pick({ question: true, description: true, closeDate: true, tags: true })
+const FormSchema = MarketSchema.pick({
+  question: true,
+  description: true,
+  resolutionCriteria: true,
+  closeDate: true,
+  tags: true,
+})
 
 type FormData = z.infer<typeof FormSchema>
 
@@ -55,6 +61,7 @@ export const EditMarketDialog = ({
     defaultValues: {
       question: market.question,
       description: market.description || '<p></p>',
+      resolutionCriteria: market.resolutionCriteria ?? null,
       closeDate: market.closeDate,
       tags: market.tags,
     },
@@ -107,15 +114,36 @@ export const EditMarketDialog = ({
 
             <FormField
               control={form.control}
-              name="description"
-              render={({ field }) => (
+              name="resolutionCriteria"
+              render={({ field: { value, ...field } }) => (
                 <FormItem>
                   <FormLabel>Resolution criteria</FormLabel>
                   <FormControl>
                     <div className="min-h-[80px]">
                       <Editor
                         inputClassName="border text-sm p-3 min-h-[80px]"
-                        placeholder="Description..."
+                        placeholder="Define the conditions for YES/NO resolution..."
+                        value={value ?? ''}
+                        {...field}
+                      />
+                    </div>
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            <FormField
+              control={form.control}
+              name="description"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Description</FormLabel>
+                  <FormControl>
+                    <div className="min-h-[80px]">
+                      <Editor
+                        inputClassName="border text-sm p-3 min-h-[80px]"
+                        placeholder="Additional context or background information..."
                         {...field}
                       />
                     </div>

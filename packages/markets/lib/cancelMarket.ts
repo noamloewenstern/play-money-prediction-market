@@ -4,6 +4,7 @@ import db from '@play-money/database'
 import { calculateBalanceChanges } from '@play-money/finance/lib/helpers'
 import { updateGlobalBalances } from '@play-money/finance/lib/updateGlobalBalances'
 import { createNotification } from '@play-money/notifications/lib/createNotification'
+import { triggerWebhook } from '@play-money/webhooks/lib/triggerWebhook'
 import { isMarketResolved, isMarketCanceled } from '../rules'
 import { MarketCanceledError, MarketResolvedError } from './exceptions'
 import { getMarket } from './getMarket'
@@ -154,5 +155,16 @@ export async function cancelMarket({
     before: { canceledAt: null },
     after: { canceledAt: new Date().toISOString(), canceledById },
     metadata: { marketQuestion: market.question, reason },
+  })
+
+  void triggerWebhook({
+    eventType: 'MARKET_CANCELED',
+    marketId,
+    payload: {
+      marketId,
+      question: market.question,
+      canceledById,
+      reason,
+    },
   })
 }

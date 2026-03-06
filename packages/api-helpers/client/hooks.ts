@@ -140,3 +140,75 @@ export function useTransparencyStatsUsers() {
     }>
   }>(`/v1/transparency/stats/users`, { refreshInterval: ONE_HOUR })
 }
+
+export function useAdminAuditLogs({
+  action,
+  actorId,
+  targetType,
+  targetId,
+  cursor,
+  limit,
+}: {
+  action?: string
+  actorId?: string
+  targetType?: string
+  targetId?: string
+  cursor?: string
+  limit?: number
+} = {}) {
+  const params = new URLSearchParams(
+    JSON.parse(JSON.stringify({ action, actorId, targetType, targetId, cursor, limit }))
+  )
+  const qs = params.toString()
+  return useSWR<{
+    data: Array<{
+      id: string
+      action: string
+      actorId: string
+      actor: { id: string; username: string; displayName: string; avatarUrl: string | null }
+      targetType: string
+      targetId: string
+      before: unknown
+      after: unknown
+      metadata: unknown
+      createdAt: string
+    }>
+    pageInfo: { hasNextPage: boolean; endCursor?: string; total: number }
+  }>(`/v1/admin/audit-logs${qs ? `?${qs}` : ''}`, { refreshInterval: SIXTY_SECONDS })
+}
+
+export const TAG_FOLLOW_PATH = (tag: string) => `/v1/tags/${encodeURIComponent(tag)}/follow`
+export function useTagFollow({ tag, skip = false }: { tag: string; skip?: boolean }) {
+  return useSWR<{ data: { isFollowing: boolean } }>(!skip ? TAG_FOLLOW_PATH(tag) : null)
+}
+
+export const MY_FOLLOWED_TAGS_PATH = '/v1/users/me/followed-tags'
+export function useMyFollowedTags({ skip = false }: { skip?: boolean } = {}) {
+  return useSWR<{ data: Array<string> }>(!skip ? MY_FOLLOWED_TAGS_PATH : null)
+}
+
+export const MARKET_BOOKMARK_PATH = (marketId: string) => `/v1/markets/${encodeURIComponent(marketId)}/bookmark`
+export function useMarketBookmark({ marketId, skip = false }: { marketId: string; skip?: boolean }) {
+  return useSWR<{ data: { isBookmarked: boolean } }>(!skip ? MARKET_BOOKMARK_PATH(marketId) : null)
+}
+
+export const MY_BOOKMARKS_PATH = '/v1/users/me/bookmarks'
+export function useMyBookmarks({ skip = false }: { skip?: boolean } = {}) {
+  return useSWR<{ data: Array<{ id: string; marketId: string; createdAt: string; market: ExtendedMarket }> }>(
+    !skip ? MY_BOOKMARKS_PATH : null
+  )
+}
+
+export const MY_WEBHOOKS_PATH = '/v1/webhooks'
+export function useMyWebhooks({ skip = false }: { skip?: boolean } = {}) {
+  return useSWR<{
+    data: Array<{
+      id: string
+      url: string
+      events: Array<string>
+      isActive: boolean
+      createdAt: string
+      updatedAt: string
+    }>
+  }>(!skip ? MY_WEBHOOKS_PATH : null)
+}

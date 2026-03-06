@@ -4,6 +4,7 @@ import { DAILY_TRADE_BONUS_PRIMARY, UNIQUE_TRADER_LIQUIDITY_PRIMARY } from '@pla
 import { getHouseAccount } from '@play-money/finance/lib/getHouseAccount'
 import { getUniqueLiquidityProviderIds } from '@play-money/markets/lib/getUniqueLiquidityProviderIds'
 import { createNotification } from '@play-money/notifications/lib/createNotification'
+import { triggerWebhook } from '@play-money/webhooks/lib/triggerWebhook'
 import { createDailyTradeBonusTransaction } from '@play-money/quests/lib/createDailyTradeBonusTransaction'
 import { hasPlacedMarketTradeToday } from '@play-money/quests/lib/helpers'
 import { getUserPrimaryAccount } from '@play-money/users/lib/getUserPrimaryAccount'
@@ -92,4 +93,18 @@ export async function marketBuy({
   if (!(await hasPlacedMarketTradeToday({ userId }))) {
     await createDailyTradeBonusTransaction({ accountId: userAccount.id, marketId, initiatorId: userId })
   }
+
+  void triggerWebhook({
+    eventType: 'TRADE_EXECUTED',
+    marketId,
+    payload: {
+      marketId,
+      question: market.question,
+      optionId,
+      userId,
+      amount: amount.toString(),
+      type: 'BUY',
+      transactionId: transaction.id,
+    },
+  })
 }

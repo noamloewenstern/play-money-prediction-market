@@ -47,8 +47,16 @@ export function UserNav({ initialBalance }: { initialBalance?: number }) {
             <Link href={`/${user.username}`}>Profile</Link>
           </DropdownMenuItem>
           <DropdownMenuItem asChild>
+            <Link href="/questions/bookmarks">Bookmarks</Link>
+          </DropdownMenuItem>
+          <DropdownMenuItem asChild>
             <Link href="/settings">Settings</Link>
           </DropdownMenuItem>
+          {user.role === 'ADMIN' ? (
+            <DropdownMenuItem asChild>
+              <Link href="/admin">Admin</Link>
+            </DropdownMenuItem>
+          ) : null}
         </DropdownMenuGroup>
 
         <DropdownMenuSeparator />

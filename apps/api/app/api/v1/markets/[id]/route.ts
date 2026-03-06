@@ -42,7 +42,7 @@ export async function PATCH(
 
     const { id } = schema.patch.parameters.parse(params)
     const body = (await req.json()) as unknown
-    const { question, description, closeDate, tags, createdBy } = schema.patch.requestBody
+    const { question, description, resolutionCriteria, closeDate, tags, createdBy } = schema.patch.requestBody
       .transform(stripUndefined)
       .parse(body)
 
@@ -53,7 +53,7 @@ export async function PATCH(
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
-    const updatedMarket = await updateMarket({ id, question, description, closeDate, tags, createdBy })
+    const updatedMarket = await updateMarket({ id, question, description, resolutionCriteria, closeDate, tags, createdBy })
 
     return NextResponse.json({ data: updatedMarket })
   } catch (error) {

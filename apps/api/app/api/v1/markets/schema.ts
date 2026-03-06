@@ -31,6 +31,7 @@ export default {
     requestBody: MarketSchema.pick({
       question: true,
       description: true,
+      resolutionCriteria: true,
       closeDate: true,
       tags: true,
     }).extend({

@@ -13,6 +13,7 @@
     "@play-money/finance": "*",
     "@play-money/notifications": "*",
     "@play-money/quests": "*",
+    "@play-money/webhooks": "*",
     "chrono-node": "^2.7.7",
     "decimal.js": "^10.4.3",
     "isomorphic-dompurify": "^2.16.0",

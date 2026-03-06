@@ -19,6 +19,7 @@
   },
   "devDependencies": {
     "@play-money/config": "*",
+    "@playwright/test": "^1.58.2",
     "@types/jest": "^29.5.12",
     "cross-env": "^7.0.3",
     "dotenv-cli": "^7.4.1",

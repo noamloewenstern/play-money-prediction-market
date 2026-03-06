@@ -1,13 +1,18 @@
 import { NextResponse } from 'next/server'
 import type { SchemaResponse } from '@play-money/api-helpers'
+import { rateLimit } from '@play-money/api-helpers/lib/rateLimit'
 import { getAuthUser } from '@play-money/auth/lib/getAuthUser'
 import { getMarketTagsLLM } from '@play-money/markets/lib/getMarketTagsLLM'
 import schema from './schema'
 
 export const dynamic = 'force-dynamic'
 
+const limiter = rateLimit({ windowMs: 60_000, maxRequests: 30 })
+
 export async function POST(req: Request): Promise<SchemaResponse<typeof schema.post.responses>> {
   try {
+    const rateLimitResponse = limiter(req)
+    if (rateLimitResponse) return rateLimitResponse
     const body = (await req.json()) as unknown
     const { question } = schema.post.requestBody.parse(body)
 

@@ -144,6 +144,18 @@ export async function deleteComment({ commentId }: { commentId: string }) {
   })
 }
 
+export async function pinComment({ commentId }: { commentId: string }) {
+  return apiHandler<unknown>(`${process.env.NEXT_PUBLIC_API_URL}/v1/comments/${commentId}/pin`, {
+    method: 'POST',
+  })
+}
+
+export async function unpinComment({ commentId }: { commentId: string }) {
+  return apiHandler<unknown>(`${process.env.NEXT_PUBLIC_API_URL}/v1/comments/${commentId}/pin`, {
+    method: 'DELETE',
+  })
+}
+
 export async function getMyBalance() {
   return apiHandler<{ data: { balance: number } }>(`${process.env.NEXT_PUBLIC_API_URL}/v1/users/me/balance`)
 }
@@ -593,6 +605,29 @@ export async function getMyFollowedTags(): Promise<{ data: Array<string> }> {
   return apiHandler<{ data: Array<string> }>(`${process.env.NEXT_PUBLIC_API_URL}/v1/users/me/followed-tags`)
 }
 
+export async function getPopularTags({
+  excludeTag,
+  limit,
+}: { excludeTag?: string; limit?: number } = {}): Promise<{ data: Array<{ tag: string; count: number }> }> {
+  const params = new URLSearchParams(JSON.parse(JSON.stringify({ excludeTag, limit })))
+  const qs = params.toString()
+  return apiHandler<{ data: Array<{ tag: string; count: number }> }>(
+    `${process.env.NEXT_PUBLIC_API_URL}/v1/tags/popular${qs ? `?${qs}` : ''}`
+  )
+}
+
+export async function bookmarkMarket({ marketId }: { marketId: string }) {
+  return apiHandler<{ data: { success: boolean } }>(`${process.env.NEXT_PUBLIC_API_URL}/v1/markets/${encodeURIComponent(marketId)}/bookmark`, {
+    method: 'POST',
+  })
+}
+
+export async function unbookmarkMarket({ marketId }: { marketId: string }) {
+  return apiHandler<{ data: { success: boolean } }>(`${process.env.NEXT_PUBLIC_API_URL}/v1/markets/${encodeURIComponent(marketId)}/bookmark`, {
+    method: 'DELETE',
+  })
+}
+
 export async function getMyFeed(paginationParams: PaginationRequest = {}) {
   const currentParams = new URLSearchParams(JSON.parse(JSON.stringify(paginationParams)))
   const search = currentParams.toString()
@@ -680,6 +715,7 @@ export async function getAdminMarkets({
       liquidityCount: number | null
       createdAt: string
       updatedAt: string
+      options: Array<{ id: string; name: string; color: string }>
       user: { id: string; username: string; displayName: string }
     }>
     page: number
@@ -722,4 +758,198 @@ export async function updateAdminComment({ commentId, body }: { commentId: strin
   })
 }
 
+export async function getAdminUserDetail({ userId }: { userId: string }) {
+  return apiHandler<{
+    data: {
+      id: string
+      username: string
+      displayName: string
+      avatarUrl: string | null
+      email: string
+      emailVerified: string | null
+      role: string
+      suspendedAt: string | null
+      bio: string | null
+      timezone: string
+      twitterHandle: string | null
+      discordHandle: string | null
+      website: string | null
+      referralCode: string | null
+      referredBy: string | null
+      primaryAccountId: string
+      createdAt: string
+      updatedAt: string
+      _count: { markets: number; transactions: number; comments: number }
+    }
+  }>(`${process.env.NEXT_PUBLIC_API_URL}/v1/admin/users/${userId}`)
+}
 
+export async function adminForceResolveMarket({
+  marketId,
+  optionId,
+  supportingLink,
+  reason,
+}: {
+  marketId: string
+  optionId: string
+  supportingLink?: string
+  reason?: string
+}) {
+  return apiHandler<{ data: { success: boolean } }>(
+    `${process.env.NEXT_PUBLIC_API_URL}/v1/admin/markets/${marketId}/resolve`,
+    { method: 'POST', body: { optionId, supportingLink, reason } }
+  )
+}
+
+export type AdminBulkOperation =
+  | { marketId: string; action: 'resolve'; optionId: string; supportingLink?: string; reason?: string }
+  | { marketId: string; action: 'cancel'; reason: string }
+
+export type AdminBulkResult = {
+  marketId: string
+  action: string
+  success: boolean
+  error?: string
+}
+
+export async function adminBulkResolveMarkets({ operations }: { operations: Array<AdminBulkOperation> }) {
+  return apiHandler<{
+    data: {
+      results: Array<AdminBulkResult>
+      summary: { total: number; succeeded: number; failed: number }
+    }
+  }>(`${process.env.NEXT_PUBLIC_API_URL}/v1/admin/markets/bulk-resolve`, {
+    method: 'POST',
+    body: { operations },
+  })
+}
+
+export async function adminImpersonateUser({ userId, reason }: { userId: string; reason?: string }) {
+  return apiHandler<{
+    data: {
+      user: {
+        id: string
+        username: string
+        displayName: string
+        email: string
+        role: string
+        suspendedAt: string | null
+        bio: string | null
+        timezone: string
+        twitterHandle: string | null
+        discordHandle: string | null
+        website: string | null
+        referralCode: string | null
+        primaryAccountId: string
+        createdAt: string
+      }
+      impersonatedBy: { id: string; username: string }
+      impersonatedAt: string
+    }
+  }>(`${process.env.NEXT_PUBLIC_API_URL}/v1/admin/users/${userId}/impersonate`, {
+    method: 'POST',
+    body: { reason },
+  })
+}
+
+export async function getAdminAuditLogs({
+  action,
+  cursor,
+  limit,
+}: { action?: string; cursor?: string; limit?: number } = {}) {
+  const params = new URLSearchParams(JSON.parse(JSON.stringify({ action, cursor, limit })))
+  const qs = params.toString()
+  return apiHandler<{
+    data: Array<{
+      id: string
+      action: string
+      actorId: string
+      targetType: string
+      targetId: string
+      before: unknown
+      after: unknown
+      metadata: unknown
+      createdAt: string
+      actor: { id: string; username: string; displayName: string; avatarUrl: string | null }
+    }>
+    pageInfo: { hasNextPage: boolean; endCursor?: string; total: number }
+  }>(`${process.env.NEXT_PUBLIC_API_URL}/v1/admin/audit-logs${qs ? `?${qs}` : ''}`)
+}
+
+// Webhooks
+
+type WebhookResponse = {
+  id: string
+  url: string
+  events: Array<string>
+  isActive: boolean
+  createdAt: string
+  updatedAt: string
+}
+
+export async function getMyWebhooks(): Promise<{ data: Array<WebhookResponse> }> {
+  return apiHandler<{ data: Array<WebhookResponse> }>(`${process.env.NEXT_PUBLIC_API_URL}/v1/webhooks`)
+}
+
+export async function createMyWebhook({
+  url,
+  events,
+}: {
+  url: string
+  events: Array<string>
+}): Promise<{ data: WebhookResponse & { secret: string } }> {
+  return apiHandler<{ data: WebhookResponse & { secret: string } }>(`${process.env.NEXT_PUBLIC_API_URL}/v1/webhooks`, {
+    method: 'POST',
+    body: { url, events },
+  })
+}
+
+export async function updateMyWebhook({
+  id,
+  url,
+  events,
+  isActive,
+}: {
+  id: string
+  url?: string
+  events?: Array<string>
+  isActive?: boolean
+}): Promise<{ data: WebhookResponse }> {
+  return apiHandler<{ data: WebhookResponse }>(`${process.env.NEXT_PUBLIC_API_URL}/v1/webhooks/${id}`, {
+    method: 'PATCH',
+    body: JSON.parse(JSON.stringify({ url, events, isActive })),
+  })
+}
+
+export async function deleteMyWebhook({ id }: { id: string }): Promise<void> {
+  return apiHandler<void>(`${process.env.NEXT_PUBLIC_API_URL}/v1/webhooks/${id}`, {
+    method: 'DELETE',
+  })
+}
+
+export async function getWebhookDeliveries({
+  webhookId,
+  cursor,
+  limit,
+}: {
+  webhookId: string
+  cursor?: string
+  limit?: number
+}) {
+  const params = new URLSearchParams(JSON.parse(JSON.stringify({ cursor, limit })))
+  const qs = params.toString()
+  return apiHandler<{
+    data: Array<{
+      id: string
+      webhookId: string
+      eventType: string
+      payload: unknown
+      status: string
+      statusCode: number | null
+      attempts: number
+      lastError: string | null
+      createdAt: string
+    }>
+    pageInfo: { hasNextPage: boolean; endCursor?: string }
+  }>(`${process.env.NEXT_PUBLIC_API_URL}/v1/webhooks/${webhookId}/deliveries${qs ? `?${qs}` : ''}`)
+}

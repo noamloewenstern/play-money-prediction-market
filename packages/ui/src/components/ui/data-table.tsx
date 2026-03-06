@@ -38,6 +38,7 @@ type DataTableProps<TData, TValue> = {
   pageInfo: PageInfo
   controls?: React.ReactNode
   showViewOptions?: boolean
+  emptyState?: React.ReactNode
 }
 
 function useURLSorting(): SortingOptions<unknown> & { sorting: SortingState } {
@@ -94,6 +95,7 @@ export function DataTable<TData, TValue>({
   // eslint-disable-next-line react/jsx-no-useless-fragment -- empty controls are fine
   controls = <></>,
   showViewOptions = true,
+  emptyState,
 }: DataTableProps<TData, TValue>) {
   const { sorting, ...sortingOptions } = useURLSorting()
   const { pagination, ...paginationOptions } = useURLPagination({ total: pageInfo.total })
@@ -117,7 +119,7 @@ export function DataTable<TData, TValue>({
           <DataTableViewOptions table={table} />
         </div>
       ) : null}
-      <div className="rounded-md border font-mono text-sm">
+      <div className="overflow-hidden rounded-xl border font-mono text-sm shadow-soft">
         <Table>
           <TableHeader>
             {table.getHeaderGroups().map((headerGroup) => (
@@ -144,7 +146,7 @@ export function DataTable<TData, TValue>({
             ) : (
               <TableRow>
                 <TableCell className="h-24 text-center" colSpan={columns.length}>
-                  No results.
+                  {emptyState || 'No results.'}
                 </TableCell>
               </TableRow>
             )}

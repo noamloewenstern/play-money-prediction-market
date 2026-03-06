@@ -14,6 +14,10 @@ const sidebarNavItems = [
     title: 'API',
     href: '/settings/api',
   },
+  {
+    title: 'Export',
+    href: '/settings/export',
+  },
 ]
 
 export default function SettingsLayout({ children }: { children: React.ReactNode }) {

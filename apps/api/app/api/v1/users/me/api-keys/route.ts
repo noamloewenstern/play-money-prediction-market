@@ -9,17 +9,18 @@ import schema from './schema'
 
 export const dynamic = 'force-dynamic'
 
-const limiter = rateLimit({ windowMs: 60000, maxRequests: 5 })
+const limiter = rateLimit({ windowMs: 60_000, maxRequests: 5 })
 
 export async function POST(req: Request): Promise<SchemaResponse<typeof schema.post.responses>> {
   try {
-    const rateLimitResponse = limiter(req)
-    if (rateLimitResponse) return rateLimitResponse
     const session = await auth()
 
     if (!session?.user?.id) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
+
+    const rateLimitResponse = limiter(req, session.user.id)
+    if (rateLimitResponse) return rateLimitResponse
 
     const body = (await req.json()) as unknown
     const { name } = schema.post.requestBody.parse(body)

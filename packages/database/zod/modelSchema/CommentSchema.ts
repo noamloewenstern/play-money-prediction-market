@@ -15,6 +15,7 @@ export const CommentSchema = z.object({
   authorId: z.string(),
   parentId: z.string().nullable(),
   hidden: z.boolean(),
+  pinnedAt: z.coerce.date().nullable(),
   entityId: z.string(),
 })
 

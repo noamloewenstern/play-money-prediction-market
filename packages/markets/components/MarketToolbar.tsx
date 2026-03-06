@@ -18,6 +18,7 @@ import { useUser } from '@play-money/users/context/UserContext'
 import { canModifyMarket } from '../rules'
 import { ExtendedMarket } from '../types'
 import { CancelMarketDialog } from './CancelMarketDialog'
+import { MarketBookmarkButton } from './MarketBookmarkButton'
 import { ResolveMarketDialog } from './ResolveMarketDialog'
 
 function useQueryString(key: string) {
@@ -92,6 +93,7 @@ export function MarketToolbar({
           <span>Edit</span>
         </Button>
       ) : null}
+      <MarketBookmarkButton marketId={market.id} />
       <Tooltip>
         <TooltipTrigger asChild>
           <Button variant="ghost" size="icon" onClick={handleCopyLink}>

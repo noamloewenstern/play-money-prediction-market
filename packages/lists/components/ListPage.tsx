@@ -96,7 +96,9 @@ export function ListPage({
                   <>
                     <DropdownMenuGroup>
                       <DropdownMenuItem asChild>
-                        <Link href={`/questions/${market.market.id}/${market.market.slug}`}>View market</Link>
+                        <Link href={`/questions/${market.market.id}/${market.market.slug}?ref=list:${list.id}`}>
+                          View market
+                        </Link>
                       </DropdownMenuItem>
                     </DropdownMenuGroup>
                     <DropdownMenuSeparator />

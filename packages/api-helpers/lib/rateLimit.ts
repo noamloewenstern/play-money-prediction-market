@@ -32,11 +32,11 @@ const store = new Map<string, SlidingWindowEntry>()
 // Clean up expired entries periodically
 setInterval(() => {
   const now = Date.now()
-  for (const [key, entry] of store) {
+  store.forEach((entry, key) => {
     if (entry.timestamps.length === 0 || entry.timestamps[entry.timestamps.length - 1]! + 120_000 < now) {
       store.delete(key)
     }
-  }
+  })
 }, 60_000)
 
 function getClientIp(req: NextRequest | Request): string {

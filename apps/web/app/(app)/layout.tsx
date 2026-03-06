@@ -17,22 +17,31 @@ function MainNav({
   return (
     <nav className={cn('flex items-center text-sm', className)} {...props}>
       {renderItemWrap(
-        <Link className="font-medium transition-colors hover:text-primary" href="/questions">
+        <Link
+          className="rounded-md px-3 py-1.5 font-medium text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
+          href="/questions"
+        >
           Questions
         </Link>
       )}
       {renderItemWrap(
-        <Link className="font-medium transition-colors hover:text-primary" href="/create-post">
+        <Link
+          className="rounded-md px-3 py-1.5 font-medium text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
+          href="/create-post"
+        >
           Create Question
         </Link>
       )}
       {renderItemWrap(
-        <Link className="font-medium transition-colors hover:text-primary" href="/leaderboard">
+        <Link
+          className="rounded-md px-3 py-1.5 font-medium text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
+          href="/leaderboard"
+        >
           Leaderboard
         </Link>
       )}
       {renderItemWrap(
-        <GlobalSearchTriggerLink className="h-auto text-[length:inherit] text-foreground transition-colors hover:text-primary" />
+        <GlobalSearchTriggerLink className="h-auto rounded-md px-3 py-1.5 text-[length:inherit] text-muted-foreground transition-colors hover:bg-accent hover:text-foreground" />
       )}
     </nav>
   )
@@ -50,21 +59,21 @@ export default async function AppLayout({ children }: { children: React.ReactNod
   }
 
   return (
-    <div className="flex min-h-screen flex-col">
-      <header className="flex w-full flex-col justify-between border-b">
-        <div className="flex h-16 items-center justify-between gap-4 px-4">
+    <div className="flex min-h-screen flex-col bg-background">
+      <header className="sticky top-0 z-40 w-full border-b bg-background/80 backdrop-blur-lg">
+        <div className="mx-auto flex h-16 max-w-screen-xl items-center justify-between gap-4 px-4 md:px-8">
           <Sheet>
             <SheetTrigger asChild>
-              <Button className="md:hidden" size="icon" variant="outline">
-                <MenuIcon className="h-6 w-6" />
+              <Button className="md:hidden" size="icon" variant="ghost">
+                <MenuIcon className="h-5 w-5" />
                 <span className="sr-only">Toggle navigation menu</span>
               </Button>
             </SheetTrigger>
             <SheetContent className="flex flex-col" side="left">
               <div className="flex flex-1 flex-col gap-4">
-                <span className="text-lg font-bold tracking-tight text-muted-foreground">PlayMoney</span>
+                <span className="text-lg font-bold tracking-tight">PlayMoney</span>
                 <MainNav
-                  className="flex flex-col items-start space-y-4 text-lg"
+                  className="flex flex-col items-start space-y-1 text-lg"
                   renderItemWrap={(child) => <SheetClose asChild>{child}</SheetClose>}
                 />
               </div>
@@ -72,9 +81,9 @@ export default async function AppLayout({ children }: { children: React.ReactNod
             </SheetContent>
           </Sheet>
           <Link className="flex items-center gap-2" href="/">
-            <span className="text-lg font-bold tracking-tight text-muted-foreground">PlayMoney</span>
+            <span className="text-lg font-bold tracking-tight">PlayMoney</span>
           </Link>
-          <MainNav className="hidden gap-6 md:flex" />
+          <MainNav className="hidden gap-1 md:flex" />
 
           <div className="ml-auto flex items-center space-x-2">
             <NotificationDropdown />
@@ -83,26 +92,29 @@ export default async function AppLayout({ children }: { children: React.ReactNod
         </div>
       </header>
 
-      <div className="mx-auto flex w-full max-w-screen-xl flex-1 space-y-4 p-4 md:p-8">{children}</div>
+      <main className="mx-auto flex w-full max-w-screen-xl flex-1 space-y-4 p-4 md:p-8">{children}</main>
 
-      <div className="mx-auto flex gap-4 p-4 text-sm text-muted-foreground md:p-8">
-        <a className="hover:underline" href="https://discord.gg/Q5CeSMFeBP" rel="noreferrer" target="_blank">
-          Join the discord
-        </a>
-        —
-        <a
-          className="hover:underline"
-          href="https://github.com/casesandberg/play-money"
-          rel="noreferrer"
-          target="_blank"
-        >
-          Open source
-        </a>
-        {/* —
-        <Link className="hover:underline" href="/transparency">
-          Transparency
-        </Link> */}
-      </div>
+      <footer className="border-t bg-muted/30">
+        <div className="mx-auto flex max-w-screen-xl gap-4 px-4 py-6 text-sm text-muted-foreground md:px-8">
+          <a
+            className="transition-colors hover:text-foreground hover:underline"
+            href="https://discord.gg/Q5CeSMFeBP"
+            rel="noreferrer"
+            target="_blank"
+          >
+            Join the discord
+          </a>
+          <span className="text-border">|</span>
+          <a
+            className="transition-colors hover:text-foreground hover:underline"
+            href="https://github.com/casesandberg/play-money"
+            rel="noreferrer"
+            target="_blank"
+          >
+            Open source
+          </a>
+        </div>
+      </footer>
     </div>
   )
 }

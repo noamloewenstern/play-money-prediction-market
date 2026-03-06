@@ -12,5 +12,11 @@ export default async function AppListsSlugPage({ params }: { params: { listId: s
     revalidateTag(`list:${params.listId}`)
   }
 
-  return <ListPage list={list} onRevalidate={handleRevalidate} renderComments={<ListComments listId={list.id} />} />
+  return (
+    <ListPage
+      list={list}
+      onRevalidate={handleRevalidate}
+      renderComments={<ListComments listId={list.id} creatorId={list.ownerId} />}
+    />
+  )
 }

@@ -53,6 +53,7 @@ const COLORS = [
 const marketCreateFormSchema = MarketSchema.pick({
   question: true,
   description: true,
+  resolutionCriteria: true,
   closeDate: true,
   tags: true,
 }).and(
@@ -83,6 +84,7 @@ export function CreateMarketForm({
           question: '',
           type: 'binary',
           description: '',
+          resolutionCriteria: null,
           closeDate: endOfMonth(addMonths(new Date(), 1)),
           options: [
             { name: 'Yes', color: SHUFFLED_COLORS[0] },
@@ -466,8 +468,8 @@ export function CreateMarketForm({
 
           <FormField
             control={form.control}
-            name="description"
-            render={({ field: { ref, ...field } }) => (
+            name="resolutionCriteria"
+            render={({ field: { ref, value, ...field } }) => (
               <FormItem>
                 <FormLabel>Resolution criteria</FormLabel>
                 <FormControl>
@@ -483,6 +485,27 @@ export function CreateMarketForm({
                               ? 'Resolves to features announced at the 2025 iPhone event via Apple.'
                               : ''
                       }
+                      value={value ?? ''}
+                      {...field}
+                    />
+                  </div>
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+
+          <FormField
+            control={form.control}
+            name="description"
+            render={({ field: { ref, ...field } }) => (
+              <FormItem>
+                <FormLabel>Description</FormLabel>
+                <FormControl>
+                  <div className="min-h-[80px]">
+                    <Editor
+                      inputClassName="border text-sm p-3 min-h-[80px]"
+                      placeholder="Additional context or background information..."
                       {...field}
                     />
                   </div>

@@ -3,7 +3,7 @@ import z from 'zod'
 
 type HttpMethod = 'get' | 'post' | 'put' | 'patch' | 'delete'
 
-interface EndpointDefinition {
+type EndpointDefinition = {
   parameters?: z.ZodObject<any> | z.ZodOptional<z.ZodObject<any>>
   requestBody?: z.ZodObject<any>
   responses: {

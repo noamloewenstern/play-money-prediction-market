@@ -1,4 +1,16 @@
-import { formatDistanceToNow } from 'date-fns'
+import {
+  AtSignIcon,
+  BookmarkIcon,
+  CheckCircle2Icon,
+  DropletsIcon,
+  GiftIcon,
+  HashIcon,
+  LockIcon,
+  MessageSquareIcon,
+  SmileIcon,
+  TrendingUpIcon,
+  XCircleIcon,
+} from 'lucide-react'
 import Link from 'next/link'
 import React from 'react'
 import { formatNumber } from '@play-money/finance/lib/formatCurrency'
@@ -7,6 +19,22 @@ import { UserAvatar } from '@play-money/ui/UserAvatar'
 import { cn } from '@play-money/ui/utils'
 import { formatDistanceToNowShort } from '../../ui/src/helpers'
 import { NotificationGroupWithLastNotification } from '../lib/getNotifications'
+
+const NOTIFICATION_ICON_MAP: Record<string, { icon: React.ElementType; className: string }> = {
+  MARKET_RESOLVED: { icon: CheckCircle2Icon, className: 'text-green-600' },
+  MARKET_CANCELED: { icon: XCircleIcon, className: 'text-red-500' },
+  MARKET_CLOSED: { icon: LockIcon, className: 'text-amber-500' },
+  MARKET_TRADE: { icon: TrendingUpIcon, className: 'text-blue-500' },
+  MARKET_LIQUIDITY_ADDED: { icon: DropletsIcon, className: 'text-cyan-500' },
+  MARKET_COMMENT: { icon: MessageSquareIcon, className: 'text-violet-500' },
+  LIST_COMMENT: { icon: MessageSquareIcon, className: 'text-violet-500' },
+  COMMENT_REPLY: { icon: MessageSquareIcon, className: 'text-violet-500' },
+  COMMENT_REACTION: { icon: SmileIcon, className: 'text-amber-500' },
+  COMMENT_MENTION: { icon: AtSignIcon, className: 'text-pink-500' },
+  REFERRER_BONUS: { icon: GiftIcon, className: 'text-emerald-500' },
+  TAG_NEW_MARKET: { icon: HashIcon, className: 'text-indigo-500' },
+  MARKET_BOOKMARK_RESOLVED: { icon: BookmarkIcon, className: 'text-green-600' },
+}
 
 function createSnippet(htmlString: string, maxLength = 150) {
   const textContent = htmlString.replace(/<[^>]*>/g, '')
@@ -56,6 +84,11 @@ export function NotificationItem({
     case 'MARKET_CANCELED': {
       topLine = notification.market.question
       bottomLine = `Canceled by ${notification.actor.displayName}`
+      break
+    }
+    case 'MARKET_CLOSED': {
+      topLine = notification.market.question
+      bottomLine = 'Trading has closed. This market is awaiting resolution.'
       break
     }
     case 'MARKET_TRADE': {
@@ -149,20 +182,40 @@ export function NotificationItem({
       bottomLine = `¤${formatNumber(amount)} from ${notification.actor.displayName}${othersCount}`
       break
     }
+    case 'TAG_NEW_MARKET': {
+      topLine = 'New market in followed tag'
+      bottomLine = `${notification.actor?.displayName} created: ${notification.market?.question}`
+      break
+    }
+    case 'MARKET_BOOKMARK_RESOLVED': {
+      topLine = 'Bookmarked market resolved'
+      bottomLine = `${notification.market?.question} resolved ${notification.marketOption?.name}`
+      break
+    }
     // default: {
     //   topLine = notification.type
     //   bottomLine = ''
     // }
   }
 
+  const iconInfo = NOTIFICATION_ICON_MAP[notification.type]
+  const TypeIcon = iconInfo?.icon
+
   return (
     <Link href={notification.actionUrl}>
-      <div className="flex min-w-0 gap-2 px-4 py-3">
-        {notification.actor ? (
-          <UserAvatar className="mt-1" user={notification.actor} />
-        ) : (
-          <div className="mt-1 h-8 w-8 flex-shrink-0 rounded-full bg-muted-foreground"></div>
-        )}
+      <div className={cn('flex min-w-0 gap-2 px-4 py-3 transition-colors hover:bg-muted/50', unread && 'bg-muted/30')}>
+        <div className="relative mt-1 flex-shrink-0">
+          {notification.actor ? (
+            <UserAvatar user={notification.actor} />
+          ) : (
+            <div className="h-8 w-8 rounded-full bg-muted-foreground"></div>
+          )}
+          {TypeIcon ? (
+            <div className="absolute -bottom-1 -right-1 flex h-4 w-4 items-center justify-center rounded-full bg-background shadow-sm">
+              <TypeIcon className={cn('h-3 w-3', iconInfo.className)} />
+            </div>
+          ) : null}
+        </div>
 
         <div className="min-w-0 flex-1">
           <div className={cn('mb-0.5 flex gap-2 text-sm', unread ? 'text-foreground' : 'text-muted-foreground')}>
@@ -171,7 +224,7 @@ export function NotificationItem({
           </div>
           <div className="flex items-end gap-2 text-xs text-muted-foreground">
             <div className="line-clamp-3 min-w-0 flex-1">{bottomLine}</div>
-            <div>{formatDistanceToNowShort(notification.createdAt)}</div>
+            <div className="flex-shrink-0">{formatDistanceToNowShort(notification.createdAt)}</div>
           </div>
         </div>
       </div>

@@ -17,6 +17,7 @@ export const UserSchema = z.object({
   bio: z.string().nullable(),
   timezone: z.string(),
   primaryAccountId: z.string(),
+  suspendedAt: z.coerce.date().nullable(),
   referralCode: z.string().nullable(),
   referredBy: z.string().nullable(),
   createdAt: z.coerce.date(),

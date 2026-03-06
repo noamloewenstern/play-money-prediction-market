@@ -1,7 +1,14 @@
 'use client'
 
 import React, { useState, useEffect } from 'react'
-import { createComment, createCommentReaction, deleteComment, updateComment } from '@play-money/api-helpers/client'
+import {
+  createComment,
+  createCommentReaction,
+  deleteComment,
+  pinComment,
+  unpinComment,
+  updateComment,
+} from '@play-money/api-helpers/client'
 import { CommentWithReactions } from '@play-money/comments/lib/getComment'
 import { CommentEntityType } from '@play-money/database'
 import { toast } from '@play-money/ui/use-toast'
@@ -9,19 +16,26 @@ import { useUser } from '@play-money/users/context/UserContext'
 import { flattenReplies } from '../lib/flattenReplies'
 import { CommentItem } from './CommentItem'
 import { CreateCommentForm } from './CreateCommentForm'
+import { DiscussionStarters } from './DiscussionStarters'
 
 export function CommentsList({
   comments,
   entity,
+  entityCreatorId,
+  marketQuestion,
   onRevalidate,
 }: {
   comments: Array<CommentWithReactions>
   entity: { type: CommentEntityType; id: string }
+  entityCreatorId?: string
+  marketQuestion?: string
   onRevalidate: () => void
 }) {
   const { user } = useUser()
   const nestedComments = flattenReplies(comments)
   const [highlightedCommentId, setHighlightedCommentId] = useState<string | null>(null)
+  const [prefillContent, setPrefillContent] = useState<string | undefined>(undefined)
+  const hasComments = nestedComments.length > 0
 
   useEffect(function highlightCommentFromURL() {
     const url = new URL(window.location.href)
@@ -77,21 +91,53 @@ export function CommentsList({
     onRevalidate()
   }
 
+  const handlePin = (commentId: string) => async () => {
+    try {
+      await pinComment({ commentId })
+      onRevalidate()
+    } catch (error) {
+      toast({
+        title: 'Could not pin comment',
+        description: (error as Error).message,
+      })
+    }
+  }
+
+  const handleUnpin = (commentId: string) => async () => {
+    try {
+      await unpinComment({ commentId })
+      onRevalidate()
+    } catch (error) {
+      toast({
+        title: 'Could not unpin comment',
+        description: (error as Error).message,
+      })
+    }
+  }
+
+  const userCanPin = Boolean(user && (user.role === 'ADMIN' || (entityCreatorId && user.id === entityCreatorId)))
+
   return (
     <div>
       <div className="px-6 py-4">
-        <CreateCommentForm onSubmit={handleCreateReply()} />
+        <CreateCommentForm key={prefillContent} initialContent={prefillContent} onSubmit={handleCreateReply()} />
       </div>
+      {!hasComments && marketQuestion ? (
+        <DiscussionStarters marketQuestion={marketQuestion} onStarterClick={setPrefillContent} />
+      ) : null}
       {nestedComments.map((comment) => (
         <div key={comment.id}>
           <CommentItem
             activeUserId={user?.id || ''}
             comment={comment}
             isHighlighted={highlightedCommentId === comment.id}
+            canPin={userCanPin}
             onEmojiSelect={handleToggleEmojiReaction(comment.id)}
             onCreateReply={handleCreateReply(comment.id)}
             onEdit={handleEdit(comment.id)}
             onDelete={handleDelete(comment.id)}
+            onPin={handlePin(comment.id)}
+            onUnpin={handleUnpin(comment.id)}
           />
           <div className="ml-6 sm:ml-12">
             {comment.replies.map((reply) => (

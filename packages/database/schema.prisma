@@ -64,9 +64,11 @@ model User {
   actorNotifications     Notification[]      @relation("NotificationActor")
   notificationGroups     NotificationGroup[] @relation()
 
-  createdLists List[]      @relation("ListCreator")
-  apiKeys      ApiKey[]
-  tagFollows   TagFollow[]
+  createdLists     List[]           @relation("ListCreator")
+  apiKeys          ApiKey[]
+  tagFollows       TagFollow[]
+  marketBookmarks  MarketBookmark[]
+  webhooks         Webhook[]
 
   @@index([referredBy])
 }
@@ -101,9 +103,10 @@ model Session {
 
 model Market {
   id                String                 @id @default(cuid())
-  question          String /// @zod.string.trim().min(1, { message: "Question is required" })
-  description       String
-  slug              String /// @zod.string.min(1, { message: "Slug is required" })
+  question           String /// @zod.string.trim().min(1, { message: "Question is required" })
+  description        String
+  resolutionCriteria String? /// @zod.string.optional()
+  slug               String /// @zod.string.min(1, { message: "Slug is required" })
   closeDate         DateTime?
   closedAt          DateTime?
   resolvedAt        DateTime?
@@ -136,6 +139,7 @@ model Market {
   notifications Notification[] @relation()
 
   lists MarketList[]
+  bookmarks MarketBookmark[]
 
   parentListId String?
   parentList   List?   @relation("ParentListMarkets", fields: [parentListId], references: [id])
@@ -213,6 +217,7 @@ model Comment {
   replies    Comment[]         @relation("CommentReplies")
   reactions  CommentReaction[]
   hidden     Boolean           @default(false)
+  pinnedAt   DateTime?
   entityType CommentEntityType
   entityId   String
 
@@ -384,6 +389,7 @@ enum NotificationType {
   COMMENT_REACTION
   REFERRER_BONUS
   TAG_NEW_MARKET
+  MARKET_BOOKMARK_RESOLVED
 }
 
 model TagFollow {
@@ -396,6 +402,19 @@ model TagFollow {
   @@unique([userId, tag])
   @@index([tag])
   @@index([userId])
+}
+
+model MarketBookmark {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  marketId  String
+  market    Market   @relation(fields: [marketId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+
+  @@unique([userId, marketId])
+  @@index([userId])
+  @@index([marketId])
 }
 
 model Notification {
@@ -519,6 +538,7 @@ enum AuditLogAction {
   BALANCE_ADJUST
   RESOLUTION_OVERRIDE
   USER_IMPERSONATE
+  COMMENT_PIN
 }
 
 model AuditLog {
@@ -537,4 +557,45 @@ model AuditLog {
   @@index([action])
   @@index([targetType, targetId])
   @@index([createdAt])
+}
+
+enum WebhookEventType {
+  MARKET_RESOLVED
+  MARKET_CANCELED
+  TRADE_EXECUTED
+  COMMENT_CREATED
+}
+
+model Webhook {
+  id         String             @id @default(cuid())
+  userId     String
+  user       User               @relation(fields: [userId], references: [id], onDelete: Cascade)
+  url        String
+  secret     String
+  events     WebhookEventType[]
+  isActive   Boolean            @default(true)
+  createdAt  DateTime           @default(now())
+  updatedAt  DateTime           @updatedAt
+  deliveries WebhookDelivery[]
+
+  @@index([userId])
+  @@index([isActive])
+}
+
+model WebhookDelivery {
+  id         String   @id @default(cuid())
+  webhookId  String
+  webhook    Webhook  @relation(fields: [webhookId], references: [id], onDelete: Cascade)
+  eventType  String
+  payload    Json
+  status     String
+  statusCode Int?
+  attempts   Int      @default(0)
+  lastError  String?
+  nextRetry  DateTime?
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  @@index([webhookId, createdAt])
+  @@index([status, nextRetry])
 }

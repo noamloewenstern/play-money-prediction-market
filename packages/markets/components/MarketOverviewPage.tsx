@@ -250,7 +250,14 @@ export function MarketOverviewPage({
           ) : null}
         </CardContent>
 
-        <CardContent className="space-y-2">
+        <CardContent className="space-y-4">
+          {market.resolutionCriteria ? (
+            <div className="rounded-md border border-muted bg-muted/30 p-4">
+              <div className="mb-2 text-sm font-semibold text-muted-foreground">Resolution Criteria</div>
+              <ReadMoreEditor value={market.resolutionCriteria} maxLines={6} />
+            </div>
+          ) : null}
+
           {market.description ? <ReadMoreEditor value={market.description} maxLines={6} /> : null}
 
           {market.tags.length ? (

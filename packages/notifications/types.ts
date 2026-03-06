@@ -209,6 +209,20 @@ export type CreateTagNewMarketNotification = CreateNotificationBase & {
   marketId: string
 }
 
+export type MarketBookmarkResolvedNotificationContent = NotificationContentBase & {
+  type: 'MARKET_BOOKMARK_RESOLVED'
+  actor: User
+  market: Market
+  marketOption: MarketOption
+}
+
+export type CreateMarketBookmarkResolvedNotification = CreateNotificationBase & {
+  type: 'MARKET_BOOKMARK_RESOLVED'
+  actorId: string
+  marketId: string
+  marketOptionId: string
+}
+
 export type NotificationContent =
   | MarketResolvedNotificationContent
   | MarketCanceledNotificationContent
@@ -222,6 +236,7 @@ export type NotificationContent =
   | CommentReactionNotificationContent
   | ReferrerBonusNotificationContent
   | TagNewMarketNotificationContent
+  | MarketBookmarkResolvedNotificationContent
 
 export type CreateNotificationData =
   | CreateMarketResolvedNotification
@@ -236,3 +251,4 @@ export type CreateNotificationData =
   | CreateCommentMentionNotification
   | CreateReferrerBonusNotification
   | CreateTagNewMarketNotification
+  | CreateMarketBookmarkResolvedNotification

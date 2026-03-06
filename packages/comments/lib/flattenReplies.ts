@@ -3,7 +3,9 @@ import orderBy from 'lodash/orderBy'
 
 const ROOT_KEY = 'ROOT'
 
-export function flattenReplies<C extends { id: string; parentId?: string | null }>(comments: Array<C>) {
+export function flattenReplies<C extends { id: string; parentId?: string | null; pinnedAt?: Date | string | null }>(
+  comments: Array<C>
+) {
   const grouped = groupBy(comments, ({ parentId }) => parentId || ROOT_KEY)
 
   const buildFlatReplies = (comment: C) => {
@@ -20,12 +22,21 @@ export function flattenReplies<C extends { id: string; parentId?: string | null 
 
   const topLevelComments = grouped[ROOT_KEY] || []
 
-  return orderBy(
-    topLevelComments.map((comment) => ({
-      ...comment,
-      replies: buildFlatReplies(comment),
-    })),
+  const withReplies = topLevelComments.map((comment) => ({
+    ...comment,
+    replies: buildFlatReplies(comment),
+  }))
+
+  const pinned = orderBy(
+    withReplies.filter((c) => c.pinnedAt),
+    'pinnedAt',
+    'asc'
+  )
+  const unpinned = orderBy(
+    withReplies.filter((c) => !c.pinnedAt),
     'createdAt',
     'desc'
   )
+
+  return [...pinned, ...unpinned]
 }

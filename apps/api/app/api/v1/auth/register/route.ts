@@ -6,7 +6,7 @@ import schema from './schema'
 
 export const dynamic = 'force-dynamic'
 
-const limiter = rateLimit({ windowMs: 60000, maxRequests: 10 })
+const limiter = rateLimit({ windowMs: 60_000, maxRequests: 10 })
 
 export async function POST(req: Request) {
   try {

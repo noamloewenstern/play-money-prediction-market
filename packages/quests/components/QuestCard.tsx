@@ -18,10 +18,10 @@ export function QuestCard({ quests }: { quests: Array<Quest> }) {
 
   return (
     <Card className="w-full max-w-sm">
-      <CardHeader className="border-b md:py-3">
-        <CardTitle className="flex justify-between md:text-lg">
+      <CardHeader className="border-b bg-muted/30 md:py-3">
+        <CardTitle className="flex items-center justify-between md:text-lg">
           Daily Quests
-          <Badge variant="outline">{`${numComplete} / ${quests.length} complete`}</Badge>
+          <Badge variant="secondary">{`${numComplete} / ${quests.length}`}</Badge>
         </CardTitle>
       </CardHeader>
       {!allComplete ? (

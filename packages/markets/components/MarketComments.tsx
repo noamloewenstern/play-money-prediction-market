@@ -3,7 +3,15 @@ import React from 'react'
 import { getMarketComments } from '@play-money/api-helpers/client'
 import { CommentsList } from '@play-money/comments/components/CommentsList'
 
-export async function MarketComments({ marketId }: { marketId: string }) {
+export async function MarketComments({
+  marketId,
+  creatorId,
+  marketQuestion,
+}: {
+  marketId: string
+  creatorId?: string
+  marketQuestion?: string
+}) {
   const { data: comments } = await getMarketComments({ marketId })
 
   const handleRevalidate = async () => {
@@ -11,5 +19,13 @@ export async function MarketComments({ marketId }: { marketId: string }) {
     revalidateTag(`${marketId}:comments`)
   }
 
-  return <CommentsList comments={comments} entity={{ type: 'MARKET', id: marketId }} onRevalidate={handleRevalidate} />
+  return (
+    <CommentsList
+      comments={comments}
+      entity={{ type: 'MARKET', id: marketId }}
+      entityCreatorId={creatorId}
+      marketQuestion={marketQuestion}
+      onRevalidate={handleRevalidate}
+    />
+  )
 }

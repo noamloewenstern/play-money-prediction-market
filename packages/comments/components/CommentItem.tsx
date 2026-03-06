@@ -1,7 +1,7 @@
 'use client'
 
 import { formatDistance } from 'date-fns'
-import { Ellipsis, Reply } from 'lucide-react'
+import { Ellipsis, Pin, Reply } from 'lucide-react'
 import React, { useState } from 'react'
 import { CommentWithReactions } from '@play-money/comments/lib/getComment'
 import { UserAvatar } from '@play-money/ui/UserAvatar'
@@ -38,19 +38,25 @@ export function CommentItem({
   comment,
   isHighlighted,
   condensed = false,
+  canPin = false,
   onEmojiSelect,
   onCreateReply,
   onEdit,
   onDelete,
+  onPin,
+  onUnpin,
 }: {
   activeUserId: string
   comment: CommentWithReactions
   isHighlighted?: boolean
   condensed?: boolean
+  canPin?: boolean
   onEmojiSelect: (emoji: string) => void
   onCreateReply: (content: string) => Promise<void>
   onEdit: (content: string) => Promise<void>
   onDelete: () => void
+  onPin?: () => void
+  onUnpin?: () => void
 }) {
   const [isReplyOpen, setIsReplyOpen] = useState(false)
   const [isPortalOpen, setIsPortalOpen] = useState(false)
@@ -103,6 +109,13 @@ export function CommentItem({
             {formatDistanceToNowShort(comment.createdAt)}
           </div>
 
+          {comment.pinnedAt ? (
+            <div className="flex flex-shrink-0 items-center gap-1 text-sm font-medium text-primary">
+              <Pin className="h-3 w-3" />
+              Pinned
+            </div>
+          ) : null}
+
           {comment.edited && <div className="flex-shrink-0 text-sm text-muted-foreground">(edited)</div>}
 
           <div
@@ -133,6 +146,17 @@ export function CommentItem({
                 }}
               >
                 <DropdownMenuItem onClick={handleCopyLink}>Copy Link</DropdownMenuItem>
+
+                {canPin && !comment.parentId ? (
+                  <>
+                    <DropdownMenuSeparator />
+                    {comment.pinnedAt ? (
+                      <DropdownMenuItem onClick={onUnpin}>Unpin</DropdownMenuItem>
+                    ) : (
+                      <DropdownMenuItem onClick={onPin}>Pin to top</DropdownMenuItem>
+                    )}
+                  </>
+                ) : null}
 
                 {activeUserId === comment.author.id ? (
                   <>

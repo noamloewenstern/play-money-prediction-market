@@ -3,12 +3,14 @@ import db from '@play-money/database'
 import { getUniqueTraderIds } from '@play-money/markets/lib/getUniqueTraderIds'
 import { createNotification } from '@play-money/notifications/lib/createNotification'
 import { getUserById } from '@play-money/users/lib/getUserById'
+import { triggerWebhook } from '@play-money/webhooks/lib/triggerWebhook'
 import { isMarketCanceled, isMarketResolved } from '../rules'
 import { createMarketExcessLiquidityTransactions } from './createMarketExcessLiquidityTransactions'
 import { MarketCanceledError, MarketResolvedError } from './exceptions'
 import { createMarketResolveLossTransactions } from './createMarketResolveLossTransactions'
 import { createMarketResolveWinTransactions } from './createMarketResolveWinTransactions'
 import { getMarket } from './getMarket'
+import { getMarketBookmarkUserIds } from './getMarketBookmarkUserIds'
 
 export async function resolveMarket({
   resolverId,
@@ -95,6 +97,25 @@ export async function resolveMarket({
     )
   )
 
+  // Notify users who bookmarked this market (excluding resolver and traders already notified)
+  const bookmarkUserIds = await getMarketBookmarkUserIds({ marketId })
+  const traderIdSet = new Set(recipientIds)
+  const bookmarkOnlyRecipients = bookmarkUserIds.filter((id) => id !== resolvingUser.id && !traderIdSet.has(id))
+
+  await Promise.all(
+    bookmarkOnlyRecipients.map((recipientId) =>
+      createNotification({
+        type: 'MARKET_BOOKMARK_RESOLVED',
+        actorId: resolverId,
+        marketId: market.id,
+        marketOptionId: optionId,
+        groupKey: market.id,
+        userId: recipientId,
+        actionUrl: `/questions/${market.id}/${market.slug}`,
+      })
+    )
+  )
+
   const resolvedOption = market.options.find((o) => o.id === optionId)
   await createAuditLog({
     action: 'MARKET_RESOLVE',
@@ -104,5 +125,18 @@ export async function resolveMarket({
     before: { resolvedAt: null },
     after: { resolvedAt: new Date().toISOString(), resolutionOptionId: optionId, resolutionOptionName: resolvedOption?.name },
     metadata: { marketQuestion: market.question, supportingLink },
+  })
+
+  void triggerWebhook({
+    eventType: 'MARKET_RESOLVED',
+    marketId,
+    payload: {
+      marketId,
+      question: market.question,
+      resolverId,
+      optionId,
+      optionName: resolvedOption?.name,
+      supportingLink,
+    },
   })
 }

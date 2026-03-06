@@ -18,6 +18,7 @@ type PartialOptions = Pick<MarketOption, 'name' | 'color'>
 export async function createMarket({
   question,
   description,
+  resolutionCriteria,
   closeDate,
   createdBy,
   options,
@@ -27,6 +28,7 @@ export async function createMarket({
 }: {
   question: string
   description: string
+  resolutionCriteria?: string | null
   closeDate: Date | null
   createdBy: string
   options?: Array<PartialOptions>
@@ -35,6 +37,7 @@ export async function createMarket({
   parentListId?: string
 }) {
   const sanitizedDescription = DOMPurify.sanitize(description)
+  const sanitizedResolutionCriteria = resolutionCriteria ? DOMPurify.sanitize(resolutionCriteria) : null
 
   let slug = slugifyTitle(question)
 
@@ -73,6 +76,7 @@ export async function createMarket({
     data: {
       question,
       description: sanitizedDescription,
+      resolutionCriteria: sanitizedResolutionCriteria,
       closeDate,
       slug,
       tags: generatedTags.map((tag) => slugifyTitle(tag)),

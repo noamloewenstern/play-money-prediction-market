@@ -1,11 +1,26 @@
 import { MessageSquareIcon, UsersIcon, DiamondIcon } from 'lucide-react'
 import Link from 'next/link'
+import React from 'react'
 import { CurrencyDisplay } from '@play-money/finance/components/CurrencyDisplay'
 import { UserAvatar } from '@play-money/ui/UserAvatar'
 import { Tooltip, TooltipContent, TooltipTrigger } from '@play-money/ui/tooltip'
 import { ExtendedMarket } from '../types'
 
-export function MarketList({ markets }: { markets: Array<ExtendedMarket> }) {
+export function MarketList({
+  markets,
+  linkRef,
+  emptyState,
+}: {
+  markets: Array<ExtendedMarket>
+  linkRef?: string
+  emptyState?: React.ReactNode
+}) {
+  const refParam = linkRef ? `?ref=${encodeURIComponent(linkRef)}` : ''
+
+  if (markets.length === 0 && emptyState) {
+    return <div className="flex-1">{emptyState}</div>
+  }
+
   return (
     <div className="flex-1 space-y-4">
       {markets.map((market) => {
@@ -17,7 +32,7 @@ export function MarketList({ markets }: { markets: Array<ExtendedMarket> }) {
           <div className="border p-4" key={market.id}>
             <Link
               className="line-clamp-2 text-lg font-medium visited:text-muted-foreground"
-              href={`/questions/${market.id}/${market.slug}`}
+              href={`/questions/${market.id}/${market.slug}${refParam}`}
             >
               {market.question}
             </Link>

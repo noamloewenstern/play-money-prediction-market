@@ -10,6 +10,7 @@
     "@emoji-mart/react": "^1.1.1",
     "@play-money/database": "*",
     "@play-money/users": "*",
+    "@play-money/webhooks": "*",
     "emoji-mart": "^5.6.0",
     "lodash": "^4.17.21",
     "isomorphic-dompurify": "^2.16.0",

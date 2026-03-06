@@ -7,6 +7,7 @@ import { createNotification } from '@play-money/notifications/lib/createNotifica
 import { createDailyCommentBonusTransaction } from '@play-money/quests/lib/createDailyCommentBonusTransaction'
 import { hasCommentedToday } from '@play-money/quests/lib/helpers'
 import { getUserPrimaryAccount } from '@play-money/users/lib/getUserPrimaryAccount'
+import { triggerWebhook } from '@play-money/webhooks/lib/triggerWebhook'
 
 function extractUniqueMentionIds(htmlString: string): Array<string> {
   const mentionRegex = /<mention[^>]*data-id="([^"]*)"[^>]*>/g
@@ -148,6 +149,18 @@ export async function createComment({
       initiatorId: authorId,
     })
   }
+
+  void triggerWebhook({
+    eventType: 'COMMENT_CREATED',
+    marketId: entityType === 'MARKET' ? entityId : undefined,
+    payload: {
+      commentId: comment.id,
+      authorId,
+      entityType,
+      entityId,
+      parentId: parentId ?? null,
+    },
+  })
 
   return comment
 }
